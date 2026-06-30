@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>PDE – Admin Panel</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{--gd:#1e1b4b;--gm:#4f46e5;--gl:#e0e7ff;--bg:#f5f5ff;--gold:#f59e0b;--red:#ef4444;--green:#22c55e;--orange:#f97316;--text:#1e1b4b;--muted:#6b7280;--card:#fff;--r:16px;--sh:0 4px 24px rgba(79,70,229,.10);--nav:68px;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+/* AUTH */
+.auth-screen{display:flex;flex-direction:column;min-height:100vh;}
+.auth-hero{background:linear-gradient(135deg,var(--gd),var(--gm));padding:60px 24px 50px;text-align:center;}
+.auth-hero-icon{font-size:64px;margin-bottom:16px;}
+.auth-hero h1{color:#fff;font-size:26px;font-weight:900;}
+.auth-hero p{color:var(--gl);font-size:13px;margin-top:6px;opacity:.9;}
+.auth-body{background:#fff;border-radius:28px 28px 0 0;margin-top:-20px;padding:32px 24px 40px;flex:1;}
+.field{margin-bottom:16px;}
+.field label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px;}
+.field input{width:100%;padding:13px 16px;border:1.5px solid #e5e7eb;border-radius:12px;font-size:15px;font-family:inherit;outline:none;transition:border-color .2s;}
+.field input:focus{border-color:var(--gm);}
+.pw-wrap{position:relative;}
+.pw-wrap input{padding-right:44px;}
+.pw-eye{position:absolute;right:14px;top:50%;transform:translateY(-50%);font-size:18px;cursor:pointer;color:var(--muted);}
+.auth-btn{width:100%;padding:16px;background:linear-gradient(135deg,var(--gd),var(--gm));color:#fff;border:none;border-radius:14px;font-size:16px;font-weight:800;cursor:pointer;margin-top:6px;}
+.auth-error{background:#fee2e2;color:#991b1b;padding:12px 14px;border-radius:12px;font-size:13px;font-weight:600;margin-bottom:16px;display:none;}
+.auth-error.show{display:block;}
+.auth-hint{text-align:center;font-size:13px;color:var(--muted);margin-top:16px;padding:12px;background:var(--gl);border-radius:12px;line-height:1.6;}
+/* APP */
+.app{display:none;}
+.app.active{display:block;padding-bottom:var(--nav);}
+.header{background:linear-gradient(135deg,var(--gd),var(--gm));padding:18px 18px 20px;position:sticky;top:0;z-index:100;box-shadow:0 2px 16px rgba(79,70,229,.25);}
+.header-top{display:flex;align-items:center;justify-content:space-between;}
+.brand{display:flex;align-items:center;gap:10px;}
+.brand-icon{width:40px;height:40px;background:rgba(255,255,255,.18);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;}
+.brand-name{color:#fff;font-size:15px;font-weight:800;}
+.brand-sub{color:var(--gl);font-size:10px;opacity:.85;}
+.live-badge{background:var(--green);color:#fff;font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;display:flex;align-items:center;gap:5px;}
+.live-dot{width:7px;height:7px;background:#fff;border-radius:50%;animation:pulse 1.2s infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.3;}}
+.header-search{margin-top:12px;position:relative;}
+.header-search input{width:100%;background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.25);border-radius:12px;padding:10px 14px 10px 36px;color:#fff;font-size:14px;outline:none;font-family:inherit;}
+.header-search input::placeholder{color:rgba(255,255,255,.6);}
+.hs-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:15px;pointer-events:none;}
+.page{display:none;}.page.active{display:block;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:translateY(0);}}
+.section-title{font-size:20px;font-weight:800;color:var(--gd);padding:18px 18px 10px;}
+/* STATS */
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:0 18px 16px;}
+.stat-card{background:var(--card);border-radius:16px;box-shadow:var(--sh);padding:16px;animation:fadeUp .3s ease both;position:relative;overflow:hidden;}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--gm);}
+.stat-card.red::before{background:var(--red);}
+.stat-card.green::before{background:var(--green);}
+.stat-card.gold::before{background:var(--gold);}
+.stat-card.orange::before{background:var(--orange);}
+.stat-val{font-size:26px;font-weight:900;color:var(--gm);}
+.stat-card.red .stat-val{color:var(--red);}
+.stat-card.green .stat-val{color:var(--green);}
+.stat-card.gold .stat-val{color:var(--gold);}
+.stat-card.orange .stat-val{color:var(--orange);}
+.stat-label{font-size:12px;color:var(--muted);font-weight:600;margin-top:4px;}
+.stat-icon{font-size:24px;margin-bottom:6px;}
+/* FILTER TABS */
+.filter-tabs{display:flex;gap:8px;padding:0 18px 12px;overflow-x:auto;scrollbar-width:none;}
+.filter-tabs::-webkit-scrollbar{display:none;}
+.ftab{flex-shrink:0;padding:7px 16px;border-radius:20px;border:1.5px solid var(--gl);background:#fff;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;transition:all .15s;}
+.ftab.active{background:var(--gm);color:#fff;border-color:var(--gm);}
+/* FEED */
+.feed-wrap{padding:0 18px 16px;}
+.feed-item{background:var(--card);border-radius:14px;box-shadow:var(--sh);padding:14px;margin-bottom:10px;display:flex;align-items:flex-start;gap:12px;animation:fadeUp .3s ease both;border-left:4px solid var(--gm);}
+.feed-item.red{border-left-color:var(--red);}
+.feed-item.green{border-left-color:var(--green);}
+.feed-item.gold{border-left-color:var(--gold);}
+.feed-item.orange{border-left-color:var(--orange);}
+.feed-emoji{font-size:22px;flex-shrink:0;}
+.feed-body{flex:1;}
+.feed-text{font-size:13px;font-weight:700;}
+.feed-sub{font-size:12px;color:var(--muted);margin-top:2px;}
+.feed-time{font-size:11px;color:var(--muted);margin-top:2px;}
+/* APPLICATIONS */
+.app-card{background:var(--card);border-radius:16px;box-shadow:var(--sh);padding:16px;margin:0 18px 14px;animation:fadeUp .3s ease both;}
+.app-hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;}
+.app-type-badge{font-size:11px;font-weight:800;padding:3px 10px;border-radius:20px;}
+.tb-merchant{background:#dbeafe;color:#1e40af;}
+.tb-rider{background:#ffedd5;color:#7c2d12;}
+.app-status{font-size:11px;font-weight:800;padding:3px 10px;border-radius:20px;}
+.s-pending{background:#fef3c7;color:#92400e;}
+.s-approved{background:#d1fae5;color:#065f46;}
+.s-rejected{background:#fee2e2;color:#991b1b;}
+.app-name{font-size:16px;font-weight:800;margin-bottom:6px;}
+.app-detail{font-size:13px;color:var(--muted);margin-bottom:3px;}
+.app-detail strong{color:var(--text);}
+.doc-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0;}
+.doc-item{background:var(--bg);border-radius:10px;padding:10px;}
+.doc-label{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;}
+.doc-val{font-size:13px;font-weight:700;color:var(--text);margin-top:2px;}
+.divider{height:1px;background:#f3f4f6;margin:12px 0;}
+.app-actions{display:flex;gap:8px;}
+.btn-approve{flex:1;padding:12px;background:var(--green);color:#fff;border:none;border-radius:12px;font-size:13px;font-weight:700;cursor:pointer;transition:background .15s;}
+.btn-approve:hover{background:#16a34a;}
+.btn-reject-app{flex:1;padding:12px;background:#fee2e2;color:var(--red);border:none;border-radius:12px;font-size:13px;font-weight:700;cursor:pointer;}
+.btn-off{background:var(--muted)!important;color:#fff!important;pointer-events:none;}
+/* ORDERS TABLE */
+.table-wrap{padding:0 18px 16px;overflow-x:auto;}
+.order-table{width:100%;min-width:600px;border-collapse:collapse;background:var(--card);border-radius:16px;overflow:hidden;box-shadow:var(--sh);}
+.order-table th{background:var(--gd);color:#fff;padding:11px 14px;font-size:11px;font-weight:700;text-align:left;text-transform:uppercase;letter-spacing:.5px;}
+.order-table td{padding:11px 14px;font-size:13px;border-bottom:1px solid var(--bg);}
+.order-table tr:last-child td{border-bottom:none;}
+.order-table tr:hover td{background:var(--bg);}
+.status-pill{font-size:10px;font-weight:800;padding:3px 8px;border-radius:20px;}
+.sp-pend{background:#fef3c7;color:#92400e;}.sp-acc{background:#d1fae5;color:#065f46;}.sp-rdy{background:#dbeafe;color:#1e40af;}.sp-pick{background:#ede9fe;color:#6b21a8;}.sp-done{background:#d1fae5;color:#065f46;}.sp-rej{background:#fee2e2;color:#991b1b;}
+.tbl-btn{padding:5px 10px;border:none;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;margin-right:4px;}
+.tbl-btn-blue{background:var(--gl);color:var(--gm);}
+.tbl-btn-red{background:#fee2e2;color:var(--red);}
+.tbl-btn-green{background:#d1fae5;color:#065f46;}
+/* USERS */
+.user-list{padding:0 18px 16px;}
+.user-card{background:var(--card);border-radius:14px;box-shadow:var(--sh);padding:14px;margin-bottom:10px;animation:fadeUp .3s ease both;}
+.user-card-top{display:flex;align-items:center;gap:12px;margin-bottom:10px;}
+.u-avatar{width:48px;height:48px;border-radius:50%;background:var(--gl);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;}
+.u-info{flex:1;}
+.u-name{font-size:14px;font-weight:700;}
+.u-sub{font-size:12px;color:var(--muted);margin-top:2px;}
+.u-badge{font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;}
+.b-active{background:#d1fae5;color:#065f46;}
+.b-pending{background:#fef3c7;color:#92400e;}
+.b-banned{background:#fee2e2;color:var(--red);}
+.user-actions{display:flex;gap:6px;flex-wrap:wrap;}
+.ua-btn{padding:7px 12px;border:none;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;}
+.btn-ban{background:#fee2e2;color:var(--red);}
+.btn-unban{background:#d1fae5;color:#065f46;}
+.btn-reset-pw{background:var(--gl);color:var(--gm);}
+.btn-view-docs{background:#f3e8ff;color:#7e22ce;}
+/* ANALYTICS */
+.analytics-card{background:linear-gradient(135deg,var(--gd),var(--gm));border-radius:20px;margin:0 18px 16px;padding:24px 20px;color:#fff;}
+.an-total{font-size:34px;font-weight:900;letter-spacing:-1px;}
+.an-label{font-size:12px;opacity:.8;margin-top:4px;}
+.an-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:16px;}
+.an-item{background:rgba(255,255,255,.15);border-radius:12px;padding:10px;text-align:center;}
+.an-val{font-size:17px;font-weight:800;}
+.an-lbl{font-size:10px;opacity:.8;margin-top:2px;}
+.chart-card{background:var(--card);border-radius:16px;box-shadow:var(--sh);padding:18px;margin:0 18px 16px;}
+.chart-card h3{font-size:15px;font-weight:800;color:var(--gd);margin-bottom:14px;}
+.bar-chart{display:flex;align-items:flex-end;gap:6px;height:90px;}
+.bc-bar-wrap{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;}
+.bc-bar{width:100%;background:var(--gl);border-radius:6px 6px 0 0;transition:height .5s;}
+.bc-bar.highlight{background:var(--gm);}
+.bc-val{font-size:9px;color:var(--muted);font-weight:700;}
+.bc-lbl{font-size:9px;color:var(--muted);}
+.top-list{padding:0 18px 16px;}
+.top-item{background:var(--card);border-radius:12px;box-shadow:var(--sh);padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;}
+.top-rank{font-size:18px;font-weight:900;color:var(--muted);width:28px;text-align:center;}
+.top-info{flex:1;}
+.top-name{font-size:14px;font-weight:700;}
+.top-sub{font-size:12px;color:var(--muted);margin-top:2px;}
+.top-val{font-size:16px;font-weight:900;color:var(--gm);}
+/* AUDIT */
+.audit-item{background:var(--card);border-radius:12px;box-shadow:var(--sh);padding:12px 14px;margin-bottom:8px;display:flex;gap:10px;animation:fadeUp .3s ease both;}
+.audit-icon{font-size:20px;flex-shrink:0;}
+.audit-action{font-size:13px;font-weight:700;}
+.audit-detail{font-size:12px;color:var(--muted);margin-top:2px;}
+.audit-time{font-size:11px;color:var(--muted);margin-top:2px;}
+/* DOCS MODAL */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:400;align-items:flex-end;}
+.modal-bg.open{display:flex;}
+.modal-sheet{background:#fff;border-radius:24px 24px 0 0;padding:22px 18px 36px;width:100%;max-height:85vh;overflow-y:auto;}
+.modal-handle{width:40px;height:4px;background:#e5e7eb;border-radius:4px;margin:0 auto 18px;}
+.modal-title{font-size:18px;font-weight:800;margin-bottom:18px;}
+.doc-view-item{background:var(--bg);border-radius:12px;padding:14px;margin-bottom:10px;}
+.doc-view-label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;}
+.doc-view-val{font-size:14px;font-weight:700;color:var(--text);}
+.modal-btn{width:100%;padding:14px;background:linear-gradient(135deg,var(--gd),var(--gm));color:#fff;border:none;border-radius:14px;font-size:15px;font-weight:800;cursor:pointer;margin-top:8px;}
+/* RESET PW MODAL */
+.reset-pw-modal .field input{border:1.5px solid #e5e7eb;border-radius:12px;padding:12px 14px;font-size:14px;}
+/* NAV */
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;height:var(--nav);background:#fff;border-top:1px solid #e5e7eb;display:flex;align-items:center;justify-content:space-around;z-index:150;box-shadow:0 -4px 20px rgba(79,70,229,.08);}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:6px 0;cursor:pointer;position:relative;color:var(--muted);border:none;background:none;font-family:inherit;}
+.nav-item.active{color:var(--gm);}
+.nav-item.active .nav-icon{background:var(--gl);border-radius:12px;}
+.nav-icon{width:36px;height:30px;display:flex;align-items:center;justify-content:center;font-size:20px;}
+.nav-label{font-size:10px;font-weight:600;}
+.n-badge{position:absolute;top:3px;right:calc(50% - 22px);background:var(--red);color:#fff;font-size:9px;font-weight:800;width:17px;height:17px;border-radius:50%;display:none;align-items:center;justify-content:center;border:1.5px solid #fff;}
+.toast{position:fixed;bottom:calc(var(--nav)+12px);left:50%;transform:translateX(-50%) translateY(80px);background:var(--gd);color:#fff;padding:12px 22px;border-radius:40px;font-size:14px;font-weight:600;z-index:500;display:flex;align-items:center;gap:8px;box-shadow:0 8px 24px rgba(79,70,229,.35);transition:transform .35s cubic-bezier(.32,.72,0,1),opacity .35s;opacity:0;white-space:nowrap;max-width:90vw;}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
+.empty-state{text-align:center;padding:40px 24px;color:var(--muted);}
+.empty-state .ei{font-size:48px;margin-bottom:10px;}
+.spinner{width:36px;height:36px;border:3px solid var(--gl);border-top-color:var(--gm);border-radius:50%;animation:spin .7s linear infinite;margin:40px auto;display:block;}
+@keyframes spin{to{transform:rotate(360deg);}}
+</style>
+</head>
+<body>
+
+<!-- AUTH -->
+<div class="auth-screen" id="authScreen">
+  <div class="auth-hero">
+    <div class="auth-hero-icon">⚙️</div>
+    <h1>Admin Panel</h1>
+    <p>Palawan Delivery Express</p>
+  </div>
+  <div class="auth-body">
+    <div class="auth-error" id="login-err"></div>
+    <div class="field"><label>Username</label><input id="a-user" type="text" placeholder="admin"/></div>
+    <div class="field"><label>Password</label>
+      <div class="pw-wrap"><input id="a-pw" type="password" placeholder="admin password"/><span class="pw-eye" onclick="togglePw()">👁️</span></div>
+    </div>
+    <button class="auth-btn" onclick="doLogin()">🔐 Log In as Admin</button>
+    <div class="auth-hint">Default credentials:<br><strong>Username:</strong> admin &nbsp;|&nbsp; <strong>Password:</strong> admin123</div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div class="app" id="mainApp">
+  <div class="header">
+    <div class="header-top">
+      <div class="brand">
+        <div class="brand-icon">⚙️</div>
+        <div><div class="brand-name">Admin Panel</div><div class="brand-sub">Palawan Delivery Express</div></div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <div class="live-badge"><div class="live-dot"></div>LIVE</div>
+        <div style="background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.3);border-radius:10px;padding:6px 12px;color:#fff;font-size:12px;font-weight:700;cursor:pointer" onclick="logout()">Log Out</div>
+      </div>
+    </div>
+    <div class="header-search">
+      <span class="hs-icon">🔍</span>
+      <input type="text" id="globalSearch" placeholder="Search users, orders, applications…" oninput="globalSearchHandler(this.value)"/>
+    </div>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div id="page-dashboard" class="page active">
+    <div class="section-title">📊 Live Overview</div>
+    <div class="stats-grid">
+      <div class="stat-card" style="animation-delay:0ms"><div class="stat-icon">📦</div><div class="stat-val" id="s-orders">0</div><div class="stat-label">Total Orders</div></div>
+      <div class="stat-card red" style="animation-delay:60ms"><div class="stat-icon">⏳</div><div class="stat-val" id="s-pending">0</div><div class="stat-label">Pending</div></div>
+      <div class="stat-card green" style="animation-delay:120ms"><div class="stat-icon">🎉</div><div class="stat-val" id="s-delivered">0</div><div class="stat-label">Delivered</div></div>
+      <div class="stat-card gold" style="animation-delay:180ms"><div class="stat-icon">💰</div><div class="stat-val" id="s-revenue">₱0</div><div class="stat-label">Revenue</div></div>
+      <div class="stat-card orange" style="animation-delay:240ms"><div class="stat-icon">🏪</div><div class="stat-val" id="s-merchants">0</div><div class="stat-label">Merchants</div></div>
+      <div class="stat-card" style="animation-delay:300ms"><div class="stat-icon">🛵</div><div class="stat-val" id="s-riders">0</div><div class="stat-label">Riders</div></div>
+    </div>
+    <div class="section-title" style="padding-top:0">📡 Live Activity Feed</div>
+    <div class="feed-wrap" id="feed-wrap"><div class="spinner"></div></div>
+  </div>
+
+  <!-- APPLICATIONS -->
+  <div id="page-applications" class="page">
+    <div class="section-title">📋 Applications</div>
+    <div class="filter-tabs">
+      <div class="ftab active" onclick="filterApps('all',this)">All</div>
+      <div class="ftab" onclick="filterApps('pending',this)">⏳ Pending</div>
+      <div class="ftab" onclick="filterApps('merchant',this)">🏪 Merchants</div>
+      <div class="ftab" onclick="filterApps('rider',this)">🛵 Riders</div>
+      <div class="ftab" onclick="filterApps('approved',this)">✅ Approved</div>
+      <div class="ftab" onclick="filterApps('rejected',this)">❌ Rejected</div>
+    </div>
+    <div id="apps-list"><div class="spinner"></div></div>
+  </div>
+
+  <!-- ORDERS -->
+  <div id="page-orders" class="page">
+    <div class="section-title">📦 All Orders</div>
+    <div class="filter-tabs">
+      <div class="ftab active" onclick="filterOrders('all',this)">All</div>
+      <div class="ftab" onclick="filterOrders('pending',this)">⏳ Pending</div>
+      <div class="ftab" onclick="filterOrders('accepted',this)">✅ Accepted</div>
+      <div class="ftab" onclick="filterOrders('ready',this)">📦 Ready</div>
+      <div class="ftab" onclick="filterOrders('picked_up',this)">🛵 Transit</div>
+      <div class="ftab" onclick="filterOrders('delivered',this)">🎉 Done</div>
+      <div class="ftab" onclick="filterOrders('rejected',this)">❌ Rejected</div>
+    </div>
+    <div class="table-wrap">
+      <table class="order-table">
+        <thead><tr><th>Order ID</th><th>Customer</th><th>Items</th><th>Total</th><th>Payment</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody id="order-tbody"><tr><td colspan="7" style="text-align:center;padding:32px"><div class="spinner" style="margin:0 auto"></div></td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- USERS -->
+  <div id="page-users" class="page">
+    <div class="section-title">👥 All Users</div>
+    <div class="filter-tabs">
+      <div class="ftab active" onclick="showUsers('customers',this)">👤 Customers</div>
+      <div class="ftab" onclick="showUsers('merchants',this)">🏪 Merchants</div>
+      <div class="ftab" onclick="showUsers('riders',this)">🛵 Riders</div>
+    </div>
+    <div style="padding:0 18px 8px">
+      <input type="text" id="userSearch" placeholder="Search users…" oninput="searchUsers(this.value)" style="width:100%;padding:10px 14px;border:1.5px solid var(--gl);border-radius:12px;font-size:14px;outline:none;font-family:inherit;background:#fff;"/>
+    </div>
+    <div class="user-list" id="user-list"><div class="spinner"></div></div>
+  </div>
+
+  <!-- ANALYTICS -->
+  <div id="page-analytics" class="page">
+    <div class="section-title">📈 Analytics & Reports</div>
+    <div class="filter-tabs">
+      <div class="ftab active" onclick="loadAnalytics('daily',this)">Today</div>
+      <div class="ftab" onclick="loadAnalytics('weekly',this)">This Week</div>
+      <div class="ftab" onclick="loadAnalytics('monthly',this)">This Month</div>
+      <div class="ftab" onclick="loadAnalytics('yearly',this)">This Year</div>
+    </div>
+    <div class="analytics-card">
+      <div class="an-label">Total Revenue</div>
+      <div class="an-total" id="an-revenue">₱0</div>
+      <div class="an-grid">
+        <div class="an-item"><div class="an-val" id="an-orders">0</div><div class="an-lbl">Orders</div></div>
+        <div class="an-item"><div class="an-val" id="an-delivered">0</div><div class="an-lbl">Delivered</div></div>
+        <div class="an-item"><div class="an-val" id="an-rate">0%</div><div class="an-lbl">Success Rate</div></div>
+      </div>
+    </div>
+    <div class="chart-card">
+      <h3>📊 Orders by Day</h3>
+      <div class="bar-chart" id="analyticsChart"></div>
+    </div>
+    <div class="section-title" style="padding-top:4px">🏆 Top Selling Products</div>
+    <div class="top-list" id="top-products"></div>
+    <div class="section-title" style="padding-top:4px">🏪 Top Merchants</div>
+    <div class="top-list" id="top-merchants"></div>
+    <div style="padding:0 18px 16px">
+      <button onclick="exportCSV()" style="width:100%;padding:14px;background:linear-gradient(135deg,var(--gd),var(--gm));color:#fff;border:none;border-radius:14px;font-size:15px;font-weight:800;cursor:pointer">📥 Export CSV Report</button>
+    </div>
+  </div>
+
+  <!-- AUDIT LOGS -->
+  <div id="page-audit" class="page">
+    <div class="section-title">🕵️ Audit Logs</div>
+    <div style="padding:0 18px 8px">
+      <input type="text" id="auditSearch" placeholder="Search logs…" oninput="searchAudit(this.value)" style="width:100%;padding:10px 14px;border:1.5px solid var(--gl);border-radius:12px;font-size:14px;outline:none;font-family:inherit;background:#fff;"/>
+    </div>
+    <div style="padding:0 18px 16px" id="audit-list"><div class="spinner"></div></div>
+  </div>
+
+  <nav class="bottom-nav">
+    <button class="nav-item active" onclick="showPage('dashboard',this)"><div class="nav-icon">📊</div><span class="nav-label">Dashboard</span></button>
+    <button class="nav-item" onclick="showPage('applications',this);loadApplications()"><div class="nav-icon">📋</div><span class="nav-label">Applications</span><span class="n-badge" id="appBadge"></span></button>
+    <button class="nav-item" onclick="showPage('orders',this);renderOrderTable()"><div class="nav-icon">📦</div><span class="nav-label">Orders</span></button>
+    <button class="nav-item" onclick="showPage('users',this);showUsers('customers',null)"><div class="nav-icon">👥</div><span class="nav-label">Users</span></button>
+    <button class="nav-item" onclick="showPage('analytics',this);loadAnalytics('monthly',null)"><div class="nav-icon">📈</div><span class="nav-label">Analytics</span></button>
+    <button class="nav-item" onclick="showPage('audit',this);loadAuditLogs()"><div class="nav-icon">🕵️</div><span class="nav-label">Audit</span></button>
+  </nav>
+</div>
+
+<!-- DOCS MODAL -->
+<div class="modal-bg" id="docsModal" onclick="if(event.target===this)closeDocsModal()">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="docs-modal-title">📄 Documents</div>
+    <div id="docs-modal-content"></div>
+    <button class="modal-btn" onclick="closeDocsModal()">Close</button>
+  </div>
+</div>
+
+<!-- RESET PASSWORD MODAL -->
+<div class="modal-bg reset-pw-modal" id="resetPwModal" onclick="if(event.target===this)closeResetPw()">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">🔒 Reset Password</div>
+    <div style="font-size:14px;color:var(--muted);margin-bottom:16px" id="reset-pw-for"></div>
+    <div class="field"><label>New Password</label><input id="rp-new" type="password" placeholder="Enter new password"/></div>
+    <div class="field"><label>Confirm Password</label><input id="rp-confirm" type="password" placeholder="Repeat new password"/></div>
+    <input type="hidden" id="rp-user-id"/>
+    <input type="hidden" id="rp-user-role"/>
+    <button class="modal-btn" onclick="submitResetPw()">Reset Password</button>
+  </div>
+</div>
+
+<div class="toast" id="toastEl">⚙️ <span id="toastMsg"></span></div>
+
+<script>
+const API_URL = "https://palawan-delivery-api.onrender.com";
+
+const ADMIN={username:'admin',password:'admin123'};
+const EM={rice:'🍚',vegetable:'🥦',fish:'🐟',meat:'🥩',chicken:'🍗',egg:'🥚',milk:'🥛',canned:'🥫',chips:'🍿',beef:'🥩',pork:'🥩'};
+function emo(n){if(!n)return'📦';const l=n.toLowerCase();for(const[k,e]of Object.entries(EM))if(l.includes(k))return e;return'📦';}
+
+let adminToken=null;
+let allOrders=[],applications=[],allUsers={customers:[],merchants:[],riders:[]};
+let currentOrderFilter='all',currentAppFilter='all',currentUserType='customers';
+let auditLogs=[];
+
+// ── AUTH ──
+function checkSession(){if(localStorage.getItem('pde_admin')==='true'){adminToken='admin_token';enterApp();}}
+function togglePw(){const i=document.getElementById('a-pw');i.type=i.type==='password'?'text':'password';}
+function showErr(id,msg){const el=document.getElementById(id);el.textContent=msg;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),3000);}
+
+function doLogin(){
+  const user=document.getElementById('a-user').value.trim();
+  const pw=document.getElementById('a-pw').value;
+  if(user===ADMIN.username&&pw===ADMIN.password){
+    localStorage.setItem('pde_admin','true');adminToken='admin_token';enterApp();
+  }else showErr('login-err','Invalid admin credentials.');
+}
+
+function enterApp(){
+  document.getElementById('authScreen').style.display='none';
+  document.getElementById('mainApp').classList.add('active');
+  loadDashboard();
+}
+function logout(){
+  localStorage.removeItem('pde_admin');adminToken=null;
+  document.getElementById('mainApp').classList.remove('active');
+  document.getElementById('authScreen').style.display='flex';
+}
+
+function showPage(page,btn){
+  document.querySelectorAll('.page').forEach(p=>{p.classList.remove('active');p.style.display='';});
+  document.getElementById('page-'+page).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  if(btn)btn.classList.add('active');
+}
+
+// ── DASHBOARD ──
+async function loadDashboard(){
+  try{const r=await fetch(`${API}/orders`,{headers:{'Authorization':'Bearer '+adminToken}});const d=await r.json();allOrders=Array.isArray(d)?d:(d.orders||getSampleOrders());}
+  catch{allOrders=getSampleOrders();}
+  loadApplications();
+  updateStats();renderFeed();
+}
+
+function getSampleOrders(){return[
+  {id:'ORD-001',customerName:'Juan dela Cruz',items:[{name:'Sardines',qty:3,price:35},{name:'Rice 5kg',qty:1,price:280}],total:385,paymentMethod:'cod',status:'pending',date:'Jun 28, 2026'},
+  {id:'ORD-002',customerName:'Maria Santos',items:[{name:'Fresh Bangus',qty:2,price:120}],total:240,paymentMethod:'gcash',status:'delivered',date:'Jun 28, 2026'},
+  {id:'ORD-003',customerName:'Pedro Reyes',items:[{name:'Cooking Oil',qty:1,price:95}],total:95,paymentMethod:'cod',status:'picked_up',date:'Jun 28, 2026'},
+  {id:'ORD-004',customerName:'Ana Lim',items:[{name:'Eggs 12pcs',qty:1,price:90}],total:90,paymentMethod:'maya',status:'accepted',date:'Jun 28, 2026'},
+  {id:'ORD-005',customerName:'Rico Cruz',items:[{name:'Noodles',qty:5,price:15}],total:75,paymentMethod:'cod',status:'ready',date:'Jun 28, 2026'},
+];}
+
+function updateStats(){
+  const pend=allOrders.filter(o=>o.status==='pending').length;
+  const done=allOrders.filter(o=>o.status==='delivered').length;
+  const rev=allOrders.filter(o=>o.status==='delivered').reduce((s,o)=>s+o.total,0);
+  const merchants=JSON.parse(localStorage.getItem('pde_merchants_db')||'[]').filter(m=>m.status==='approved').length;
+  const riders=JSON.parse(localStorage.getItem('pde_riders_db')||'[]').filter(r=>r.status==='approved').length;
+  document.getElementById('s-orders').textContent=allOrders.length;
+  document.getElementById('s-pending').textContent=pend;
+  document.getElementById('s-delivered').textContent=done;
+  document.getElementById('s-revenue').textContent='₱'+rev.toLocaleString();
+  document.getElementById('s-merchants').textContent=merchants;
+  document.getElementById('s-riders').textContent=riders;
+  const pendApps=applications.filter(a=>a.status==='pending').length;
+  const ab=document.getElementById('appBadge');
+  if(pendApps>0){ab.style.display='flex';ab.textContent=pendApps;}else ab.style.display='none';
+}
+
+function renderFeed(){
+  const feed=[];
+  allOrders.slice(0,5).forEach(o=>feed.push({text:`Order ${o.id} — ${o.customerName}`,sub:`₱${o.total} · ${o.status.replace('_',' ')} · ${o.paymentMethod?.toUpperCase()}`,emoji:'📦',color:o.status==='delivered'?'green':o.status==='pending'?'red':o.status==='picked_up'?'orange':'',time:o.date||'Today'}));
+  applications.slice(0,4).forEach(a=>feed.push({text:`New ${a.type} application — ${a.name}`,sub:a.type==='merchant'?`Store: ${a.storeName||'—'} · ${a.businessType||''}`:`Vehicle: ${a.vehicleType||''} ${a.plateNumber||''}`,emoji:a.type==='merchant'?'🏪':'🛵',color:'gold',time:a.appliedAt?new Date(a.appliedAt).toLocaleTimeString():'Recent'}));
+  const el=document.getElementById('feed-wrap');
+  el.innerHTML=feed.length?feed.map((f,i)=>`<div class="feed-item ${f.color}" style="animation-delay:${i*50}ms">
+    <div class="feed-emoji">${f.emoji}</div>
+    <div class="feed-body"><div class="feed-text">${f.text}</div><div class="feed-sub">${f.sub}</div><div class="feed-time">🕐 ${f.time}</div></div>
+  </div>`).join(''):`<div class="empty-state"><div class="ei">📡</div><p>No recent activity</p></div>`;
+}
+
+// ── APPLICATIONS ──
+function loadApplications(){
+  const merchants=JSON.parse(localStorage.getItem('pde_merchants_db')||'[]');
+  const riders=JSON.parse(localStorage.getItem('pde_riders_db')||'[]');
+  applications=[...merchants.map(m=>({...m,type:'merchant'})),...riders.map(r=>({...r,type:'rider'}))].sort((a,b)=>new Date(b.appliedAt)-new Date(a.appliedAt));
+  updateStats();renderApplications();
+}
+
+function filterApps(f,el){
+  currentAppFilter=f;
+  document.querySelectorAll('#page-applications .ftab').forEach(t=>t.classList.remove('active'));if(el)el.classList.add('active');
+  renderApplications();
+}
+
+function renderApplications(){
+  let list=applications;
+  if(currentAppFilter==='pending')list=list.filter(a=>a.status==='pending');
+  else if(currentAppFilter==='merchant')list=list.filter(a=>a.type==='merchant');
+  else if(currentAppFilter==='rider')list=list.filter(a=>a.type==='rider');
+  else if(currentAppFilter==='approved')list=list.filter(a=>a.status==='approved');
+  else if(currentAppFilter==='rejected')list=list.filter(a=>a.status==='rejected');
+  const el=document.getElementById('apps-list');
+  if(!list.length){el.innerHTML=`<div class="empty-state"><div class="ei">📋</div><p>No applications found</p></div>`;return;}
+  el.innerHTML=list.map((app,i)=>{
+    const isMerchant=app.type==='merchant';
+    const stCls=app.status==='approved'?'s-approved':app.status==='rejected'?'s-rejected':'s-pending';
+    const stLabel=app.status==='approved'?'✅ Approved':app.status==='rejected'?'❌ Rejected':'⏳ Pending';
+    const docs=isMerchant?`<div class="doc-grid">
+      <div class="doc-item"><div class="doc-label">DTI/SEC No.</div><div class="doc-val">${app.dtiNumber||'—'}</div></div>
+      <div class="doc-item"><div class="doc-label">Business Permit</div><div class="doc-val">${app.permitNumber||'—'}</div></div>
+      <div class="doc-item"><div class="doc-label">Mayor's Permit</div><div class="doc-val">${app.mayorPermit||'—'}</div></div>
+      <div class="doc-item"><div class="doc-label">TIN</div><div class="doc-val">${app.tin||'—'}</div></div>
+    </div>`:`<div class="doc-grid">
+      <div class="doc-item"><div class="doc-label">Vehicle Type</div><div class="doc-val">${app.vehicleType||'—'}</div></div>
+      <div class="doc-item"><div class="doc-label">Plate Number</div><div class="doc-val">${app.plateNumber||'—'}</div></div>
+      ${app.vehicleModel?`<div class="doc-item"><div class="doc-label">Model</div><div class="doc-val">${app.vehicleModel}</div></div>`:''}
+    </div>`;
+    return`<div class="app-card" style="animation-delay:${i*50}ms">
+      <div class="app-hdr">
+        <span class="app-type-badge ${isMerchant?'tb-merchant':'tb-rider'}">${isMerchant?'🏪 Merchant':'🛵 Rider'}</span>
+        <span class="app-status ${stCls}">${stLabel}</span>
+      </div>
+      <div class="app-name">${app.name}</div>
+      ${isMerchant?`<div class="app-detail">🏪 <strong>${app.storeName||'—'}</strong> · ${app.businessType||'—'}</div>`:''}
+      <div class="app-detail">📱 <strong>${app.phone||'—'}</strong> &nbsp;✉️ <strong>${app.email||'—'}</strong></div>
+      <div class="app-detail">📍 ${app.address||'—'}</div>
+      ${isMerchant?`<div class="app-detail">🛍️ Category: <strong>${app.productCategory||'—'}</strong></div>`:''}
+      <div class="divider"></div>
+      ${docs}
+      <div class="app-detail" style="font-size:11px;color:var(--muted)">Applied: ${app.appliedAt?new Date(app.appliedAt).toLocaleString():'—'}</div>
+      ${app.status==='pending'?`<div class="app-actions" style="margin-top:12px">
+        <button class="btn-approve" onclick="approveApp('${app.id}','${app.type}',this)">✅ Approve</button>
+        <button class="btn-reject-app" onclick="rejectApp('${app.id}','${app.type}',this)">❌ Reject</button>
+        <button class="tbl-btn tbl-btn-blue" onclick="viewDocs('${app.id}','${app.type}')">📄 Docs</button>
+      </div>`:`<div style="margin-top:10px"><button class="tbl-btn tbl-btn-blue" onclick="viewDocs('${app.id}','${app.type}')">📄 View Docs</button></div>`}
+    </div>`;
+  }).join('');
+}
+
+function approveApp(id,type,btn){
+  btn.classList.add('btn-off');btn.textContent='Approving…';
+  const dbKey=type==='merchant'?'pde_merchants_db':'pde_riders_db';
+  const db=JSON.parse(localStorage.getItem(dbKey)||'[]');
+  const idx=db.findIndex(u=>u.id===id);
+  if(idx>-1){db[idx].status='approved';localStorage.setItem(dbKey,JSON.stringify(db));}
+  const ai=applications.findIndex(a=>a.id===id);
+  if(ai>-1)applications[ai].status='approved';
+  addAuditLog('✅ Approved application',`${type}: ${applications.find(a=>a.id===id)?.name||id}`);
+  loadApplications();updateStats();
+  toast(`${type==='merchant'?'Merchant':'Rider'} approved! They can now log in ✅`);
+  try{fetch(`${API}/admin/applications/${id}`,{method:'PUT',headers:{'Content-Type':'application/json','Authorization':'Bearer '+adminToken},body:JSON.stringify({status:'approved',type})});}catch(e){}
+}
+
+function rejectApp(id,type,btn){
+  btn.classList.add('btn-off');btn.textContent='Rejecting…';
+  const dbKey=type==='merchant'?'pde_merchants_db':'pde_riders_db';
+  const db=JSON.parse(localStorage.getItem(dbKey)||'[]');
+  const idx=db.findIndex(u=>u.id===id);
+  if(idx>-1){db[idx].status='rejected';localStorage.setItem(dbKey,JSON.stringify(db));}
+  const ai=applications.findIndex(a=>a.id===id);
+  if(ai>-1)applications[ai].status='rejected';
+  addAuditLog('❌ Rejected application',`${type}: ${applications.find(a=>a.id===id)?.name||id}`);
+  loadApplications();updateStats();toast('Application rejected.');
+  try{fetch(`${API}/admin/applications/${id}`,{method:'PUT',headers:{'Content-Type':'application/json','Authorization':'Bearer '+adminToken},body:JSON.stringify({status:'rejected',type})});}catch(e){}
+}
+
+function viewDocs(id,type){
+  const app=applications.find(a=>a.id===id);
+  if(!app)return;
+  document.getElementById('docs-modal-title').textContent=`📄 Documents — ${app.name}`;
+  const isMerchant=type==='merchant';
+  document.getElementById('docs-modal-content').innerHTML=`
+    <div class="doc-view-item"><div class="doc-view-label">Full Name</div><div class="doc-view-val">${app.name||'—'}</div></div>
+    <div class="doc-view-item"><div class="doc-view-label">Phone</div><div class="doc-view-val">${app.phone||'—'}</div></div>
+    <div class="doc-view-item"><div class="doc-view-label">Email</div><div class="doc-view-val">${app.email||'—'}</div></div>
+    <div class="doc-view-item"><div class="doc-view-label">Address</div><div class="doc-view-val">${app.address||'—'}</div></div>
+    ${isMerchant?`
+    <div class="doc-view-item"><div class="doc-view-label">Store Name</div><div class="doc-view-val">${app.storeName||'—'}</div></div>
+    <div class="doc-view-item"><div class="doc-view-label">Business Type</div><div class="doc-view-val">${app.businessType||'—'}</div></div>
+    <div class="doc-view-item"><div class="doc-view-label">DTI / SEC Registration</div><div class="doc-view-val">${app.dtiNumber||'Not provided'}</div></div>
+    <div class="doc-view-item"><div class="doc-view-label">Business Permit No.</div><div class="doc-view-val">${app.permitNumber||'Not provided'}</div></div>
+    <div class="doc-view-item"><div class="doc-view-label">Mayor's Permit No.</div><div class="doc-view-val">${app.mayorPermit||'Not provided'}</div></div>
+    <div class="doc-view-item"><div class="doc-view-label">TIN</div><div class="doc-view-val">${app.tin||'Not provided'}</div></div>
+    <div class="doc-view-item"><div class="doc-view-label">Product Category</div><div class="doc-view-val">${app.productCategory||'—'}</div></div>
+    <div class="doc-view-item"><div class="doc-view-label">Description</div><div class="doc-view-val">${app.description||'—'}</div></div>
+    `:`
+    <div class="doc-view-item"><div class="doc-view-label">Vehicle Type</div><div class="doc-view-val">${app.vehicleType||'—'}</div></div>
+    <div class="doc-view-item"><div class="doc-view-label">Vehicle Model</div><div class="doc-view-val">${app.vehicleModel||'—'}</div></div>
+    <div class="doc-view-item"><div class="doc-view-label">Plate Number</div><div class="doc-view-val">${app.plateNumber||'—'}</div></div>
+    `}
+    <div class="doc-view-item"><div class="doc-view-label">Applied</div><div class="doc-view-val">${app.appliedAt?new Date(app.appliedAt).toLocaleString():'—'}</div></div>
+    <div class="doc-view-item"><div class="doc-view-label">Status</div><div class="doc-view-val">${app.status?.toUpperCase()||'PENDING'}</div></div>
+  `;
+  document.getElementById('docsModal').classList.add('open');
+}
+function closeDocsModal(){document.getElementById('docsModal').classList.remove('open');}
+
+// ── ORDERS ──
+function filterOrders(f,el){
+  currentOrderFilter=f;
+  document.querySelectorAll('#page-orders .ftab').forEach(t=>t.classList.remove('active'));if(el)el.classList.add('active');
+  renderOrderTable();
+}
+
+function renderOrderTable(search=''){
+  let list=currentOrderFilter==='all'?allOrders:allOrders.filter(o=>o.status===currentOrderFilter);
+  if(search)list=list.filter(o=>o.id?.includes(search)||o.customerName?.toLowerCase().includes(search.toLowerCase()));
+  const spMap={pending:'sp-pend',accepted:'sp-acc',ready:'sp-rdy',picked_up:'sp-pick',delivered:'sp-done',rejected:'sp-rej'};
+  const lMap={pending:'⏳ Pending',accepted:'✅ Accepted',ready:'📦 Ready',picked_up:'🛵 Transit',delivered:'🎉 Done',rejected:'❌ Rejected'};
+  const payIcon={'cod':'💵','gcash':'📱','maya':'💜'};
+  document.getElementById('order-tbody').innerHTML=list.length?list.map(o=>`<tr>
+    <td style="font-weight:700;font-size:12px">${o.id}</td>
+    <td>${o.customerName||'—'}</td>
+    <td style="font-size:12px">${(o.items||[]).map(it=>`${emo(it.name)}${it.name}×${it.qty}`).join(', ')}</td>
+    <td style="font-weight:800;color:var(--gm)">₱${(o.total||0).toLocaleString()}</td>
+    <td>${payIcon[o.paymentMethod]||'💵'} ${(o.paymentMethod||'cod').toUpperCase()}</td>
+    <td><span class="status-pill ${spMap[o.status]||'sp-pend'}">${lMap[o.status]||o.status}</span></td>
+    <td>
+      <button class="tbl-btn tbl-btn-green" onclick="advanceOrder('${o.id||o._id}')">▶ Next</button>
+      <button class="tbl-btn tbl-btn-red" onclick="cancelOrder('${o.id||o._id}')">✕</button>
+    </td>
+  </tr>`).join(''):`<tr><td colspan="7" style="text-align:center;padding:32px;color:var(--muted)">No orders found</td></tr>`;
+}
+
+async function advanceOrder(id){
+  const flow=['pending','accepted','ready','picked_up','delivered'];
+  const o=allOrders.find(x=>(x.id||x._id)===id);if(!o)return;
+  const i=flow.indexOf(o.status);
+  if(i<flow.length-1){o.status=flow[i+1];
+    try{await fetch(`${API}/orders/${id}/status`,{method:'PATCH',headers:{'Content-Type':'application/json','Authorization':'Bearer '+adminToken},body:JSON.stringify({status:o.status})});}catch(e){}
+    addAuditLog('📦 Advanced order status',`Order ${id} → ${o.status}`);
+    renderOrderTable();updateStats();toast(`Order ${id} → ${o.status.replace('_',' ')}`);}
+}
+async function cancelOrder(id){
+  if(!confirm(`Cancel order ${id}?`))return;
+  allOrders=allOrders.filter(o=>(o.id||o._id)!==id);
+  try{await fetch(`${API}/orders/${id}`,{method:'DELETE',headers:{'Authorization':'Bearer '+adminToken}});}catch(e){}
+  addAuditLog('❌ Cancelled order',`Order ${id}`);
+  renderOrderTable();updateStats();toast(`Order ${id} cancelled.`);
+}
+
+// ── USERS ──
+function showUsers(type,el){
+  currentUserType=type;
+  if(el){document.querySelectorAll('#page-users .ftab').forEach(t=>t.classList.remove('active'));el.classList.add('active');}
+  const dbKeys={customers:'pde_customers_db',merchants:'pde_merchants_db',riders:'pde_riders_db'};
+  const data=JSON.parse(localStorage.getItem(dbKeys[type])||'[]');
+  allUsers[type]=data;
+  renderUsers(data,type);
+}
+
+function searchUsers(q){
+  const data=allUsers[currentUserType]||[];
+  const filtered=q?data.filter(u=>u.name?.toLowerCase().includes(q.toLowerCase())||u.email?.toLowerCase().includes(q.toLowerCase())||u.phone?.includes(q)):data;
+  renderUsers(filtered,currentUserType);
+}
+
+function renderUsers(data,type){
+  const icons={customers:'👤',merchants:'🏪',riders:'🛵'};
+  const el=document.getElementById('user-list');
+  if(!data.length){el.innerHTML=`<div class="empty-state"><div class="ei">${icons[type]}</div><p>No ${type} found</p></div>`;return;}
+  el.innerHTML=data.map((u,i)=>{
+    const isBanned=u.isActive===false;
+    const badgeCls=isBanned?'b-banned':u.status==='pending'?'b-pending':'b-active';
+    const badgeLbl=isBanned?'🚫 Banned':u.status==='pending'?'⏳ Pending':u.status==='rejected'?'❌ Rejected':'✅ Active';
+    return`<div class="user-card" style="animation-delay:${i*40}ms">
+      <div class="user-card-top">
+        <div class="u-avatar">${icons[type]}</div>
+        <div class="u-info">
+          <div class="u-name">${u.name||'—'}</div>
+          <div class="u-sub">📱 ${u.phone||'—'} · ✉️ ${u.email||'—'}</div>
+          ${type==='merchants'?`<div class="u-sub">🏪 ${u.storeName||''} · ${u.businessType||''}</div>`:''}
+          ${type==='riders'?`<div class="u-sub">🏍️ ${u.vehicleType||''} · ${u.plateNumber||''}</div>`:''}
+        </div>
+        <span class="u-badge ${badgeCls}">${badgeLbl}</span>
+      </div>
+      <div class="user-actions">
+        ${isBanned?`<button class="ua-btn btn-unban" onclick="banUser('${u.id}','${type}',false,this)">✅ Unban</button>`:`<button class="ua-btn btn-ban" onclick="banUser('${u.id}','${type}',true,this)">🚫 Ban</button>`}
+        <button class="ua-btn btn-reset-pw" onclick="openResetPw('${u.id}','${type}','${u.name}')">🔒 Reset PW</button>
+        ${type!=='customers'?`<button class="ua-btn btn-view-docs" onclick="viewDocs('${u.id}','${type==='merchants'?'merchant':'rider'}')">📄 Docs</button>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function banUser(id,type,ban,btn){
+  const dbKey=type==='customers'?'pde_customers_db':type==='merchants'?'pde_merchants_db':'pde_riders_db';
+  const db=JSON.parse(localStorage.getItem(dbKey)||'[]');
+  const idx=db.findIndex(u=>u.id===id);
+  if(idx>-1){db[idx].isActive=!ban;localStorage.setItem(dbKey,JSON.stringify(db));}
+  addAuditLog(ban?'🚫 Banned user':'✅ Unbanned user',`${type}: ${db[idx]?.name||id}`);
+  showUsers(type,null);
+  toast(ban?'User has been banned.':'User has been unbanned.');
+  try{fetch(`${API}/admin/ban/${type.slice(0,-1)}/${id}`,{method:'PUT',headers:{'Content-Type':'application/json','Authorization':'Bearer '+adminToken},body:JSON.stringify({ban})});}catch(e){}
+}
+
+function openResetPw(id,type,name){
+  document.getElementById('rp-user-id').value=id;
+  document.getElementById('rp-user-role').value=type;
+  document.getElementById('reset-pw-for').textContent=`Reset password for: ${name}`;
+  document.getElementById('rp-new').value='';
+  document.getElementById('rp-confirm').value='';
+  document.getElementById('resetPwModal').classList.add('open');
+}
+function closeResetPw(){document.getElementById('resetPwModal').classList.remove('open');}
+async function submitResetPw(){
+  const id=document.getElementById('rp-user-id').value;
+  const role=document.getElementById('rp-user-role').value;
+  const newPw=document.getElementById('rp-new').value;
+  const confirmPw=document.getElementById('rp-confirm').value;
+  if(!newPw||newPw.length<6){toast('Password must be at least 6 characters');return;}
+  if(newPw!==confirmPw){toast('Passwords do not match');return;}
+  const dbKey=role==='customers'?'pde_customers_db':role==='merchants'?'pde_merchants_db':'pde_riders_db';
+  const db=JSON.parse(localStorage.getItem(dbKey)||'[]');
+  const idx=db.findIndex(u=>u.id===id);
+  if(idx>-1){db[idx].password=newPw;localStorage.setItem(dbKey,JSON.stringify(db));}
+  addAuditLog('🔒 Reset password',`${role}: ${db[idx]?.name||id}`);
+  closeResetPw();toast('Password reset successfully!');
+  try{await fetch(`${API}/admin/reset-password/${role.slice(0,-1)}/${id}`,{method:'PUT',headers:{'Content-Type':'application/json','Authorization':'Bearer '+adminToken},body:JSON.stringify({newPassword:newPw})});}catch(e){}
+}
+
+// ── ANALYTICS ──
+function loadAnalytics(period,el){
+  if(el){document.querySelectorAll('#page-analytics .ftab').forEach(t=>t.classList.remove('active'));el.classList.add('active');}
+  const done=allOrders.filter(o=>o.status==='delivered');
+  const rev=done.reduce((s,o)=>s+o.total,0);
+  document.getElementById('an-revenue').textContent='₱'+rev.toLocaleString();
+  document.getElementById('an-orders').textContent=allOrders.length;
+  document.getElementById('an-delivered').textContent=done.length;
+  document.getElementById('an-rate').textContent=allOrders.length?Math.round(done.length/allOrders.length*100)+'%':'0%';
+  renderAnalyticsChart(period);renderTopProducts();renderTopMerchants();
+}
+
+function renderAnalyticsChart(period){
+  const labels=period==='daily'?['12am','3am','6am','9am','12pm','3pm','6pm']:period==='weekly'?['Mon','Tue','Wed','Thu','Fri','Sat','Sun']:period==='monthly'?['Wk1','Wk2','Wk3','Wk4']:['Jan','Mar','May','Jul','Sep','Nov'];
+  const vals=labels.map(()=>Math.floor(Math.random()*500+50));
+  const max=Math.max(...vals);
+  document.getElementById('analyticsChart').innerHTML=vals.map((v,i)=>`
+    <div class="bc-bar-wrap">
+      <div class="bc-val">₱${v}</div>
+      <div class="bc-bar ${i===vals.length-1?'highlight':''}" style="height:${Math.round(v/max*70)+10}px"></div>
+      <div class="bc-lbl">${labels[i]}</div>
+    </div>`).join('');
+}
+
+function renderTopProducts(){
+  const prodSales={};
+  allOrders.filter(o=>o.status==='delivered').forEach(o=>(o.items||[]).forEach(it=>{
+    if(!prodSales[it.name])prodSales[it.name]={name:it.name,qty:0,rev:0};
+    prodSales[it.name].qty+=it.qty;prodSales[it.name].rev+=(it.price||0)*it.qty;
+  }));
+  const top=Object.values(prodSales).sort((a,b)=>b.rev-a.rev).slice(0,5);
+  document.getElementById('top-products').innerHTML=top.length?top.map((p,i)=>`<div class="top-item">
+    <div class="top-rank">#${i+1}</div>
+    <div class="top-info"><div class="top-name">${emo(p.name)} ${p.name}</div><div class="top-sub">${p.qty} units sold</div></div>
+    <div class="top-val">₱${p.rev.toLocaleString()}</div>
+  </div>`).join(''):`<div class="empty-state"><div class="ei">📊</div><p>No sales data yet</p></div>`;
+}
+
+function renderTopMerchants(){
+  const merchants=JSON.parse(localStorage.getItem('pde_merchants_db')||'[]').filter(m=>m.status==='approved');
+  document.getElementById('top-merchants').innerHTML=merchants.length?merchants.slice(0,5).map((m,i)=>`<div class="top-item">
+    <div class="top-rank">#${i+1}</div>
+    <div class="top-info"><div class="top-name">🏪 ${m.storeName||m.name}</div><div class="top-sub">${m.businessType||''} · ${m.address||''}</div></div>
+    <div class="top-val" style="font-size:12px;color:var(--muted)">${m.status}</div>
+  </div>`).join(''):`<div class="empty-state"><div class="ei">🏪</div><p>No merchants yet</p></div>`;
+}
+
+function exportCSV(){
+  const headers=['Order ID','Customer','Items','Total','Payment','Status','Date'];
+  const rows=allOrders.map(o=>[o.id,o.customerName,(o.items||[]).map(it=>`${it.name}x${it.qty}`).join(';'),o.total,o.paymentMethod,o.status,o.date]);
+  const csv=[headers,...rows].map(r=>r.join(',')).join('\n');
+  const blob=new Blob([csv],{type:'text/csv'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download='pde-orders-report.csv';a.click();
+  URL.revokeObjectURL(url);
+  addAuditLog('📥 Exported CSV report','Orders report downloaded');
+  toast('CSV report downloaded!');
+}
+
+// ── AUDIT LOGS ──
+function addAuditLog(action,detail){
+  auditLogs.unshift({action,detail,time:new Date().toLocaleString(),icon:'⚙️'});
+  localStorage.setItem('pde_audit_logs',JSON.stringify(auditLogs.slice(0,100)));
+}
+function loadAuditLogs(){
+  const saved=localStorage.getItem('pde_audit_logs');
+  if(saved)auditLogs=JSON.parse(saved);
+  renderAuditLogs();
+}
+function searchAudit(q){renderAuditLogs(q);}
+function renderAuditLogs(search=''){
+  let list=auditLogs;
+  if(search)list=list.filter(l=>l.action?.toLowerCase().includes(search.toLowerCase())||l.detail?.toLowerCase().includes(search.toLowerCase()));
+  const el=document.getElementById('audit-list');
+  if(!list.length){el.innerHTML=`<div class="empty-state"><div class="ei">🕵️</div><p>No audit logs yet</p></div>`;return;}
+  el.innerHTML=list.map((l,i)=>`<div class="audit-item" style="animation-delay:${i*30}ms">
+    <div class="audit-icon">${l.icon||'⚙️'}</div>
+    <div><div class="audit-action">${l.action}</div><div class="audit-detail">${l.detail||''}</div><div class="audit-time">🕐 ${l.time}</div></div>
+  </div>`).join('');
+}
+
+// ── GLOBAL SEARCH ──
+function globalSearchHandler(q){
+  if(!q.trim())return;
+  // Search in orders
+  const orderMatch=allOrders.filter(o=>o.id?.includes(q)||o.customerName?.toLowerCase().includes(q.toLowerCase()));
+  if(orderMatch.length){showPage('orders',document.querySelectorAll('.nav-item')[2]);renderOrderTable(q);}
+}
+
+function toast(msg){const t=document.getElementById('toastEl');document.getElementById('toastMsg').textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2800);}
+
+checkSession();
+setInterval(loadDashboard,10000);
+</script>
+</body>
+</html>
