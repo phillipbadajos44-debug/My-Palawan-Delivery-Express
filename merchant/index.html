@@ -513,7 +513,7 @@ async function doLogin(){
   const pw=document.getElementById('l-pw').value;
   if(!email||!pw){showErr('login-err','Please fill in all fields.');return;}
   try{
-    const r=await fetch(`${API_URL}/merchants/login`,{
+    const r=await fetch(`${API_URL}/api/merchants/login`,{
     const d=await r.json();
     if(d.success&&d.token){token=d.token;currentMerchant=d.user;saveSession();enterApp();return;}
     if(d.status==='pending'){showErr('login-err','Your application is still pending approval.');return;}
@@ -562,7 +562,7 @@ async function doApply(){
 
   try{
 
-    const res=await fetch(`${API_URL}/merchants/apply`,{
+    const res=await fetch(`${API_URL}/api/merchants/apply`,{
       method:'POST',
       headers:{
         'Content-Type':'application/json'
