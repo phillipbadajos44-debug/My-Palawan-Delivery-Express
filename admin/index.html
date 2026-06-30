@@ -454,13 +454,14 @@ function renderFeed(){
 }
 
 // ── APPLICATIONS ──
-function loadApplications(){
-  const merchants=JSON.parse(localStorage.getItem('pde_merchants_db')||'[]');
-  const riders=JSON.parse(localStorage.getItem('pde_riders_db')||'[]');
-  applications=[...merchants.map(m=>({...m,type:'merchant'})),...riders.map(r=>({...r,type:'rider'}))].sort((a,b)=>new Date(b.appliedAt)-new Date(a.appliedAt));
+async function loadApplications(){
+  try{
+    const r=await fetch(`${API}/admin/applications`,{headers:{'Authorization':'Bearer '+adminToken}});
+    const d=await r.json();
+    applications=Array.isArray(d)?d:[];
+  }catch(e){applications=[];}
   updateStats();renderApplications();
 }
-
 function filterApps(f,el){
   currentAppFilter=f;
   document.querySelectorAll('#page-applications .ftab').forEach(t=>t.classList.remove('active'));if(el)el.classList.add('active');
@@ -504,43 +505,33 @@ function renderApplications(){
       ${docs}
       <div class="app-detail" style="font-size:11px;color:var(--muted)">Applied: ${app.appliedAt?new Date(app.appliedAt).toLocaleString():'—'}</div>
       ${app.status==='pending'?`<div class="app-actions" style="margin-top:12px">
-        <button class="btn-approve" onclick="approveApp('${app.id}','${app.type}',this)">✅ Approve</button>
-        <button class="btn-reject-app" onclick="rejectApp('${app.id}','${app.type}',this)">❌ Reject</button>
-        <button class="tbl-btn tbl-btn-blue" onclick="viewDocs('${app.id}','${app.type}')">📄 Docs</button>
-      </div>`:`<div style="margin-top:10px"><button class="tbl-btn tbl-btn-blue" onclick="viewDocs('${app.id}','${app.type}')">📄 View Docs</button></div>`}
+      <button class="btn-approve" onclick="approveApp('${app._id}','${app.type}',this)">✅ Approve</button>
+        <button class="btn-reject-app" onclick="rejectApp('${app._id}','${app.type}',this)">❌ Reject</button>
+        <button class="tbl-btn tbl-btn-blue" onclick="viewDocs('${app._id}','${app.type}')">📄 Docs</button>
+      </div>`:`<div style="margin-top:10px"><button class="tbl-btn tbl-btn-blue" onclick="viewDocs('${app._id}','${app.type}')">📄 View Docs</button></div>`}
     </div>`;
   }).join('');
 }
-
-function approveApp(id,type,btn){
+async function approveApp(id,type,btn){
   btn.classList.add('btn-off');btn.textContent='Approving…';
-  const dbKey=type==='merchant'?'pde_merchants_db':'pde_riders_db';
-  const db=JSON.parse(localStorage.getItem(dbKey)||'[]');
-  const idx=db.findIndex(u=>u.id===id);
-  if(idx>-1){db[idx].status='approved';localStorage.setItem(dbKey,JSON.stringify(db));}
-  const ai=applications.findIndex(a=>a.id===id);
-  if(ai>-1)applications[ai].status='approved';
-  addAuditLog('✅ Approved application',`${type}: ${applications.find(a=>a.id===id)?.name||id}`);
-  loadApplications();updateStats();
-  toast(`${type==='merchant'?'Merchant':'Rider'} approved! They can now log in ✅`);
-  try{fetch(`${API}/admin/applications/${id}`,{method:'PUT',headers:{'Content-Type':'application/json','Authorization':'Bearer '+adminToken},body:JSON.stringify({status:'approved',type})});}catch(e){}
+  try{
+    await fetch(`${API}/admin/applications/${id}`,{method:'PUT',headers:{'Content-Type':'application/json','Authorization':'Bearer '+adminToken},body:JSON.stringify({status:'approved',type})});
+    addAuditLog('✅ Approved application',`${type}: ${applications.find(a=>a._id===id)?.name||id}`);
+    toast(`${type==='merchant'?'Merchant':'Rider'} approved! They can now log in ✅`);
+  }catch(e){toast('Error approving application');}
+  await loadApplications();
 }
-
-function rejectApp(id,type,btn){
+async function rejectApp(id,type,btn){
   btn.classList.add('btn-off');btn.textContent='Rejecting…';
-  const dbKey=type==='merchant'?'pde_merchants_db':'pde_riders_db';
-  const db=JSON.parse(localStorage.getItem(dbKey)||'[]');
-  const idx=db.findIndex(u=>u.id===id);
-  if(idx>-1){db[idx].status='rejected';localStorage.setItem(dbKey,JSON.stringify(db));}
-  const ai=applications.findIndex(a=>a.id===id);
-  if(ai>-1)applications[ai].status='rejected';
-  addAuditLog('❌ Rejected application',`${type}: ${applications.find(a=>a.id===id)?.name||id}`);
-  loadApplications();updateStats();toast('Application rejected.');
-  try{fetch(`${API}/admin/applications/${id}`,{method:'PUT',headers:{'Content-Type':'application/json','Authorization':'Bearer '+adminToken},body:JSON.stringify({status:'rejected',type})});}catch(e){}
+  try{
+    await fetch(`${API}/admin/applications/${id}`,{method:'PUT',headers:{'Content-Type':'application/json','Authorization':'Bearer '+adminToken},body:JSON.stringify({status:'rejected',type})});
+    addAuditLog('❌ Rejected application',`${type}: ${applications.find(a=>a._id===id)?.name||id}`);
+    toast('Application rejected.');
+  }catch(e){toast('Error rejecting application');}
+  await loadApplications();
 }
-
 function viewDocs(id,type){
-  const app=applications.find(a=>a.id===id);
+  const app=applications.find(a=>a._id===id);
   if(!app)return;
   document.getElementById('docs-modal-title').textContent=`📄 Documents — ${app.name}`;
   const isMerchant=type==='merchant';

@@ -1,18 +1,4 @@
-// Base code para kumonekta sa database at internet
 require('dotenv').config();
-const express = require('express');
-const mongoose = require('mongoose');
-const cors = require('cors');
-const app = express();
-
-app.use(cors());
-app.use(express.json());
-
-// Kumonekta sa MongoDB Atlas
-mongoose.connect(process.env.MONGODB_URI)
-  .then(() => console.log("✅ Nakakonekta sa database"))
-  .catch(err => console.error("❌ May error:", err));
-
 // ======================================
 // ⬇️ DITO SA IBABA MO IDIDIKIT ANG BUONG CODE MO ⬇️
 // ======================================
@@ -20,6 +6,7 @@ mongoose.connect(process.env.MONGODB_URI)
 // PDE Backend Server - Node.js + Express + MongoDB
 // Run: npm install && node server.js
 // ============================================================
+const Application = require('./models/Application');
 const express = require('express');
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
@@ -30,10 +17,18 @@ const path = require('path');
 const fs = require('fs');
 
 const app = express();
+app.use(cors());
+app.use(express.json());
+
 const PORT = 5000;
 const JWT_SECRET = 'pde_secret_key_change_in_production';
-const MONGO_URI = 'mongodb://localhost:27017/pde';
-
+require('dotenv').config();
+const MONGO_URI = process.env.MONGODB_URI;
+// Koneksyon sa Database
+// Koneksyon sa Database
+mongoose.connect(process.env.MONGODB_URI)
+  .then(() => console.log('✅ Nakakonekta na sa Database (MongoDB)'))
+  .catch(err => console.error('❌ Error sa koneksyon sa Database:', err));
 // ── MIDDLEWARE ──
 app.use(cors());
 app.use(express.json());
@@ -253,15 +248,30 @@ app.post('/api/customers/upload-profile', auth(['customer']), (req, res) => {
 // ============================================================
 app.post('/api/merchants/apply', async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { name, phone, email, password, storeName, businessType, address, productCategory, description, dtiNumber, permitNumber, mayorPermit, tin } = req.body;
     const exists = await Merchant.findOne({ email });
     if (exists) return res.status(400).json({ error: 'Email already registered' });
     const hashed = await bcrypt.hash(password, 10);
-    const merchant = await Merchant.create({ ...req.body, password: hashed });
-    res.json({ success: true, id: merchant._id, message: 'Application submitted' });
+
+    const merchant = await Merchant.create({
+      name,
+      phone,
+      email,
+      password: hashed,
+      storeName,
+      businessType,
+      address,
+      productCategory,
+      description,
+      dtiNumber,
+      permitNumber,
+      mayorPermit,
+      tin,
+      status: "pending"
+    });
+    res.json({ success: true, id: merchant._id });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
-
 app.post('/api/merchants/login', async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -316,15 +326,31 @@ app.post('/api/merchants/upload-docs', auth(['merchant']), (req, res) => {
 // ============================================================
 app.post('/api/riders/apply', async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { fullName, email, phone, address, vehicleType, password } = req.body;
+
     const exists = await Rider.findOne({ email });
     if (exists) return res.status(400).json({ error: 'Email already registered' });
-    const hashed = await bcrypt.hash(password, 10);
-    const rider = await Rider.create({ ...req.body, password: hashed });
-    res.json({ success: true, id: rider._id, message: 'Application submitted' });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
 
+    const hashed = await bcrypt.hash(password, 10);
+
+    await Application.create({
+      type: 'rider',
+      data: {
+        fullName,
+        email,
+        phone,
+        address,
+        vehicleType,
+        password: hashed
+      }
+    });
+
+    res.json({ success: true, message: 'Application submitted' });
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 app.post('/api/riders/login', async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -404,38 +430,104 @@ app.put('/api/admin/applications/:id', auth(['admin']), async (req, res) => {
     res.json({ success: true, doc });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
+app.post('/api/admin/applications/:id/approve', auth(['admin']), async (req, res) => {
+  try {
+    const appData = await Application.findById(req.params.id);
+
+    if (!appData) {
+      return res.status(404).json({ error: 'Application not found' });
+    }
+
+    const { type, data } = appData;
+
+    let created;
+
+    if (type === 'merchant') {
+      created = await Merchant.create(data);
+    }
+
+    if (type === 'rider') {
+      created = await Rider.create(data);
+    }
+
+    if (type === 'customer') {
+      created = await Customer.create(data);
+    }
+
+    appData.status = 'approved';
+    await appData.save();
+
+    res.json({
+      success: true,
+      message: 'Approved successfully',
+      id: created._id
+    });
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 // Admin - Get all users
 app.get('/api/admin/customers', auth(['admin']), async (req, res) => {
   try {
     const { search, page = 1, limit = 20 } = req.query;
-    const query = search ? { $or: [{ name: new RegExp(search, 'i') }, { email: new RegExp(search, 'i') }] } : {};
-    const customers = await Customer.find(query).select('-password').sort('-createdAt').limit(limit).skip((page - 1) * limit);
-    const total = await Customer.countDocuments(query);
-    res.json({ customers, total, pages: Math.ceil(total / limit) });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
 
+    const query = search
+      ? { name: new RegExp(search, 'i') }
+      : {};
+
+    const customers = await Customer.find(query)
+      .select('-password')
+      .limit(Number(limit))
+      .skip((page - 1) * limit);
+
+    const total = await Customer.countDocuments(query);
+
+    res.json({
+      customers,
+      total,
+      pages: Math.ceil(total / limit)
+    });
+
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
 app.get('/api/admin/merchants', auth(['admin']), async (req, res) => {
   try {
-    const { search, status } = req.query;
-    const query = {};
-    if (search) query.$or = [{ name: new RegExp(search, 'i') }, { storeName: new RegExp(search, 'i') }];
-    if (status) query.status = status;
-    res.json(await Merchant.find(query).select('-password').sort('-appliedAt'));
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
+    const merchants = await Merchant.find({})
+      .select('-password')
+      .sort('-createdAt');
 
+    res.json({ success: true, data: merchants });
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 app.get('/api/admin/riders', auth(['admin']), async (req, res) => {
   try {
     const { search, status } = req.query;
-    const query = {};
-    if (search) query.$or = [{ name: new RegExp(search, 'i') }, { email: new RegExp(search, 'i') }];
-    if (status) query.status = status;
-    res.json(await Rider.find(query).select('-password').sort('-appliedAt'));
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
 
+    const query = {};
+    if (search) {
+      query.$or = [
+        { name: new RegExp(search, 'i') }
+      ];
+    }
+    if (status) query.status = status;
+
+    const riders = await Rider.find(query)
+      .select('-password')
+      .sort('-createdAt');
+
+    res.json(riders);
+
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
 // Admin - Ban/Unban account
 app.put('/api/admin/ban/:role/:id', auth(['admin']), async (req, res) => {
   try {
@@ -631,19 +723,36 @@ app.post('/api/orders/:id/payment', auth(['customer', 'admin']), async (req, res
 app.post('/api/reviews', auth(['customer']), async (req, res) => {
   try {
     const { orderId, merchantId, productId, rating, review } = req.body;
-    const rev = await Review.create({ orderId, customerId: req.user.id, customerName: req.user.name, merchantId, productId, rating, review });
+
+    const rev = await Review.create({
+      orderId,
+      customerId: req.user.id,
+      customerName: req.user.name,
+      merchantId,
+      productId,
+      rating,
+      review
+    });
+
     // Update product rating
     if (productId) {
       const reviews = await Review.find({ productId });
       const avg = reviews.reduce((s, r) => s + r.rating, 0) / reviews.length;
-      await Product.findByIdAndUpdate(productId, { rating: avg, reviewCount: reviews.length });
+      await Product.findByIdAndUpdate(productId, {
+        rating: avg,
+        reviewCount: reviews.length
+      });
     }
+
     // Update order rating
     await Order.findByIdAndUpdate(orderId, { rating, review });
-    res.json(rev);
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
 
+    res.json(rev);
+
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
 app.get('/api/reviews/:productId', async (req, res) => {
   try { res.json(await Review.find({ productId: req.params.productId }).sort('-createdAt').limit(20)); } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -699,7 +808,19 @@ app.post('/api/customers', async (req, res) => {
     res.json({ success: true, id: c._id });
   } catch (e) { res.json({ success: false, error: e.message }); }
 });
+// ✅ BAGONG IDADAGDAG: Kumuha ng listahan ng Merchant (Admin lang)
+app.get('/api/admin/merchants', auth(['admin']), async (req, res) => {
+  try {
+    const merchants = await Merchant.find({})
+      .select('-password')
+      .sort('-createdAt');
 
+    res.json({ success: true, data: merchants });
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 // ── START SERVER ──
 app.listen(PORT, () => {
   console.log(`\n🚀 PDE Server running at http://localhost:${PORT}`);
