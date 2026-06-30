@@ -539,20 +539,60 @@ async function doApply(){
   const pcat=document.getElementById('a-pcat').value;
   const dti=document.getElementById('a-dti').value.trim();
   const permit=document.getElementById('a-permit').value.trim();
-  if(!name||!phone||!email||!pw||!storeName||!btype||!addr||!pcat||!dti||!permit){showErr('apply-err','Please fill in all required (*) fields.');return;}
-  if(pw.length<6){showErr('apply-err','Password must be at least 6 characters.');return;}
-  const app={id:'merch_'+Date.now(),type:'merchant',name,phone,email,password:pw,storeName,businessType:btype,address:addr,productCategory:pcat,description:document.getElementById('a-desc').value.trim(),dtiNumber:dti,permitNumber:permit,mayorPermit:document.getElementById('a-mayor').value.trim(),tin:document.getElementById('a-tin').value.trim(),status:'pending',appliedAt:new Date().toISOString()};
-  try{await fetch(`${API}/merchants/apply`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(app)});}catch(e){}
-  const db=JSON.parse(localStorage.getItem('pde_merchants_db')||'[]');
-  if(db.find(u=>u.email===email)){showErr('apply-err','Email already registered.');return;}
-  db.push(app);localStorage.setItem('pde_merchants_db',JSON.stringify(db));
-  const pending=JSON.parse(localStorage.getItem('pde_applications')||'[]');
-  pending.unshift(app);localStorage.setItem('pde_applications',JSON.stringify(pending));
-  document.getElementById('apply-ok').classList.add('show');
-  token='local_'+app.id;currentMerchant=app;saveSession();
-  setTimeout(()=>showPending(),2000);
-}
 
+  if(!name||!phone||!email||!pw||!storeName||!btype||!addr||!pcat||!dti||!permit){
+    showErr('apply-err','Please fill in all required (*) fields.');
+    return;
+  }
+
+  if(pw.length<6){
+    showErr('apply-err','Password must be at least 6 characters.');
+    return;
+  }
+
+  const app={
+    name,
+    phone,
+    email,
+    password:pw,
+    storeName,
+    businessType:btype,
+    address:addr,
+    productCategory:pcat,
+    description:document.getElementById('a-desc').value.trim(),
+    dtiNumber:dti,
+    permitNumber:permit,
+    mayorPermit:document.getElementById('a-mayor').value.trim(),
+    tin:document.getElementById('a-tin').value.trim()
+  };
+
+  try{
+
+    const res=await fetch(`${API_URL}/merchants/apply`,{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json'
+      },
+      body:JSON.stringify(app)
+    });
+
+    const data=await res.json();
+
+    if(!res.ok||!data.success){
+      showErr('apply-err',data.message||'Application failed.');
+      return;
+    }
+
+    document.getElementById('apply-ok').classList.add('show');
+
+    setTimeout(()=>{
+      showPending();
+    },2000);
+
+  }catch(err){
+    showErr('apply-err','Cannot connect to server.');
+  }
+}
 function saveSession(){localStorage.setItem('pde_merch_token',token||'');localStorage.setItem('pde_merch_user',JSON.stringify(currentMerchant));}
 
 function showPending(){
