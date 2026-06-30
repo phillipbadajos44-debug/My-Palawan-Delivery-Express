@@ -513,19 +513,13 @@ async function doLogin(){
   const pw=document.getElementById('l-pw').value;
   if(!email||!pw){showErr('login-err','Please fill in all fields.');return;}
   try{
-    const r=await fetch(`${API}/merchants/login`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password:pw})});
+    const r=await fetch(`${API_URL}/merchants/login`,{
     const d=await r.json();
     if(d.success&&d.token){token=d.token;currentMerchant=d.user;saveSession();enterApp();return;}
     if(d.status==='pending'){showErr('login-err','Your application is still pending approval.');return;}
     showErr('login-err',d.error||'Invalid credentials.');
-  }catch(e){
-    const db=JSON.parse(localStorage.getItem('pde_merchants_db')||'[]');
-    const u=db.find(x=>x.email===email&&x.password===pw);
-    if(!u){showErr('login-err','Account not found.');return;}
-    if(u.status==='pending'){token='local_'+u.id;currentMerchant=u;saveSession();showPending();return;}
-    if(u.status==='rejected'){showErr('login-err','Application was rejected. Contact admin.');return;}
-    token='local_'+u.id;currentMerchant=u;saveSession();enterApp();
-  }
+    }catch(e){
+  showErr('login-err','Cannot connect to server.');
 }
 
 async function doApply(){
