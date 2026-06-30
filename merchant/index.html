@@ -511,17 +511,45 @@ function previewFile(input,id){if(input.files&&input.files[0])document.getElemen
 async function doLogin(){
   const email=document.getElementById('l-email').value.trim();
   const pw=document.getElementById('l-pw').value;
-  if(!email||!pw){showErr('login-err','Please fill in all fields.');return;}
+
+  if(!email||!pw){
+    showErr('login-err','Please fill in all fields.');
+    return;
+  }
+
   try{
     const r=await fetch(`${API_URL}/api/merchants/login`,{
-    const d=await r.json();
-    if(d.success&&d.token){token=d.token;currentMerchant=d.user;saveSession();enterApp();return;}
-    if(d.status==='pending'){showErr('login-err','Your application is still pending approval.');return;}
-    showErr('login-err',d.error||'Invalid credentials.');
-    }catch(e){
-  showErr('login-err','Cannot connect to server.');
-}
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json'
+      },
+      body:JSON.stringify({
+        email,
+        password:pw
+      })
+    });
 
+    const d=await r.json();
+
+    if(d.success&&d.token){
+      token=d.token;
+      currentMerchant=d.user;
+      saveSession();
+      enterApp();
+      return;
+    }
+
+    if(d.status==='pending'){
+      showErr('login-err','Your application is still pending approval.');
+      return;
+    }
+
+    showErr('login-err',d.error||'Invalid credentials.');
+
+  }catch(e){
+    showErr('login-err','Cannot connect to server.');
+  }
+}
 async function doApply(){
   const name=document.getElementById('a-name').value.trim();
   const phone=document.getElementById('a-phone').value.trim();
