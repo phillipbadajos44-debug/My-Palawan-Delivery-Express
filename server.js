@@ -404,20 +404,6 @@ app.post('/api/admin/login', (req, res) => {
   } else res.status(401).json({ error: 'Invalid admin credentials' });
 });
 
-// Admin - Get all applications
-app.get('/api/admin/applications', auth(['admin']), async (req, res) => {
-  try {
-    const { status, type } = req.query;
-    let mQuery = {}, rQuery = {};
-    if (status) { mQuery.status = status; rQuery.status = status; }
-    const merchants = await Merchant.find(mQuery).select('-password').sort('-appliedAt');
-    const riders = await Rider.find(rQuery).select('-password').sort('-appliedAt');
-    const apps = [...merchants.map(m => ({ ...m.toObject(), type: 'merchant' })), ...riders.map(r => ({ ...r.toObject(), type: 'rider' }))];
-    if (type) return res.json(apps.filter(a => a.type === type));
-    res.json(apps.sort((a, b) => new Date(b.appliedAt) - new Date(a.appliedAt)));
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
 // Admin - Approve/Reject application
 app.put('/api/admin/applications/:id', auth(['admin']), async (req, res) => {
   try {
@@ -430,44 +416,31 @@ app.put('/api/admin/applications/:id', auth(['admin']), async (req, res) => {
     res.json({ success: true, doc });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
-app.post('/api/admin/applications/:id/approve', auth(['admin']), async (req, res) => {
+app.get('/api/admin/applications', auth(['admin']), async (req, res) => {
   try {
-    const appData = await Application.findById(req.params.id);
+    const { status, type } = req.query;
 
-    if (!appData) {
-      return res.status(404).json({ error: 'Application not found' });
-    }
+    let query = {};
+    if (status) query.status = status;
+    if (type) query.type = type;
 
-    const { type, data } = appData;
+    const applications = await Application.find(query).sort({ createdAt: -1 });
 
-    let created;
+    const formatted = applications.map(a => ({
+      _id: a._id,
+      type: a.type,
+      status: a.status,
+      appliedAt: a.createdAt,
+      name: a.data.fullName,
+      ...a.data
+    }));
 
-    if (type === 'merchant') {
-      created = await Merchant.create(data);
-    }
+    res.json(formatted);
 
-    if (type === 'rider') {
-      created = await Rider.create(data);
-    }
-
-    if (type === 'customer') {
-      created = await Customer.create(data);
-    }
-
-    appData.status = 'approved';
-    await appData.save();
-
-    res.json({
-      success: true,
-      message: 'Approved successfully',
-      id: created._id
-    });
-
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
   }
 });
-
 // Admin - Get all users
 app.get('/api/admin/customers', auth(['admin']), async (req, res) => {
   try {
