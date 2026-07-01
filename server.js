@@ -248,16 +248,11 @@ app.post('/api/customers/upload-profile', auth(['customer']), (req, res) => {
 // ============================================================
 app.post('/api/merchants/apply', async (req, res) => {
   try {
-    const { name, phone, email, password, storeName, businessType, address, productCategory, description, dtiNumber, permitNumber, mayorPermit, tin } = req.body;
-    const exists = await Merchant.findOne({ email });
-    if (exists) return res.status(400).json({ error: 'Email already registered' });
-    const hashed = await bcrypt.hash(password, 10);
-
-    const merchant = await Merchant.create({
+    const {
       name,
       phone,
       email,
-      password: hashed,
+      password,
       storeName,
       businessType,
       address,
@@ -266,11 +261,52 @@ app.post('/api/merchants/apply', async (req, res) => {
       dtiNumber,
       permitNumber,
       mayorPermit,
-      tin,
+      tin
+    } = req.body;
+
+    const existsMerchant = await Merchant.findOne({ email });
+    const existsApplication = await Application.findOne({
+      "data.email": email,
+      type: "merchant"
+    });
+
+    if (existsMerchant || existsApplication) {
+      return res.status(400).json({
+        error: "Email already registered or application already submitted"
+      });
+    }
+
+    const hashed = await bcrypt.hash(password, 10);
+
+    await Application.create({
+      type: "merchant",
+      data: {
+        fullName: name,
+        name,
+        phone,
+        email,
+        password: hashed,
+        storeName,
+        businessType,
+        address,
+        productCategory,
+        description,
+        dtiNumber,
+        permitNumber,
+        mayorPermit,
+        tin
+      },
       status: "pending"
     });
-    res.json({ success: true, id: merchant._id });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+
+    res.json({
+      success: true,
+      message: "Merchant application submitted successfully."
+    });
+
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 app.post('/api/merchants/login', async (req, res) => {
   try {
@@ -333,18 +369,29 @@ app.post('/api/riders/apply', async (req, res) => {
 
     const hashed = await bcrypt.hash(password, 10);
 
-    await Application.create({
-      type: 'rider',
-      data: {
-        fullName,
-        email,
-        phone,
-        address,
-        vehicleType,
-        password: hashed
-      }
-    });
+    const rider = await Rider.create({
+  name: fullName,
+  email,
+  phone,
+  address,
+  vehicleType,
+  password: hashed,
+  status: "pending"
+});
 
+await Application.create({
+  type: "rider",
+  data: {
+    fullName,
+    email,
+    phone,
+    address,
+    vehicleType
+  },
+  status: "pending",
+  createdAt: new Date(),
+  linkedId: rider._id
+});
     res.json({ success: true, message: 'Application submitted' });
 
   } catch (err) {
@@ -407,14 +454,86 @@ app.post('/api/admin/login', (req, res) => {
 // Admin - Approve/Reject application
 app.put('/api/admin/applications/:id', auth(['admin']), async (req, res) => {
   try {
-    const { status, type, reason } = req.body;
-    const Model = type === 'merchant' ? Merchant : Rider;
-    const doc = await Model.findByIdAndUpdate(req.params.id, { status }, { new: true });
-    if (!doc) return res.status(404).json({ error: 'Not found' });
-    await createNotification(req.params.id, type, status === 'approved' ? '🎉 Application Approved!' : '❌ Application Rejected', status === 'approved' ? 'Your application has been approved. You can now log in.' : `Your application was rejected. ${reason || ''}`, 'application');
-    await Audit.create({ adminId: 'admin', action: `${status} application`, target: type, targetId: req.params.id, details: reason || '' });
-    res.json({ success: true, doc });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+    const { status, reason } = req.body;
+    const appData = await Application.findById(req.params.id);
+    if (!appData) return res.status(404).json({ error: 'Application not found' });
+
+    appData.status = status;
+    await appData.save();
+
+    if (status === 'approved') {
+
+      if (appData.type === 'merchant') {
+
+        const exists = await Merchant.findOne({ email: appData.data.email });
+
+        if (!exists) {
+          await Merchant.create({
+            name: appData.data.fullName || appData.data.name,
+            phone: appData.data.phone,
+            email: appData.data.email,
+            password: appData.data.password,
+            storeName: appData.data.storeName,
+            businessType: appData.data.businessType,
+            address: appData.data.address,
+            productCategory: appData.data.productCategory,
+            description: appData.data.description,
+            dtiNumber: appData.data.dtiNumber,
+            permitNumber: appData.data.permitNumber,
+            mayorPermit: appData.data.mayorPermit,
+            tin: appData.data.tin,
+            status: "approved"
+          });
+        }
+
+      } else if (appData.type === 'rider') {
+
+        const exists = await Rider.findOne({ email: appData.data.email });
+
+        if (!exists) {
+          await Rider.create({
+            name: appData.data.fullName,
+            phone: appData.data.phone,
+            email: appData.data.email,
+            password: appData.data.password,
+            address: appData.data.address,
+            vehicleType: appData.data.vehicleType,
+            vehicleModel: appData.data.vehicleModel,
+            plateNumber: appData.data.plateNumber,
+            status: "approved"
+          });
+        }
+
+      }
+    }
+
+    await Audit.create({
+      adminId: "admin",
+      action: `${status} application`,
+      target: appData.type,
+      targetId: appData._id,
+      details: reason || ""
+    });
+
+    res.json({ success: true });
+
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+app.post('/api/applications', async (req, res) => {
+  try {
+    const data = await Application.create(req.body);
+
+    res.json({
+      success: true,
+      message: "Application submitted successfully",
+      data
+    });
+
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 app.get('/api/admin/applications', auth(['admin']), async (req, res) => {
   try {

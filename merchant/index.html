@@ -590,7 +590,42 @@ async function doApply(){
 
   try{
 
-    const res=await fetch(`${API_URL}/api/merchants/apply`,{
+  const res = await fetch(`${API_URL}/api/applications`, {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify({
+    type: "merchant",
+    status: "pending",
+    data: {
+      fullName,
+      email,
+      phone,
+      storeName,
+      businessType,
+      address
+    }
+  })
+});
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json'
+      },
+      body:JSON.stringify(app)
+    });
+
+    const data=await res.json();
+
+    if(!res.ok||!data.success){
+      showErr('apply-err',data.message||'Application failed.');
+      return;
+    }
+
+    document.getElementById('apply-ok').classList.add('show');
+
+    setTimeout(()=>{
+      showPending();
       method:'POST',
       headers:{
         'Content-Type':'application/json'

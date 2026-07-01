@@ -10,6 +10,9 @@ const ApplicationSchema = new mongoose.Schema({
     type: Object,
     required: true
   },
+  linkedId: {
+    type: mongoose.Schema.Types.ObjectId
+  },
   status: {
     type: String,
     default: 'pending'
