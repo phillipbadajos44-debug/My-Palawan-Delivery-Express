@@ -456,18 +456,26 @@ function renderFeed(){
 // ── APPLICATIONS ──
 async function loadApplications(){
   try{
-    const r=await fetch(`${API}/admin/applications`,{headers:{'Authorization':'Bearer '+adminToken}});
-    const d=await r.json();
-    applications=Array.isArray(d)?d:[];
-  }catch(e){applications=[];}
-  updateStats();renderApplications();
-}
-function filterApps(f,el){
-  currentAppFilter=f;
-  document.querySelectorAll('#page-applications .ftab').forEach(t=>t.classList.remove('active'));if(el)el.classList.add('active');
+    const r = await fetch(`${API}/admin/applications`, {
+      headers: {
+        'Authorization': 'Bearer ' + adminToken
+      }
+    });
+
+    const d = await r.json();
+
+    console.log("Applications:", d);
+
+    applications = Array.isArray(d) ? d : [];
+
+  } catch(e){
+    console.error(e);
+    applications = [];
+  }
+
+  updateStats();
   renderApplications();
 }
-
 function renderApplications(){
   let list=applications;
   if(currentAppFilter==='pending')list=list.filter(a=>a.status==='pending');
