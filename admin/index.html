@@ -379,18 +379,50 @@ let currentOrderFilter='all',currentAppFilter='all',currentUserType='customers';
 let auditLogs=[];
 
 // ── AUTH ──
-function checkSession(){if(localStorage.getItem('pde_admin')==='true'){adminToken='admin_token';enterApp();}}
+function checkSession(){
+  if(localStorage.getItem('pde_admin')==='true'){
+    adminToken = localStorage.getItem('pde_admin_token');
+    if(adminToken){
+      enterApp();
+    }
+  }
+}
 function togglePw(){const i=document.getElementById('a-pw');i.type=i.type==='password'?'text':'password';}
 function showErr(id,msg){const el=document.getElementById(id);el.textContent=msg;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),3000);}
 
-function doLogin(){
-  const user=document.getElementById('a-user').value.trim();
-  const pw=document.getElementById('a-pw').value;
-  if(user===ADMIN.username&&pw===ADMIN.password){
-    localStorage.setItem('pde_admin','true');adminToken='admin_token';enterApp();
-  }else showErr('login-err','Invalid admin credentials.');
-}
+async function doLogin(){
+  const user = document.getElementById('a-user').value.trim();
+  const pw = document.getElementById('a-pw').value;
 
+  try{
+    const res = await fetch(`${API}/admin/login`,{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json'
+      },
+      body:JSON.stringify({
+        username:user,
+        password:pw
+      })
+    });
+
+    const data = await res.json();
+
+    if(!res.ok || !data.success){
+      showErr('login-err', data.error || 'Invalid admin credentials.');
+      return;
+    }
+
+    adminToken = data.token;
+    localStorage.setItem('pde_admin','true');
+    localStorage.setItem('pde_admin_token', data.token);
+
+    enterApp();
+
+  }catch(err){
+    showErr('login-err','Cannot connect to server.');
+  }
+}
 function enterApp(){
   document.getElementById('authScreen').style.display='none';
   document.getElementById('mainApp').classList.add('active');
