@@ -304,7 +304,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
 
 <script>
 const API_URL = "https://my-palawan-delivery-express.onrender.com";
-const API = API_URL;
+const API = API_URL + '/api';
 const EM={rice:'🍚',vegetable:'🥦',fish:'🐟',meat:'🥩',chicken:'🍗',egg:'🥚',milk:'🥛',canned:'🥫',chips:'🍿',beef:'🥩',pork:'🥩',bangus:'🐟',oil:'🫙',bread:'🍞',coffee:'☕',noodle:'🍜',mango:'🥭',shrimp:'🦐'};
 function emo(n){if(!n)return'📦';const l=n.toLowerCase();for(const[k,e]of Object.entries(EM))if(l.includes(k))return e;return'📦';}
 
@@ -363,7 +363,7 @@ async function doApply(){
   const db=JSON.parse(localStorage.getItem('pde_riders_db')||'[]');
   if(db.find(u=>u.email===email)){showErr('apply-err','Email already registered.');return;}
   const app={id:'rider_'+Date.now(),type:'rider',name,phone,email,password:pw,address:addr,vehicleType:vtype,vehicleModel:document.getElementById('a-model').value.trim(),plateNumber:plate,status:'pending',appliedAt:new Date().toISOString()};
-  try{const r=await fetch(`${API}/riders/apply`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(app)});const rawText=await r.text();alert('STATUS: '+r.status+' | RAW: '+rawText.substring(0,300));}catch(e){alert('FETCH ERROR: '+e.message);}
+  try{await fetch(`${API}/riders/apply`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(app)});}catch(e){}
   db.push(app);localStorage.setItem('pde_riders_db',JSON.stringify(db));
   const pending=JSON.parse(localStorage.getItem('pde_applications')||'[]');
   pending.unshift(app);localStorage.setItem('pde_applications',JSON.stringify(pending));
