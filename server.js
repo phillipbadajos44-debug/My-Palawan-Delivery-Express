@@ -459,56 +459,70 @@ app.post('/api/admin/login', (req, res) => {
 app.put('/api/admin/applications/:id', auth(['admin']), async (req, res) => {
   try {
     const { status, reason } = req.body;
+
     const appData = await Application.findById(req.params.id);
-    if (!appData) return res.status(404).json({ error: 'Application not found' });
+    if (!appData)
+      return res.status(404).json({ error: 'Application not found' });
 
     appData.status = status;
     await appData.save();
-if (status === 'approved') {
 
-  if (appData.type === 'merchant') {
+    if (status === 'approved') {
 
-    await Merchant.findOneAndUpdate(
-      { email: appData.data.email },
-      {
-        $set: {
-          name: appData.data.fullName || appData.data.name,
-          email: appData.data.email,
-          phone: appData.data.phone,
-          password: appData.data.password,
-          storeName: appData.data.storeName,
-          businessType: appData.data.businessType,
-          address: appData.data.address,
-          productCategory: appData.data.productCategory,
-          description: appData.data.description,
-          dtiNumber: appData.data.dtiNumber,
-          permitNumber: appData.data.permitNumber,
-          mayorPermit: appData.data.mayorPermit,
-          tin: appData.data.tin,
-          status: 'approved'
-        }
-      },
-      { upsert: true }
-    );
+      // ========================
+      // MERCHANT SYNC FIX
+      // ========================
+      if (appData.type === 'merchant') {
 
-  } else if (appData.type === 'rider') {
+        await Merchant.findOneAndUpdate(
+          { email: appData.data.email },
+          {
+            $set: {
+              name: appData.data.fullName || appData.data.name,
+              email: appData.data.email,
+              phone: appData.data.phone,
+              password: appData.data.password,
+              storeName: appData.data.storeName,
+              businessType: appData.data.businessType,
+              address: appData.data.address,
+              productCategory: appData.data.productCategory,
+              description: appData.data.description,
+              dtiNumber: appData.data.dtiNumber,
+              permitNumber: appData.data.permitNumber,
+              mayorPermit: appData.data.mayorPermit,
+              tin: appData.data.tin,
+              status: 'approved',
+              isActive: true
+            }
+          },
+          { upsert: true, new: true }
+        );
+      }
 
-    await Rider.findOneAndUpdate(
-      { email: appData.data.email },
-      {
-        status: 'approved',
-        name: appData.data.fullName,
-        phone: appData.data.phone,
-        address: appData.data.address,
-        vehicleType: appData.data.vehicleType,
-        vehicleModel: appData.data.vehicleModel,
-        plateNumber: appData.data.plateNumber
-      },
-      { upsert: true }
-    );
+      // ========================
+      // RIDER SYNC FIX
+      // ========================
+      else if (appData.type === 'rider') {
 
-  }
-}
+        await Rider.findOneAndUpdate(
+          { email: appData.data.email },
+          {
+            $set: {
+              name: appData.data.fullName,
+              phone: appData.data.phone,
+              address: appData.data.address,
+              vehicleType: appData.data.vehicleType,
+              vehicleModel: appData.data.vehicleModel,
+              plateNumber: appData.data.plateNumber,
+              status: 'approved',
+              isActive: true
+            }
+          },
+          { upsert: true, new: true }
+        );
+      }
+    }
+
     await Audit.create({
       adminId: "admin",
       action: `${status} application`,
