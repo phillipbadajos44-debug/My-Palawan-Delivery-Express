@@ -465,52 +465,48 @@ app.put('/api/admin/applications/:id', auth(['admin']), async (req, res) => {
     appData.status = status;
     await appData.save();
 
-    if (status === 'approved') {
+if (appData.type === 'merchant') {
 
-      if (appData.type === 'merchant') {
-
-        const exists = await Merchant.findOne({ email: appData.data.email });
-
-        if (!exists) {
-          await Merchant.create({
-            name: appData.data.fullName || appData.data.name,
-            phone: appData.data.phone,
-            email: appData.data.email,
-            password: appData.data.password,
-            storeName: appData.data.storeName,
-            businessType: appData.data.businessType,
-            address: appData.data.address,
-            productCategory: appData.data.productCategory,
-            description: appData.data.description,
-            dtiNumber: appData.data.dtiNumber,
-            permitNumber: appData.data.permitNumber,
-            mayorPermit: appData.data.mayorPermit,
-            tin: appData.data.tin,
-            status: "approved"
-          });
-        }
-
-      } else if (appData.type === 'rider') {
-
-        const exists = await Rider.findOne({ email: appData.data.email });
-
-        if (!exists) {
-          await Rider.create({
-            name: appData.data.fullName,
-            phone: appData.data.phone,
-            email: appData.data.email,
-            password: appData.data.password,
-            address: appData.data.address,
-            vehicleType: appData.data.vehicleType,
-            vehicleModel: appData.data.vehicleModel,
-            plateNumber: appData.data.plateNumber,
-            status: "approved"
-          });
-        }
-
+  await Merchant.findOneAndUpdate(
+    { email: appData.data.email },
+    {
+      $set: {
+        name: appData.data.fullName || appData.data.name,
+        email: appData.data.email,
+        phone: appData.data.phone,
+        password: appData.data.password,
+        storeName: appData.data.storeName,
+        businessType: appData.data.businessType,
+        address: appData.data.address,
+        productCategory: appData.data.productCategory,
+        description: appData.data.description,
+        dtiNumber: appData.data.dtiNumber,
+        permitNumber: appData.data.permitNumber,
+        mayorPermit: appData.data.mayorPermit,
+        tin: appData.data.tin,
+        status: 'approved'
       }
-    }
+    },
+    { upsert: true }
+  );
 
+}
+  else if (appData.type === 'rider') {
+    await Rider.findOneAndUpdate(
+      { email: appData.data.email },
+      {
+        status: 'approved',
+        name: appData.data.fullName,
+        phone: appData.data.phone,
+        address: appData.data.address,
+        vehicleType: appData.data.vehicleType,
+        vehicleModel: appData.data.vehicleModel,
+        plateNumber: appData.data.plateNumber
+      },
+      { upsert: true }
+    );
+  }
+}
     await Audit.create({
       adminId: "admin",
       action: `${status} application`,
