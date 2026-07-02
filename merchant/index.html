@@ -600,7 +600,7 @@ try {
     const data = await res.json();
 
     if (!res.ok || !data.success) {
-      showErr('apply-err', data.message || 'Application failed.');
+    showErr('apply-err', data.error || data.message || JSON.stringify(data));
       return;
     }
 
