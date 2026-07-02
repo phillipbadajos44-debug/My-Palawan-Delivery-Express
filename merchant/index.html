@@ -575,34 +575,28 @@ async function doApply() {
     return;
   }
 
-  try {
-    const res = await fetch(`${API_URL}/api/applications`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        type: "merchant",
-        status: "pending",
-        data: {
-          fullName: name,
-          name: name,
-          phone: phone,
-          email: email,
-          password: pw,
-          storeName: storeName,
-          businessType: btype,
-          address: addr,
-          productCategory: pcat,
-          description: desc,
-          dtiNumber: dti,
-          permitNumber: permit,
-          mayorPermit: mayor,
-          tin: tin
-        }
-      })
-    });
-
+try {
+  const res = await fetch(`${API_URL}/api/merchants/apply`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      name,
+      phone,
+      email,
+      password: pw,
+      storeName,
+      businessType: btype,
+      address: addr,
+      productCategory: pcat,
+      description: desc,
+      dtiNumber: dti,
+      permitNumber: permit,
+      mayorPermit: mayor,
+      tin
+    })
+  });
     const data = await res.json();
 
     if (!res.ok || !data.success) {
