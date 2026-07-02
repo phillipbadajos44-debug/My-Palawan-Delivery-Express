@@ -929,6 +929,19 @@ app.get('/api/admin/merchants', auth(['admin']), async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+app.put('/api/admin/merchants/:id/approve', auth(['admin']), async (req, res) => {
+  try {
+    const m = await Merchant.findByIdAndUpdate(
+      req.params.id,
+      { status: 'approved', isActive: true },
+      { new: true }
+    );
+    if (!m) return res.status(404).json({ error: 'Merchant not found' });
+    res.json({ success: true, data: m });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
 // ── START SERVER ──
 app.listen(PORT, () => {
   console.log(`\n🚀 PDE Server running at http://localhost:${PORT}`);
