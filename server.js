@@ -17,6 +17,11 @@ const path = require('path');
 const fs = require('fs');
 
 const app = express();
+
+app.use('/merchant', express.static(path.join(__dirname, 'merchant')));
+app.use('/admin', express.static(path.join(__dirname, 'admin')));
+app.use('/customer', express.static(path.join(__dirname, 'customer')));
+app.use('/rider', express.static(path.join(__dirname, 'rider')));
 app.use(cors());
 app.use(express.json());
 

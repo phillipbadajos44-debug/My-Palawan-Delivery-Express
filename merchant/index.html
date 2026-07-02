@@ -478,7 +478,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
 <div class="toast" id="toastEl">✅ <span id="toastMsg"></span></div>
 
 <script>
-const API_URL = "https://pinaka-bagong-render-to-deliver.onrender.com";
+const API_URL = "https://my-palawan-delivery-express.onrender.com";
 const EM={rice:'🍚',vegetable:'🥦',fish:'🐟',isda:'🐟',meat:'🥩',chicken:'🍗',egg:'🥚',milk:'🥛',juice:'🧃',oil:'🫙',soap:'🧼',bread:'🍞',coffee:'☕',noodle:'🍜',canned:'🥫',sardine:'🥫',tuna:'🥫',chips:'🍿',beef:'🥩',pork:'🥩',bangus:'🐟',tilapia:'🐟',shrimp:'🦐',mango:'🥭',banana:'🍌'};
 function emo(n){if(!n)return'📦';const l=n.toLowerCase();for(const[k,e]of Object.entries(EM))if(l.includes(k))return e;return'📦';}
 
@@ -550,104 +550,74 @@ async function doLogin(){
     showErr('login-err','Cannot connect to server.');
   }
 }
-async function doApply(){
-  const name=document.getElementById('a-name').value.trim();
-  const phone=document.getElementById('a-phone').value.trim();
-  const email=document.getElementById('a-email').value.trim();
-  const pw=document.getElementById('a-pw').value;
-  const storeName=document.getElementById('a-store').value.trim();
-  const btype=document.getElementById('a-btype').value;
-  const addr=document.getElementById('a-addr').value.trim();
-  const pcat=document.getElementById('a-pcat').value;
-  const dti=document.getElementById('a-dti').value.trim();
-  const permit=document.getElementById('a-permit').value.trim();
+async function doApply() {
+  const name = document.getElementById('a-name').value.trim();
+  const phone = document.getElementById('a-phone').value.trim();
+  const email = document.getElementById('a-email').value.trim();
+  const pw = document.getElementById('a-pw').value;
+  const storeName = document.getElementById('a-store').value.trim();
+  const btype = document.getElementById('a-btype').value;
+  const addr = document.getElementById('a-addr').value.trim();
+  const pcat = document.getElementById('a-pcat').value;
+  const dti = document.getElementById('a-dti').value.trim();
+  const permit = document.getElementById('a-permit').value.trim();
+  const mayor = document.getElementById('a-mayor').value.trim();
+  const tin = document.getElementById('a-tin').value.trim();
+  const desc = document.getElementById('a-desc').value.trim();
 
-  if(!name||!phone||!email||!pw||!storeName||!btype||!addr||!pcat||!dti||!permit){
-    showErr('apply-err','Please fill in all required (*) fields.');
+  if (!name || !phone || !email || !pw || !storeName || !btype || !addr || !pcat || !dti || !permit) {
+    showErr('apply-err', 'Please fill in all required (*) fields.');
     return;
   }
 
-  if(pw.length<6){
-    showErr('apply-err','Password must be at least 6 characters.');
+  if (pw.length < 6) {
+    showErr('apply-err', 'Password must be at least 6 characters.');
     return;
   }
 
-  const app={
-    name,
-    phone,
-    email,
-    password:pw,
-    storeName,
-    businessType:btype,
-    address:addr,
-    productCategory:pcat,
-    description:document.getElementById('a-desc').value.trim(),
-    dtiNumber:dti,
-    permitNumber:permit,
-    mayorPermit:document.getElementById('a-mayor').value.trim(),
-    tin:document.getElementById('a-tin').value.trim()
-  };
-
-  try{
-
-  const res = await fetch(`${API_URL}/api/applications`, {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json"
-  },
-  body: JSON.stringify({
-    type: "merchant",
-    status: "pending",
-    data: {
-      fullName,
-      email,
-      phone,
-      storeName,
-      businessType,
-      address
-    }
-  })
-});
-      method:'POST',
-      headers:{
-        'Content-Type':'application/json'
+  try {
+    const res = await fetch(`${API_URL}/api/applications`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
       },
-      body:JSON.stringify(app)
+      body: JSON.stringify({
+        type: "merchant",
+        status: "pending",
+        data: {
+          fullName: name,
+          name: name,
+          phone: phone,
+          email: email,
+          password: pw,
+          storeName: storeName,
+          businessType: btype,
+          address: addr,
+          productCategory: pcat,
+          description: desc,
+          dtiNumber: dti,
+          permitNumber: permit,
+          mayorPermit: mayor,
+          tin: tin
+        }
+      })
     });
 
-    const data=await res.json();
+    const data = await res.json();
 
-    if(!res.ok||!data.success){
-      showErr('apply-err',data.message||'Application failed.');
+    if (!res.ok || !data.success) {
+      showErr('apply-err', data.message || 'Application failed.');
       return;
     }
 
     document.getElementById('apply-ok').classList.add('show');
 
-    setTimeout(()=>{
+    setTimeout(() => {
       showPending();
-      method:'POST',
-      headers:{
-        'Content-Type':'application/json'
-      },
-      body:JSON.stringify(app)
-    });
+    }, 2000);
 
-    const data=await res.json();
-
-    if(!res.ok||!data.success){
-      showErr('apply-err',data.message||'Application failed.');
-      return;
-    }
-
-    document.getElementById('apply-ok').classList.add('show');
-
-    setTimeout(()=>{
-      showPending();
-    },2000);
-
-  }catch(err){
-    showErr('apply-err','Cannot connect to server.');
+  } catch (err) {
+    showErr('apply-err', 'Cannot connect to server.');
   }
 }
 function saveSession(){localStorage.setItem('pde_merch_token',token||'');localStorage.setItem('pde_merch_user',JSON.stringify(currentMerchant));}
