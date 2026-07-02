@@ -363,7 +363,7 @@ async function doApply(){
   const db=JSON.parse(localStorage.getItem('pde_riders_db')||'[]');
   if(db.find(u=>u.email===email)){showErr('apply-err','Email already registered.');return;}
   const app={id:'rider_'+Date.now(),type:'rider',name,phone,email,password:pw,address:addr,vehicleType:vtype,vehicleModel:document.getElementById('a-model').value.trim(),plateNumber:plate,status:'pending',appliedAt:new Date().toISOString()};
-  try{const r=await fetch(`${API}/riders/apply`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(app)});const rd=await r.json();alert('API: '+API+' | Response: '+JSON.stringify(rd));}catch(e){alert('FETCH ERROR: '+e.message);}
+  try{const r=await fetch(`${API}/riders/apply`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(app)});const rawText=await r.text();alert('STATUS: '+r.status+' | RAW: '+rawText.substring(0,300));}catch(e){alert('FETCH ERROR: '+e.message);}
   db.push(app);localStorage.setItem('pde_riders_db',JSON.stringify(db));
   const pending=JSON.parse(localStorage.getItem('pde_applications')||'[]');
   pending.unshift(app);localStorage.setItem('pde_applications',JSON.stringify(pending));
