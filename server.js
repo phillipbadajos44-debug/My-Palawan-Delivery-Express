@@ -58,7 +58,6 @@ const upload = multer({
 });
 
 // ── MONGOOSE CONNECTION ──
-mongoose.connect(MONGO_URI).then(() => console.log('✅ MongoDB connected')).catch(e => console.log('⚠️ MongoDB not connected, using mock data:', e.message));
 
 // ============================================================
 // SCHEMAS
