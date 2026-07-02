@@ -464,34 +464,35 @@ app.put('/api/admin/applications/:id', auth(['admin']), async (req, res) => {
 
     appData.status = status;
     await appData.save();
+if (status === 'approved') {
 
-if (appData.type === 'merchant') {
+  if (appData.type === 'merchant') {
 
-  await Merchant.findOneAndUpdate(
-    { email: appData.data.email },
-    {
-      $set: {
-        name: appData.data.fullName || appData.data.name,
-        email: appData.data.email,
-        phone: appData.data.phone,
-        password: appData.data.password,
-        storeName: appData.data.storeName,
-        businessType: appData.data.businessType,
-        address: appData.data.address,
-        productCategory: appData.data.productCategory,
-        description: appData.data.description,
-        dtiNumber: appData.data.dtiNumber,
-        permitNumber: appData.data.permitNumber,
-        mayorPermit: appData.data.mayorPermit,
-        tin: appData.data.tin,
-        status: 'approved'
-      }
-    },
-    { upsert: true }
-  );
+    await Merchant.findOneAndUpdate(
+      { email: appData.data.email },
+      {
+        $set: {
+          name: appData.data.fullName || appData.data.name,
+          email: appData.data.email,
+          phone: appData.data.phone,
+          password: appData.data.password,
+          storeName: appData.data.storeName,
+          businessType: appData.data.businessType,
+          address: appData.data.address,
+          productCategory: appData.data.productCategory,
+          description: appData.data.description,
+          dtiNumber: appData.data.dtiNumber,
+          permitNumber: appData.data.permitNumber,
+          mayorPermit: appData.data.mayorPermit,
+          tin: appData.data.tin,
+          status: 'approved'
+        }
+      },
+      { upsert: true }
+    );
 
-}
-  else if (appData.type === 'rider') {
+  } else if (appData.type === 'rider') {
+
     await Rider.findOneAndUpdate(
       { email: appData.data.email },
       {
@@ -505,6 +506,7 @@ if (appData.type === 'merchant') {
       },
       { upsert: true }
     );
+
   }
 }
     await Audit.create({
