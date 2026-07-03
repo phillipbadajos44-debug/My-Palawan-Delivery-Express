@@ -106,7 +106,8 @@ const RiderSchema = new mongoose.Schema({
 
 const ProductSchema = new mongoose.Schema({
   name: String, price: Number, category: String, description: String,
-  stock: { type: Number, default: 0 }, image: String,
+  stock: { type: Number, default: 0 }, image: String, images: [String],
+  deliveryFeePercent: { type: Number, default: 15 },
   merchantId: String, merchantName: String,
   isAvailable: { type: Boolean, default: true },
   rating: { type: Number, default: 0 }, reviewCount: { type: Number, default: 0 },
@@ -749,13 +750,17 @@ app.delete('/api/products/:id', auth(['merchant']), async (req, res) => {
 
 // Product image upload
 app.post('/api/products/:id/image', auth(['merchant']), (req, res) => {
-  upload.single('image')(req, res, async (err) => {
+  upload.array('images', 5)(req, res, async (err) => {
     if (err) return res.status(400).json({ error: err.message });
-    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+    if (!req.files || !req.files.length) return res.status(400).json({ error: 'No files uploaded' });
     try {
-      const result = await uploadToCloudinary(req.file.buffer, 'products');
-      await Product.findByIdAndUpdate(req.params.id, { image: result.secure_url });
-      res.json({ url: result.secure_url });
+      const results = await Promise.all(req.files.map(f => uploadToCloudinary(f.buffer, 'products')));
+      const urls = results.map(r => r.secure_url);
+      const prod = await Product.findById(req.params.id);
+      const existingImages = (prod && prod.images) || [];
+      const allImages = [...existingImages, ...urls];
+      await Product.findByIdAndUpdate(req.params.id, { images: allImages, image: allImages[0] });
+      res.json({ urls: allImages });
     } catch (e) {
       res.status(500).json({ error: e.message });
     }
