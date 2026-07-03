@@ -785,6 +785,17 @@ app.post('/api/orders', auth(['customer']), async (req, res) => {
       paymentMethod: paymentMethod || 'cod', customerAddress,
       statusHistory: [{ status: 'pending', time: new Date(), note: 'Order placed by customer' }]
     });
+
+    // Deduct stock for each ordered item
+    for (const item of items) {
+      const prod = await Product.findById(item.id);
+      if (prod) {
+        prod.stock = Math.max(0, (prod.stock || 0) - item.qty);
+        prod.isAvailable = prod.stock > 0;
+        await prod.save();
+      }
+    }
+
     // Notify merchant
     await createNotification(merchantId, 'merchant', '🆕 New Order!', `${req.user.name} placed an order worth ₱${total}`, 'order', order._id);
     res.json(order);

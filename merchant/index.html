@@ -787,6 +787,17 @@ function previewProductImg(input){
   }
 }
 
+async function uploadProductImage(productId){
+  const input=document.getElementById('p-img-input');
+  if(!input.files||!input.files[0])return;
+  const fd=new FormData();
+  fd.append('image',input.files[0]);
+  try{
+    await fetch(`${API}/products/${productId}/image`,{method:'POST',headers:{'Authorization':'Bearer '+token},body:fd});
+  }catch(e){}
+  input.value='';
+}
+
 async function saveProduct(){
   const name=document.getElementById('p-name').value.trim();
   const price=parseFloat(document.getElementById('p-price').value);
@@ -797,18 +808,26 @@ async function saveProduct(){
   const product={name,price,category:cat,description:desc,stock,merchantId:currentMerchant.id||currentMerchant._id,merchantName:currentMerchant.storeName||currentMerchant.name,isAvailable:stock>0};
   if(editingProductId){
     try{await fetch(`${API}/products/${editingProductId}`,{method:'PUT',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify(product)});}catch(e){}
+    await uploadProductImage(editingProductId);
     const idx=myProducts.findIndex(p=>(p._id||p.id)===editingProductId);
     if(idx>-1)myProducts[idx]={...myProducts[idx],...product};
     toast(`"${name}" updated! ✅`);cancelEdit();
   }else{
-    try{await fetch(`${API}/products`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify(product)});}catch(e){}
-    myProducts.unshift({...product,id:'p_'+Date.now()});
+    let newId=null;
+    try{
+      const r=await fetch(`${API}/products`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify(product)});
+      const d=await r.json();
+      newId=d._id||d.id;
+    }catch(e){}
+    if(newId)await uploadProductImage(newId);
+    myProducts.unshift({...product,_id:newId,id:newId||('p_'+Date.now())});
     toast(`"${name}" posted to Customer App! 🎉`);
   }
   ['p-name','p-price','p-desc','p-stock'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('p-cat').value='';
   document.getElementById('p-img-preview').innerHTML='📸 Tap to upload product image';
   renderMyProducts();
+  loadMyProducts();
 }
 
 function editProduct(id){
