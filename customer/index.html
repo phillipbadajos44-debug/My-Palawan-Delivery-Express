@@ -468,6 +468,20 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
 </div>
 
 <!-- RATING MODAL -->
+<div class="modal-bg" id="productModal" onclick="if(event.target===this)closeProductModal()">
+  <div class="modal-sheet" style="max-height:85vh;overflow-y:auto">
+    <div class="modal-handle"></div>
+    <div id="pd-content"></div>
+  </div>
+</div>
+
+<div class="modal-bg" id="storeModal" onclick="if(event.target===this)closeStoreModal()">
+  <div class="modal-sheet" style="max-height:85vh;overflow-y:auto">
+    <div class="modal-handle"></div>
+    <div id="store-content"></div>
+  </div>
+</div>
+
 <div class="modal-bg" id="ratingModal" onclick="if(event.target===this)closeRating()">
   <div class="modal-sheet">
     <div class="modal-handle"></div>
@@ -687,6 +701,39 @@ function badgeHTML(tags){
   return'<div class="card-badge b-avail">Available</div>';
 }
 function isFav(id){return favorites.includes(String(id));}
+function openProductModal(id){
+  const p=products.find(x=>(x._id||x.id)===id);
+  if(!p)return;
+  const n=p.name.replace(/'/g,"\\'").replace(/"/g,'&quot;');
+  const imgHtml=p.image?`<img src="${p.image.startsWith('http')?p.image:API.replace('/api','')+p.image}" style="width:100%;border-radius:12px;max-height:220px;object-fit:cover" onerror="this.style.display='none'"/>`:`<div style="font-size:64px;text-align:center;padding:24px 0">${emo(p.name)}</div>`;
+  const rating=p.rating?`<div class="card-rating">⭐ ${p.rating.toFixed(1)} <span>(${p.reviewCount||0} reviews)</span></div>`:'';
+  const stockTxt=p.stock!==undefined?(p.stock===0?'Out of stock':`${p.stock} in stock`):'';
+  document.getElementById('pd-content').innerHTML=`
+    ${imgHtml}
+    <div class="modal-title" style="text-align:left;margin-top:12px">${p.name}</div>
+    ${rating}
+    <div class="card-price" style="font-size:20px;margin:8px 0">₱${Number(p.price).toLocaleString()}</div>
+    ${p.merchantName?`<div style="font-size:13px;color:var(--gm);font-weight:700;cursor:pointer;margin-bottom:8px" onclick="closeProductModal();openStoreModal('${p.merchantId||''}','${(p.merchantName||'').replace(/'/g,"\\'")}')">🏪 ${p.merchantName} ›</div>`:''}
+    <div style="font-size:13px;color:var(--muted);margin-bottom:6px">${stockTxt}</div>
+    <div style="font-size:14px;color:var(--text);line-height:1.5;margin-bottom:16px">${p.description||'No description provided.'}</div>
+    <div class="card-actions" style="gap:10px">
+      <button class="btn-cart${p.stock===0?' btn-off':''}" style="flex:1;padding:12px" onclick="addCart('${id}','${n}',${p.price},this,'${p.merchantId||''}','${(p.merchantName||'').replace(/'/g,"\\'")}')">🛒 Add to Cart</button>
+      <button class="btn-buy${p.stock===0?' btn-off':''}" style="flex:1;padding:12px" onclick="buyNow('${id}','${n}',${p.price},this,'${p.merchantId||''}','${(p.merchantName||'').replace(/'/g,"\\'")}')">⚡ Buy Now</button>
+    </div>`;
+  document.getElementById('productModal').classList.add('open');
+}
+function closeProductModal(){document.getElementById('productModal').classList.remove('open');}
+
+function openStoreModal(merchantId,merchantName){
+  const items=products.filter(p=>(p.merchantId||'')===merchantId);
+  document.getElementById('store-content').innerHTML=`
+    <div class="modal-title" style="text-align:left">🏪 ${merchantName}</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:14px">${items.length} product${items.length!==1?'s':''} available</div>
+    <div class="product-grid">${items.length?items.map((p,i)=>buildCard(p,i*40)).join(''):'<div class="loading-state"><div style="font-size:48px">📭</div><span>No products yet</span></div>'}</div>`;
+  document.getElementById('storeModal').classList.add('open');
+}
+function closeStoreModal(){document.getElementById('storeModal').classList.remove('open');}
+
 function buildCard(p,delay=0,compact=false){
   const id=p._id||p.id;
   const n=p.name.replace(/'/g,"\\'").replace(/"/g,'&quot;');
@@ -694,10 +741,10 @@ function buildCard(p,delay=0,compact=false){
   const rating=p.rating?`<div class="card-rating">⭐ ${p.rating.toFixed(1)}<span>(${p.reviewCount||0})</span></div>`:'';
   const stock=p.stock!==undefined?`<div class="card-stock${p.stock<5&&p.stock>0?' low':''}">${p.stock===0?'Out of stock':p.stock<5?`Only ${p.stock} left`:''}</div>`:'';
   const imgHtml=p.image?`<img src="${p.image.startsWith('http')?p.image:API.replace('/api','')+p.image}" onerror="this.style.display='none'" />`:'';
-  return`<div class="product-card" style="animation-delay:${delay}ms${compact?';min-width:148px;max-width:148px':''}">
+  return`<div class="product-card" style="animation-delay:${delay}ms${compact?';min-width:148px;max-width:148px':''}" onclick="openProductModal('${id}')">
     <div class="card-img">${emo(p.name)}${imgHtml}${badgeHTML(p._tags||[])}
-      <div class="fav-btn" onclick="toggleFav('${id}',this)">${favIcon}</div>
-      ${p.merchantName?`<div class="merchant-tag">🏪 ${p.merchantName}</div>`:''}
+      <div class="fav-btn" onclick="event.stopPropagation();toggleFav('${id}',this)">${favIcon}</div>
+      ${p.merchantName?`<div class="merchant-tag" onclick="event.stopPropagation();openStoreModal('${p.merchantId||''}','${(p.merchantName||'').replace(/'/g,"\\'")}')">🏪 ${p.merchantName}</div>`:''}
     </div>
     <div class="card-body">
       <div class="card-name">${p.name}</div>
@@ -705,8 +752,8 @@ function buildCard(p,delay=0,compact=false){
       <div class="card-price">₱${Number(p.price).toLocaleString()} <small>/ pc</small></div>
       ${stock}
       <div class="card-actions">
-        <button class="btn-cart${p.stock===0?' btn-off':''}" onclick="addCart('${id}','${n}',${p.price},this,'${p.merchantId||''}','${(p.merchantName||'').replace(/'/g,"\\'")}')">🛒 Add</button>
-        <button class="btn-buy${p.stock===0?' btn-off':''}" onclick="buyNow('${id}','${n}',${p.price},this,'${p.merchantId||''}','${(p.merchantName||'').replace(/'/g,"\\'")}')">⚡ Buy</button>
+        <button class="btn-cart${p.stock===0?' btn-off':''}" onclick="event.stopPropagation();addCart('${id}','${n}',${p.price},this,'${p.merchantId||''}','${(p.merchantName||'').replace(/'/g,"\\'")}')">🛒 Add</button>
+        <button class="btn-buy${p.stock===0?' btn-off':''}" onclick="event.stopPropagation();buyNow('${id}','${n}',${p.price},this,'${p.merchantId||''}','${(p.merchantName||'').replace(/'/g,"\\'")}')">⚡ Buy</button>
       </div>
     </div></div>`;
 }
@@ -742,9 +789,14 @@ function filterHome(f,el){
   const show=f==='all'?all:f==='hot'?['sec-hot']:f==='new'?['sec-new']:['sec-top'];
   all.forEach(id=>document.getElementById(id).style.display=show.includes(id)?'':'none');
 }
+function matchesCat(p,cat){
+  if(p.category&&p.category===cat.name)return true;
+  if(!p.category)return cat.kw.some(k=>p.name.toLowerCase().includes(k));
+  return false;
+}
 function renderCats(){
   document.getElementById('cat-grid').innerHTML=CATS.map((c,i)=>{
-    const count=products.filter(p=>c.kw.some(k=>p.name.toLowerCase().includes(k))).length;
+    const count=products.filter(p=>matchesCat(p,c)).length;
     return`<div class="cat-card" style="animation-delay:${i*40}ms" onclick="openCat('${c.name}','${c.emoji}')">
       <div class="cat-emoji">${c.emoji}</div><div class="cat-name">${c.name}</div>
       <div class="cat-count">${count} item${count!==1?'s':''}</div></div>`;
@@ -752,7 +804,7 @@ function renderCats(){
 }
 function openCat(name,emoji){
   const cat=CATS.find(c=>c.name===name);
-  const filtered=products.filter(p=>cat.kw.some(k=>p.name.toLowerCase().includes(k)));
+  const filtered=products.filter(p=>matchesCat(p,cat));
   document.getElementById('cat-pg-title').textContent=emoji+' '+name;
   document.getElementById('cat-products').innerHTML=filtered.length?filtered.map((p,i)=>buildCard(p,i*50)).join(''):`<div class="loading-state"><div style="font-size:48px">📭</div><span>No products here yet</span></div>`;
   document.getElementById('page-grocery').style.display='none';
