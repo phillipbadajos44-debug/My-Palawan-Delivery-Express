@@ -705,8 +705,8 @@ function buildCard(p,delay=0,compact=false){
       <div class="card-price">₱${Number(p.price).toLocaleString()} <small>/ pc</small></div>
       ${stock}
       <div class="card-actions">
-        <button class="btn-cart${p.stock===0?' btn-off':''}" onclick="addCart('${id}','${n}',${p.price},this)">🛒 Add</button>
-        <button class="btn-buy${p.stock===0?' btn-off':''}" onclick="buyNow('${id}','${n}',${p.price},this)">⚡ Buy</button>
+        <button class="btn-cart${p.stock===0?' btn-off':''}" onclick="addCart('${id}','${n}',${p.price},this,'${p.merchantId||''}','${(p.merchantName||'').replace(/'/g,"\\'")}')">🛒 Add</button>
+        <button class="btn-buy${p.stock===0?' btn-off':''}" onclick="buyNow('${id}','${n}',${p.price},this,'${p.merchantId||''}','${(p.merchantName||'').replace(/'/g,"\\'")}')">⚡ Buy</button>
       </div>
     </div></div>`;
 }
@@ -803,7 +803,7 @@ function openFavPanel(){
   el.innerHTML=favProds.length?favProds.map(p=>`<div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid #f0faf4">
     <div style="font-size:28px;width:44px;height:44px;background:var(--bg);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0">${emo(p.name)}</div>
     <div style="flex:1"><div style="font-size:14px;font-weight:700">${p.name}</div><div style="font-size:15px;font-weight:900;color:var(--gm)">₱${Number(p.price).toLocaleString()}</div></div>
-    <button onclick="addCart('${p._id||p.id}','${p.name.replace(/'/g,"\\'")}',${p.price},this)" style="padding:8px 14px;background:var(--gd);color:#fff;border:none;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer">Add</button>
+    <button onclick="addCart('${p._id||p.id}','${p.name.replace(/'/g,"\\'")}',${p.price},this,'${p.merchantId||''}','${(p.merchantName||'').replace(/'/g,"\\'")}')" style="padding:8px 14px;background:var(--gd);color:#fff;border:none;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer">Add</button>
   </div>`).join(''):`<div class="fav-empty"><div class="ei">🤍</div><h3>No Favorites Yet</h3><p>Tap the ❤️ on products to save them here</p></div>`;
   document.getElementById('favPanel').classList.add('open');
 }
@@ -824,14 +824,14 @@ function renderCart(){
   document.getElementById('cartTotal').textContent='₱'+cart.reduce((s,i)=>s+i.price*i.qty,0).toLocaleString();
 }
 function chgQty(id,d){const it=cart.find(i=>i.id===id);if(!it)return;it.qty+=d;if(it.qty<=0)cart=cart.filter(i=>i.id!==id);updateCartBadge();renderCart();}
-function addCart(id,name,price,btn){
+function addCart(id,name,price,btn,merchantId,merchantName){
   if(btn){btn.classList.add('btn-off');btn.textContent='Added!';}
-  const ex=cart.find(i=>i.id===id);if(ex)ex.qty++;else cart.push({id,name,price,qty:1});
+  const ex=cart.find(i=>i.id===id);if(ex)ex.qty++;else cart.push({id,name,price,qty:1,merchantId,merchantName});
   updateCartBadge();toast(`${name} added to cart!`);
   if(btn)setTimeout(()=>{btn.classList.remove('btn-off');btn.innerHTML='🛒 Add';},700);
 }
 function quickAdd(id,name,price){
-  const ex=cart.find(i=>i.id===id);if(ex)ex.qty++;else cart.push({id,name,price,qty:1});
+  const ex=cart.find(i=>i.id===id);if(ex)ex.qty++;else cart.push({id,name,price,qty:1,merchantId,merchantName});
   updateCartBadge();document.getElementById('searchDrop').classList.remove('open');document.getElementById('searchInput').value='';
   toast(`${name} added to cart!`);
 }
@@ -860,29 +860,37 @@ function selectPayment(m){
   document.getElementById('maya-info').style.display=m==='maya'?'block':'none';
 }
 async function placeOrder(){
-  const total=cart.reduce((s,i)=>s+i.price*i.qty,0);
   const addr=document.getElementById('co-address').value.trim();
   if(!addr){toast('Please enter delivery address');return;}
-  const order={
-    id:'ORD-'+Date.now(),
-    customerId:currentUser.id||currentUser._id,
-    customerName:currentUser.name,
-    customerAddress:addr,
-    items:[...cart],total,deliveryFee:50,
-    paymentMethod:selectedPayment,
-    status:'pending',
-    date:new Date().toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'})
-  };
-  try{await fetch(`${API}/orders`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify(order)});}catch(e){}
-  orders.unshift(order);renderOrders();
+  const groups={};
+  cart.forEach(i=>{const mid=i.merchantId||'unknown';if(!groups[mid])groups[mid]={merchantId:i.merchantId,merchantName:i.merchantName,items:[]};groups[mid].items.push(i);});
+  for(const mid in groups){
+    const g=groups[mid];
+    const total=g.items.reduce((s,i)=>s+i.price*i.qty,0);
+    const order={
+      id:'ORD-'+Date.now()+'-'+mid,
+      customerId:currentUser.id||currentUser._id,
+      customerName:currentUser.name,
+      customerAddress:addr,
+      merchantId:g.merchantId,
+      merchantName:g.merchantName,
+      items:g.items,total,deliveryFee:50,
+      paymentMethod:selectedPayment,
+      status:'pending',
+      date:new Date().toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'})
+    };
+    try{await fetch(`${API}/orders`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify(order)});}catch(e){}
+    orders.unshift(order);
+  }
+  renderOrders();
   cart=[];updateCartBadge();closeCheckout();
   toast('Order placed! Merchant will be notified 🎉');
   setTimeout(()=>{showPage('orders',document.querySelectorAll('.nav-item')[4]);},1000);
 }
 
-async function buyNow(id,name,price,btn){
+async function buyNow(id,name,price,btn,merchantId,merchantName){
   btn.classList.add('btn-off');btn.textContent='⏳…';
-  const order={id:'ORD-'+Date.now(),customerId:currentUser.id||currentUser._id,customerName:currentUser.name,customerAddress:currentUser.address||'',items:[{id,name,qty:1,price}],total:price,deliveryFee:50,paymentMethod:'cod',status:'pending',date:new Date().toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'})};
+  const order={id:'ORD-'+Date.now(),customerId:currentUser.id||currentUser._id,customerName:currentUser.name,customerAddress:currentUser.address||'',merchantId,merchantName,items:[{id,name,qty:1,price}],total:price,deliveryFee:50,paymentMethod:'cod',status:'pending',date:new Date().toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'})};
   try{await fetch(`${API}/orders`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify(order)});}catch(e){}
   orders.unshift(order);renderOrders();
   toast(`Order placed for ${name}! 🎉`);
