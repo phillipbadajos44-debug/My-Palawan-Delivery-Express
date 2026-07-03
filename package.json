@@ -12,6 +12,7 @@
     "express": "^4.22.2",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^8.24.1",
-    "multer": "^2.2.0"
+    "multer": "^2.2.0",
+    "cloudinary": "^2.5.1"
   }
 }

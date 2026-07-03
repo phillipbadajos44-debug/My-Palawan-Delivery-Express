@@ -693,7 +693,7 @@ function buildCard(p,delay=0,compact=false){
   const favIcon=isFav(id)?'❤️':'🤍';
   const rating=p.rating?`<div class="card-rating">⭐ ${p.rating.toFixed(1)}<span>(${p.reviewCount||0})</span></div>`:'';
   const stock=p.stock!==undefined?`<div class="card-stock${p.stock<5&&p.stock>0?' low':''}">${p.stock===0?'Out of stock':p.stock<5?`Only ${p.stock} left`:''}</div>`:'';
-  const imgHtml=p.image?`<img src="${API.replace('/api','')}${p.image}" onerror="this.style.display='none'" />`:'';
+  const imgHtml=p.image?`<img src="${p.image.startsWith('http')?p.image:API.replace('/api','')+p.image}" onerror="this.style.display='none'" />`:'';
   return`<div class="product-card" style="animation-delay:${delay}ms${compact?';min-width:148px;max-width:148px':''}">
     <div class="card-img">${emo(p.name)}${imgHtml}${badgeHTML(p._tags||[])}
       <div class="fav-btn" onclick="toggleFav('${id}',this)">${favIcon}</div>

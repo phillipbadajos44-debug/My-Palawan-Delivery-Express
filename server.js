@@ -15,6 +15,22 @@ const cors = require('cors');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const cloudinary = require('cloudinary').v2;
+
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
+function uploadToCloudinary(buffer, folder) {
+  return new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream({ folder }, (err, result) => {
+      if (err) reject(err); else resolve(result);
+    });
+    stream.end(buffer);
+  });
+}
 
 const app = express();
 
@@ -40,14 +56,7 @@ app.use(express.json());
 app.use('/uploads', express.static('uploads'));
 
 // ── FILE UPLOAD ──
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const dir = 'uploads/' + (req.uploadDir || 'misc');
-    fs.mkdirSync(dir, { recursive: true });
-    cb(null, dir);
-  },
-  filename: (req, file, cb) => cb(null, Date.now() + path.extname(file.originalname))
-});
+const storage = multer.memoryStorage();
 const upload = multer({
   storage,
   limits: { fileSize: 5 * 1024 * 1024 },
@@ -740,12 +749,16 @@ app.delete('/api/products/:id', auth(['merchant']), async (req, res) => {
 
 // Product image upload
 app.post('/api/products/:id/image', auth(['merchant']), (req, res) => {
-  req.uploadDir = 'products';
   upload.single('image')(req, res, async (err) => {
     if (err) return res.status(400).json({ error: err.message });
-    const url = `/uploads/products/${req.file.filename}`;
-    await Product.findByIdAndUpdate(req.params.id, { image: url });
-    res.json({ url });
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+    try {
+      const result = await uploadToCloudinary(req.file.buffer, 'products');
+      await Product.findByIdAndUpdate(req.params.id, { image: result.secure_url });
+      res.json({ url: result.secure_url });
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
   });
 });
 
