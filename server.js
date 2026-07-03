@@ -423,6 +423,13 @@ app.put('/api/riders/location', auth(['rider']), async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+app.get('/api/riders/me', auth(['rider']), async (req, res) => {
+  try {
+    const r = await Rider.findById(req.user.id).select('-password');
+    if (!r) return res.status(404).json({ error: 'Rider not found' });
+    res.json(r);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
 app.put('/api/riders/toggle-online', auth(['rider']), async (req, res) => {
   try {
     const r = await Rider.findById(req.user.id);

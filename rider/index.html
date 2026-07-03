@@ -374,11 +374,40 @@ async function doApply(){
 
 function saveSession(){localStorage.setItem('pde_rider_token',token||'');localStorage.setItem('pde_rider_user',JSON.stringify(currentRider));}
 function showPending(){document.getElementById('authScreen').style.display='none';document.getElementById('pendingScreen').classList.add('active');}
+async function loadRiderState(){
+  try{
+    const r=await fetch(`${API}/riders/me`,{headers:{'Authorization':'Bearer '+token}});
+    const d=await r.json();
+    if(d&&!d.error){
+      isOnline=!!d.isOnline;
+      const tgl=document.getElementById('onlineToggle');
+      const lbl=document.getElementById('onlineLbl');
+      const card=document.getElementById('statusCard');
+      if(isOnline){
+        tgl.classList.add('on');lbl.textContent='Online';
+        card.innerHTML=`<div class="sc-emoji">🟢</div><div class="sc-status">You're Online!</div><div class="sc-sub">Watching for ready orders…</div>`;
+        loadAvailable();
+      }else{
+        tgl.classList.remove('on');lbl.textContent='Offline';
+        card.innerHTML=`<div class="sc-emoji">💤</div><div class="sc-status">You're Offline</div><div class="sc-sub">Toggle online to receive deliveries</div>`;
+      }
+    }
+  }catch(e){}
+  try{
+    const r2=await fetch(`${API}/orders?status=delivered`,{headers:{'Authorization':'Bearer '+token}});
+    const d2=await r2.json();
+    const list=Array.isArray(d2)?d2:(d2.orders||[]);
+    completedDeliveries=list;
+    totalEarned=list.reduce((s,o)=>s+(o.deliveryFee||50),0);
+  }catch(e){}
+  updateStats();loadHistory();
+}
 function enterApp(){
   document.getElementById('authScreen').style.display='none';
   document.getElementById('pendingScreen').classList.remove('active');
   document.getElementById('mainApp').classList.add('active');
   updateRiderUI();
+  loadRiderState();
 }
 function logout(){
   token=null;currentRider=null;
