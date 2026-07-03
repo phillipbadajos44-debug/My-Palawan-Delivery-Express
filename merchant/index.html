@@ -359,9 +359,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
         </select>
       </div>
       <div class="field"><label>Description</label><textarea id="p-desc" placeholder="Brief description of your product…"></textarea></div>
-      <div class="field"><label>Product Image</label>
-        <div class="upload-box"><input type="file" accept="image/*" id="p-img-input" onchange="previewProductImg(this)"/>
-          <div id="p-img-preview" style="font-size:13px;color:var(--muted);font-weight:600">📸 Tap to upload product image</div>
+      <div class="field"><label>Delivery Fee (% of item price) *</label>
+        <select id="p-delivery-pct">
+          <option value="8">5–10% — Mamahaling produkto o malapit lang ang delivery</option>
+          <option value="15" selected>10–20% — Karaniwan sa maraming local delivery</option>
+          <option value="25">20%+ — Malayo ang biyahe / maliit ang halaga / mahirap ang ruta</option>
+        </select>
+      </div>
+      <div class="field"><label>Product Images (up to 5)</label>
+        <div class="upload-box"><input type="file" accept="image/*" id="p-img-input" multiple onchange="previewProductImg(this)"/>
+          <div id="p-img-preview" style="font-size:13px;color:var(--muted);font-weight:600">📸 Tap to upload product images (max 5)</div>
         </div>
       </div>
       <input type="hidden" id="editing-product-id"/>
@@ -780,18 +787,25 @@ async function markReady(id,btn){
 
 // ── PRODUCTS ──
 function previewProductImg(input){
-  if(input.files&&input.files[0]){
-    const reader=new FileReader();
-    reader.onload=e=>{document.getElementById('p-img-preview').innerHTML=`<img src="${e.target.result}" style="max-width:100%;max-height:80px;border-radius:8px;margin-top:8px"/>`;};
-    reader.readAsDataURL(input.files[0]);
+  if(input.files&&input.files.length){
+    const previews=Array.from(input.files).slice(0,5).map(f=>{
+      return new Promise(res=>{
+        const reader=new FileReader();
+        reader.onload=e=>res(e.target.result);
+        reader.readAsDataURL(f);
+      });
+    });
+    Promise.all(previews).then(imgs=>{
+      document.getElementById('p-img-preview').innerHTML=imgs.map(src=>`<img src="${src}" style="max-width:70px;max-height:70px;border-radius:8px;margin:4px;object-fit:cover"/>`).join('');
+    });
   }
 }
 
 async function uploadProductImage(productId){
   const input=document.getElementById('p-img-input');
-  if(!input.files||!input.files[0])return;
+  if(!input.files||!input.files.length)return;
   const fd=new FormData();
-  fd.append('image',input.files[0]);
+  Array.from(input.files).slice(0,5).forEach(f=>fd.append('images',f));
   try{
     await fetch(`${API}/products/${productId}/image`,{method:'POST',headers:{'Authorization':'Bearer '+token},body:fd});
   }catch(e){}
@@ -804,8 +818,9 @@ async function saveProduct(){
   const cat=document.getElementById('p-cat').value;
   const stock=parseInt(document.getElementById('p-stock').value)||0;
   const desc=document.getElementById('p-desc').value.trim();
+  const deliveryFeePercent=parseFloat(document.getElementById('p-delivery-pct').value)||15;
   if(!name||!price||!cat){toast('Please fill in name, price and category');return;}
-  const product={name,price,category:cat,description:desc,stock,merchantId:currentMerchant.id||currentMerchant._id,merchantName:currentMerchant.storeName||currentMerchant.name,isAvailable:stock>0};
+  const product={name,price,category:cat,description:desc,stock,deliveryFeePercent,merchantId:currentMerchant.id||currentMerchant._id,merchantName:currentMerchant.storeName||currentMerchant.name,isAvailable:stock>0};
   if(editingProductId){
     try{await fetch(`${API}/products/${editingProductId}`,{method:'PUT',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify(product)});}catch(e){}
     await uploadProductImage(editingProductId);
