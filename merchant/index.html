@@ -789,14 +789,12 @@ function previewProductImg(input){
 
 async function uploadProductImage(productId){
   const input=document.getElementById('p-img-input');
-  if(!input.files||!input.files[0]){alert('DEBUG: No file selected, productId='+productId);return;}
+  if(!input.files||!input.files[0])return;
   const fd=new FormData();
   fd.append('image',input.files[0]);
   try{
-    const r=await fetch(`${API}/products/${productId}/image`,{method:'POST',headers:{'Authorization':'Bearer '+token},body:fd});
-    const d=await r.json();
-    alert('DEBUG: STATUS='+r.status+' | RESPONSE='+JSON.stringify(d));
-  }catch(e){alert('DEBUG UPLOAD ERROR: '+e.message);}
+    await fetch(`${API}/products/${productId}/image`,{method:'POST',headers:{'Authorization':'Bearer '+token},body:fd});
+  }catch(e){}
   input.value='';
 }
 
