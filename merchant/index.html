@@ -721,15 +721,15 @@ function orderCard(o,i=0){
   const payIcon={'cod':'💵','gcash':'📱','maya':'💜'}[o.paymentMethod]||'💵';
   let actions='';
   if(o.status==='pending')actions=`<div class="order-actions">
-    <button class="btn-accept" onclick="acceptOrder('${o.id}',this)">✅ Accept</button>
-    <button class="btn-reject" onclick="rejectOrder('${o.id}',this)">✕ Reject</button>
+    <button class="btn-accept" onclick="acceptOrder('${o._id||o.id}',this)">✅ Accept</button>
+    <button class="btn-reject" onclick="rejectOrder('${o._id||o.id}',this)">✕ Reject</button>
   </div>`;
-  else if(o.status==='accepted')actions=`<div class="order-actions"><button class="btn-ready" onclick="markReady('${o.id}',this)">📦 Mark Ready for Pickup</button></div>`;
+  else if(o.status==='accepted')actions=`<div class="order-actions"><button class="btn-ready" onclick="markReady('${o._id||o.id}',this)">📦 Mark Ready for Pickup</button></div>`;
   else if(o.status==='ready')actions=`<div class="order-actions"><button class="btn-accept btn-off">⏳ Waiting for Rider…</button></div>`;
   else actions=`<div class="order-actions"><button class="btn-accept btn-off">${st.l}</button></div>`;
   return`<div class="order-card" style="animation-delay:${i*60}ms">
     <div class="order-hdr">
-      <div><div class="order-id">${o.id}</div><div class="order-time">${o.date||''}</div></div>
+      <div><div class="order-id">${o.id||o._id}</div><div class="order-time">${o.date||''}</div></div>
       <div class="o-status ${st.c}">${st.l}</div>
     </div>
     <div class="order-customer">👤 ${o.customerName||'Customer'}</div>
