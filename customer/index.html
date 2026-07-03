@@ -632,14 +632,45 @@ async function doSignUp(){
 
 function saveSession(){localStorage.setItem('pde_cust_token',token);localStorage.setItem('pde_cust_user',JSON.stringify(currentUser));}
 
-function enterApp(){
+async function enterApp(){
   document.getElementById('authScreen').style.display='none';
   document.getElementById('mainApp').classList.add('active');
   document.body.style.paddingBottom=0;
-  updateAccountUI();loadProducts();loadOrders();loadNotifications();
+  updateAccountUI();
+  await loadProducts();
+  loadOrders();loadNotifications();
   setInterval(loadOrders,10000);
   setInterval(loadNotifications,15000);
+  restoreLastPage();
 }
+function restoreLastPage(){
+  const savedPage=localStorage.getItem('pde_cust_page')||'home';
+  const navMap={home:0,grocery:1,search:2,orders:3,account:4};
+  if(savedPage==='category'){
+    const lastCat=JSON.parse(localStorage.getItem('pde_cust_lastcat')||'null');
+    if(lastCat)openCat(lastCat.name,lastCat.emoji);
+    else showPage('grocery',document.querySelectorAll('.nav-item')[1]);
+  }else{
+    const idx=navMap[savedPage];
+    const btn=idx!==undefined?document.querySelectorAll('.nav-item')[idx]:document.querySelectorAll('.nav-item')[0];
+    showPage(savedPage,btn);
+  }
+}
+window.addEventListener('popstate',function(e){
+  if(!currentUser)return;
+  const st=e.state;
+  if(st&&st.app==='customer'){
+    if(st.page==='category'&&st.name)openCat(st.name,st.emoji);
+    else{
+      const navMap={home:0,grocery:1,search:2,orders:3,account:4};
+      const idx=navMap[st.page];
+      const btn=idx!==undefined?document.querySelectorAll('.nav-item')[idx]:null;
+      showPage(st.page,btn);
+    }
+  }else{
+    showPage('home',document.querySelectorAll('.nav-item')[0]);
+  }
+});
 
 function logout(){
   token=null;currentUser=null;cart=[];orders=[];notifications=[];favorites=[];
@@ -810,10 +841,15 @@ function openCat(name,emoji){
   document.getElementById('page-grocery').style.display='none';
   document.getElementById('page-category').style.display='block';
   document.getElementById('page-category').classList.add('active');
+  localStorage.setItem('pde_cust_page','category');
+  localStorage.setItem('pde_cust_lastcat',JSON.stringify({name,emoji}));
+  history.pushState({app:'customer',page:'category',name,emoji},'','');
 }
 function goBackGrocery(){
   document.getElementById('page-category').style.display='none';document.getElementById('page-category').classList.remove('active');
+  localStorage.setItem('pde_cust_page','grocery');
   document.getElementById('page-grocery').style.display='block';
+  history.pushState({app:'customer',page:'grocery'},'','');
 }
 
 // ── SEARCH ──
@@ -1061,6 +1097,8 @@ function showPage(page,btn){
   document.getElementById('page-'+page).classList.add('active');
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   if(btn)btn.classList.add('active');
+  if(page!=='category')localStorage.setItem('pde_cust_page',page);
+  history.pushState({app:'customer',page},'','');
 }
 
 function toast(msg){const t=document.getElementById('toastEl');document.getElementById('toastMsg').textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2800);}
