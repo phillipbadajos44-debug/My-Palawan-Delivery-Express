@@ -994,7 +994,7 @@ async function loadPayoutHistory(){
   }catch(e){}
 }
 // ── EARNINGS ──
-function loadEarnings(){
+function loadEarnings(){loadBalance();
   const done=allOrders.filter(o=>o.status==='delivered');
   const total=done.reduce((s,o)=>s+o.total,0);
   document.getElementById('earn-total').textContent='₱'+total.toLocaleString();
