@@ -253,6 +253,21 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
     </div>
   </div>
 
+  <!-- REMITTANCE -->
+  <div id="page-remit" class="page">
+    <div class="section-title">💸 Remittance</div>
+    <div class="earn-card">
+      <div class="earn-label">Amount to Remit</div>
+      <div class="earn-total" id="remit-amount">₱0</div>
+      <div class="earn-grid">
+        <div class="earn-item"><div class="earn-val" id="remit-collected">₱0</div><div class="earn-lbl">Cash Collected</div></div>
+        <div class="earn-item"><div class="earn-val" id="remit-earnings">₱0</div><div class="earn-lbl">My Earnings</div></div>
+        <div class="earn-item"><div class="earn-val" id="remit-count">0</div><div class="earn-lbl">Deliveries</div></div>
+      </div>
+    </div>
+    <div class="section-title" style="padding-top:0">📋 Remittance List</div>
+    <div style="padding:0 18px 16px" id="remit-list"><div class="empty-state"><div class="ei">💸</div><p>No remittances yet</p></div></div>
+  </div>
   <!-- ACCOUNT -->
   <div id="page-account" class="page">
     <div class="acct-hero">
@@ -279,6 +294,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
     <button class="nav-item active" onclick="showPage('home',this)"><div class="nav-icon">🏠</div><span class="nav-label">Home</span><span class="n-badge" id="availBadge"></span></button>
     <button class="nav-item" onclick="showPage('active',this)"><div class="nav-icon">🚀</div><span class="nav-label">Active</span><span class="n-badge" id="activeBadge"></span></button>
     <button class="nav-item" onclick="showPage('history',this);loadHistory()"><div class="nav-icon">📋</div><span class="nav-label">History</span></button>
+    <button class="nav-item" onclick="showPage('remit',this);loadRemittances()"><div class="nav-icon">💸</div><span class="nav-label">Remit</span></button>
     <button class="nav-item" onclick="showPage('account',this)"><div class="nav-icon">👤</div><span class="nav-label">Account</span></button>
   </nav>
 </div>
