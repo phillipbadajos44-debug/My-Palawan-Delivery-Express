@@ -88,10 +88,7 @@ const MerchantSchema = new mongoose.Schema({
   status: { type: String, default: 'pending' }, role: { type: String, default: 'merchant' },
   isActive: { type: Boolean, default: true }, rating: { type: Number, default: 0 },
   totalOrders: { type: Number, default: 0 }, totalRevenue: { type: Number, default: 0 },
-  appliedAt: { type: Date, default: Date.now },
-  pendingBalance: { type: Number, default: 0 },
-  availableBalance: { type: Number, default: 0 },
-  totalPaidOut: { type: Number, default: 0 }
+  appliedAt: { type: Date, default: Date.now }
 });
 
 const RiderSchema = new mongoose.Schema({
@@ -103,7 +100,6 @@ const RiderSchema = new mongoose.Schema({
   status: { type: String, default: 'pending' }, role: { type: String, default: 'rider' },
   isActive: { type: Boolean, default: true }, rating: { type: Number, default: 0 },
   totalDeliveries: { type: Number, default: 0 }, totalEarnings: { type: Number, default: 0 },
-  wallet: { type: Number, default: 0 }, totalEarningsAmount: { type: Number, default: 0 },
   currentLocation: { lat: Number, lng: Number },
   appliedAt: { type: Date, default: Date.now }
 });
@@ -158,25 +154,6 @@ const Order = mongoose.model('Order', OrderSchema);
 const Notification = mongoose.model('Notification', NotificationSchema);
 const Review = mongoose.model('Review', ReviewSchema);
 const Audit = mongoose.model('Audit', AuditSchema);
-const RemittanceSchema = new mongoose.Schema({
-  orderId: String, riderId: String, riderName: String,
-  merchantId: String, merchantName: String,
-  productAmount: Number, deliveryFee: Number,
-  totalCashCollected: Number, riderEarnings: Number,
-  companyEarnings: Number, amountToRemit: Number,
-  status: { type: String, default: 'pending' },
-  remittedAt: Date, verifiedAt: Date,
-  createdAt: { type: Date, default: Date.now }
-});
-const PayoutSchema = new mongoose.Schema({
-  merchantId: String, merchantName: String, amount: Number,
-  status: { type: String, default: 'pending' },
-  requestedAt: { type: Date, default: Date.now },
-  approvedAt: Date, paidAt: Date
-});
-const Remittance = mongoose.model('Remittance', RemittanceSchema);
-const Payout = mongoose.model('Payout', PayoutSchema);
-
 
 // ── AUTH MIDDLEWARE ──
 const auth = (roles = []) => (req, res, next) => {
@@ -1026,103 +1003,6 @@ app.put('/api/admin/merchants/:id/approve', auth(['admin']), async (req, res) =>
   }
 });
 // ── START SERVER ──
-
-// ============================================================
-// REMITTANCE ROUTES
-// ============================================================
-app.get('/api/remittances/my', auth(['rider']), async (req, res) => {
-  try {
-    const remittances = await Remittance.find({ riderId: req.user.id }).sort('-createdAt');
-    const totalCashCollected = remittances.reduce((s,r) => s+(r.totalCashCollected||0), 0);
-    const totalEarnings = remittances.reduce((s,r) => s+(r.riderEarnings||0), 0);
-    const pendingRemit = remittances.filter(r=>r.status!=='verified').reduce((s,r) => s+(r.amountToRemit||0), 0);
-    res.json({ remittances, totalCashCollected, totalEarnings, pendingRemit });
-  } catch(e) { res.status(500).json({ error: e.message }); }
-});
-app.put('/api/remittances/:id/remit', auth(['rider']), async (req, res) => {
-  try {
-    const r = await Remittance.findOneAndUpdate(
-      { _id: req.params.id, riderId: req.user.id, status: 'pending' },
-      { status: 'remitted', remittedAt: new Date() }, { new: true }
-    );
-    if (!r) return res.status(404).json({ error: 'Hindi mahanap' });
-    res.json({ success: true, remittance: r });
-  } catch(e) { res.status(500).json({ error: e.message }); }
-});
-app.get('/api/admin/remittances', auth(['admin']), async (req, res) => {
-  try {
-    const { status } = req.query;
-    const remittances = await Remittance.find(status ? { status } : {}).sort('-createdAt');
-    const totalCashCollected = remittances.reduce((s,r) => s+(r.totalCashCollected||0), 0);
-    const totalRiderEarnings = remittances.reduce((s,r) => s+(r.riderEarnings||0), 0);
-    const totalCompanyEarnings = remittances.reduce((s,r) => s+(r.companyEarnings||0), 0);
-    const totalRemitted = remittances.filter(r=>r.status==='verified').reduce((s,r) => s+(r.amountToRemit||0), 0);
-    const pendingCount = remittances.filter(r=>r.status==='remitted').length;
-    res.json({ remittances, totalCashCollected, totalRiderEarnings, totalCompanyEarnings, totalRemitted, pendingCount });
-  } catch(e) { res.status(500).json({ error: e.message }); }
-});
-app.put('/api/admin/remittances/:id/verify', auth(['admin']), async (req, res) => {
-  try {
-    const remittance = await Remittance.findOneAndUpdate(
-      { _id: req.params.id, status: 'remitted' },
-      { status: 'verified', verifiedAt: new Date() }, { new: true }
-    );
-    if (!remittance) return res.status(404).json({ error: 'Hindi mahanap o hindi pa nire-remit' });
-    await Merchant.findByIdAndUpdate(remittance.merchantId, {
-      $inc: { pendingBalance: -remittance.productAmount, availableBalance: remittance.productAmount }
-    });
-    await Rider.findByIdAndUpdate(remittance.riderId, {
-      $inc: { wallet: remittance.riderEarnings, totalEarningsAmount: remittance.riderEarnings }
-    });
-    res.json({ success: true, remittance });
-  } catch(e) { res.status(500).json({ error: e.message }); }
-});
-// ============================================================
-// PAYOUT ROUTES
-// ============================================================
-app.get('/api/merchants/balance', auth(['merchant']), async (req, res) => {
-  try {
-    const m = await Merchant.findById(req.user.id).select('pendingBalance availableBalance totalPaidOut storeName');
-    res.json(m);
-  } catch(e) { res.status(500).json({ error: e.message }); }
-});
-app.post('/api/merchants/payout', auth(['merchant']), async (req, res) => {
-  try {
-    const merchant = await Merchant.findById(req.user.id);
-    if (!merchant.availableBalance || merchant.availableBalance <= 0)
-      return res.status(400).json({ error: 'Walang available balance' });
-    const amount = merchant.availableBalance;
-    const payout = await Payout.create({ merchantId: req.user.id, merchantName: merchant.storeName||merchant.name, amount });
-    await Merchant.findByIdAndUpdate(req.user.id, { $inc: { availableBalance: -amount } });
-    res.json({ success: true, payout });
-  } catch(e) { res.status(500).json({ error: e.message }); }
-});
-app.get('/api/merchants/payouts', auth(['merchant']), async (req, res) => {
-  try { res.json(await Payout.find({ merchantId: req.user.id }).sort('-requestedAt')); }
-  catch(e) { res.status(500).json({ error: e.message }); }
-});
-app.get('/api/admin/payouts', auth(['admin']), async (req, res) => {
-  try { res.json(await Payout.find().sort('-requestedAt')); }
-  catch(e) { res.status(500).json({ error: e.message }); }
-});
-app.put('/api/admin/payouts/:id/approve', auth(['admin']), async (req, res) => {
-  try {
-    const payout = await Payout.findOneAndUpdate(
-      { _id: req.params.id, status: 'pending' },
-      { status: 'paid', approvedAt: new Date(), paidAt: new Date() }, { new: true }
-    );
-    if (!payout) return res.status(404).json({ error: 'Hindi mahanap' });
-    await Merchant.findByIdAndUpdate(payout.merchantId, { $inc: { totalPaidOut: payout.amount } });
-    res.json({ success: true, payout });
-  } catch(e) { res.status(500).json({ error: e.message }); }
-});
-app.get('/api/riders/wallet', auth(['rider']), async (req, res) => {
-  try {
-    const r = await Rider.findById(req.user.id).select('wallet totalEarningsAmount name');
-    res.json(r);
-  } catch(e) { res.status(500).json({ error: e.message }); }
-});
-
 app.listen(PORT, () => {
   console.log(`\n🚀 PDE Server running at http://localhost:${PORT}`);
   console.log(`📦 MongoDB: ${MONGO_URI}`);
