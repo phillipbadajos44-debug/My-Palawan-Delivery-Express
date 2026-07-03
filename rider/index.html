@@ -400,7 +400,13 @@ async function loadRiderState(){
     completedDeliveries=list;
     totalEarned=list.reduce((s,o)=>s+(o.deliveryFee||50),0);
   }catch(e){}
-  updateStats();loadHistory();
+  try{
+    const r3=await fetch(`${API}/orders?status=picked_up`,{headers:{'Authorization':'Bearer '+token}});
+    const d3=await r3.json();
+    const list3=Array.isArray(d3)?d3:(d3.orders||[]);
+    activeDeliveries=list3;
+  }catch(e){}
+  updateStats();updateBadges();loadHistory();renderActive();
 }
 function enterApp(){
   document.getElementById('authScreen').style.display='none';
