@@ -397,6 +397,29 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
   <!-- EARNINGS -->
   <div id="page-earnings" class="page">
     <div class="section-title">💰 Earnings</div>
+    <div style="padding:0 18px 16px">
+      <div style="background:linear-gradient(135deg,#1e3a5f,#2563eb);border-radius:20px;padding:22px 18px;color:#fff">
+        <div style="font-size:11px;opacity:.8;margin-bottom:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px">💰 Merchant Wallet</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+          <div style="background:rgba(255,255,255,.15);border-radius:12px;padding:14px;text-align:center">
+            <div style="font-size:22px;font-weight:900" id="bal-available">₱0</div>
+            <div style="font-size:11px;opacity:.8;margin-top:4px">✅ Available</div>
+          </div>
+          <div style="background:rgba(255,255,255,.15);border-radius:12px;padding:14px;text-align:center">
+            <div style="font-size:22px;font-weight:900" id="bal-pending">₱0</div>
+            <div style="font-size:11px;opacity:.8;margin-top:4px">⏳ Pending</div>
+          </div>
+        </div>
+        <div style="background:rgba(255,255,255,.1);border-radius:10px;padding:10px 14px;display:flex;justify-content:space-between;margin-bottom:12px">
+          <span style="font-size:13px;opacity:.8">Total Paid Out</span>
+          <span style="font-size:14px;font-weight:800" id="bal-paid">₱0</span>
+        </div>
+        <button id="payout-btn" onclick="requestPayout()" style="display:none;width:100%;padding:12px;background:#fff;color:#1e3a5f;border:none;border-radius:12px;font-size:14px;font-weight:800;cursor:pointer">🏦 Request Payout</button>
+        <div id="payout-btn-empty" style="text-align:center;opacity:.65;font-size:13px;padding:4px">Walang available balance pa</div>
+      </div>
+      <div style="font-size:14px;font-weight:800;color:#1e3a5f;margin:14px 0 8px">📋 Payout History</div>
+      <div id="payout-history-list"><div style="text-align:center;padding:12px;color:#6b7280;font-size:13px">Loading...</div></div>
+    </div>
     <div class="earn-card">
       <div class="earn-label">Total Earnings</div>
       <div class="earn-total" id="earn-total">₱0</div>
