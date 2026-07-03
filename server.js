@@ -929,6 +929,18 @@ app.get('/api/admin/merchants', auth(['admin']), async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+app.put('/api/admin/merchants/:id/reset-password', auth(['admin']), async (req, res) => {
+  try {
+    const { newPassword } = req.body;
+    if (!newPassword || newPassword.length < 6) return res.status(400).json({ error: 'Password must be at least 6 characters' });
+    const hashed = await bcrypt.hash(newPassword, 10);
+    const m = await Merchant.findByIdAndUpdate(req.params.id, { password: hashed }, { new: true });
+    if (!m) return res.status(404).json({ error: 'Merchant not found' });
+    res.json({ success: true, message: 'Password reset' });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
 app.put('/api/admin/merchants/:id/approve', auth(['admin']), async (req, res) => {
   try {
     const m = await Merchant.findByIdAndUpdate(
