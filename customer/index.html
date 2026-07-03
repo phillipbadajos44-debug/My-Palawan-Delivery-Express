@@ -567,6 +567,7 @@ function emo(n){if(!n)return'📦';const l=n.toLowerCase();for(const[k,e]of Obje
 
 // ── STATE ──
 let token=null,currentUser=null;
+let pdQty=1,pdCurrentId=null;
 let products=[],cart=[],orders=[],notifications=[],favorites=[];
 let selectedPayment='cod',selectedStar=0,ratingOrderId=null;
 let searchFilter='all',orderFilter='all';
@@ -732,26 +733,91 @@ function badgeHTML(tags){
   return'<div class="card-badge b-avail">Available</div>';
 }
 function isFav(id){return favorites.includes(String(id));}
+function pdChangeQty(delta){
+  const p=products.find(x=>(x._id||x.id)===pdCurrentId);
+  if(!p)return;
+  const maxQty=p.stock||99;
+  pdQty=Math.max(1,Math.min(maxQty,pdQty+delta));
+  document.getElementById('pd-qty-val').textContent=pdQty;
+  document.getElementById('pd-fee-preview').textContent='\u20b1'+Math.round(p.price*pdQty*((p.deliveryFeePercent||15)/100)).toLocaleString();
+  document.getElementById('pd-subtotal').textContent='\u20b1'+(p.price*pdQty).toLocaleString();
+}
 function openProductModal(id){
   const p=products.find(x=>(x._id||x.id)===id);
   if(!p)return;
+  pdCurrentId=id;pdQty=1;
   const n=p.name.replace(/'/g,"\\'").replace(/"/g,'&quot;');
-  const imgHtml=p.image?`<img src="${p.image.startsWith('http')?p.image:API.replace('/api','')+p.image}" style="width:100%;border-radius:12px;max-height:220px;object-fit:cover" onerror="this.style.display='none'"/>`:`<div style="font-size:64px;text-align:center;padding:24px 0">${emo(p.name)}</div>`;
-  const rating=p.rating?`<div class="card-rating">⭐ ${p.rating.toFixed(1)} <span>(${p.reviewCount||0} reviews)</span></div>`:'';
+  const imgs=(p.images&&p.images.length)?p.images:(p.image?[p.image]:[]);
+  const resolvedImgs=imgs.map(im=>im.startsWith('http')?im:API.replace('/api','')+im);
+  const carousel=resolvedImgs.length?(
+    '<div style="display:flex;overflow-x:auto;gap:8px;scroll-snap-type:x mandatory;border-radius:12px" id="pd-carousel">'
+    +resolvedImgs.map(src=>'<img src="'+src+'" style="min-width:100%;max-height:220px;object-fit:cover;border-radius:12px;scroll-snap-align:start" onerror="this.style.display=\'none\'"/>').join('')
+    +'</div>'+(resolvedImgs.length>1?'<div style="text-align:center;font-size:11px;color:var(--muted);margin-top:4px">\ud83d\udc49 Swipe for more photos ('+resolvedImgs.length+')</div>':'')
+  ):('<div style="font-size:64px;text-align:center;padding:24px 0">'+emo(p.name)+'</div>');
+  const rating=p.rating?`<div class="card-rating">\u2b50 ${p.rating.toFixed(1)} <span>(${p.reviewCount||0} reviews)</span></div>`:'';
   const stockTxt=p.stock!==undefined?(p.stock===0?'Out of stock':`${p.stock} in stock`):'';
+  const feePct=p.deliveryFeePercent||15;
   document.getElementById('pd-content').innerHTML=`
-    ${imgHtml}
+    ${carousel}
     <div class="modal-title" style="text-align:left;margin-top:12px">${p.name}</div>
     ${rating}
-    <div class="card-price" style="font-size:20px;margin:8px 0">₱${Number(p.price).toLocaleString()}</div>
-    ${p.merchantName?`<div style="font-size:13px;color:var(--gm);font-weight:700;cursor:pointer;margin-bottom:8px" onclick="closeProductModal();openStoreModal('${p.merchantId||''}','${(p.merchantName||'').replace(/'/g,"\\'")}')">🏪 ${p.merchantName} ›</div>`:''}
+    <div class="card-price" style="font-size:20px;margin:8px 0">\u20b1${Number(p.price).toLocaleString()}</div>
+    ${p.merchantName?`<div style="font-size:13px;color:var(--gm);font-weight:700;cursor:pointer;margin-bottom:8px" onclick="closeProductModal();openStoreModal('${p.merchantId||''}','${(p.merchantName||'').replace(/'/g,"\\'")}')">\ud83c\udfea ${p.merchantName} \u203a</div>`:''}
     <div style="font-size:13px;color:var(--muted);margin-bottom:6px">${stockTxt}</div>
     <div style="font-size:14px;color:var(--text);line-height:1.5;margin-bottom:16px">${p.description||'No description provided.'}</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;background:var(--bg);border-radius:12px;padding:10px 14px;margin-bottom:12px">
+      <span style="font-size:13px;font-weight:700">Quantity</span>
+      <div style="display:flex;align-items:center;gap:14px">
+        <button onclick="pdChangeQty(-1)" style="width:30px;height:30px;border-radius:50%;border:none;background:#fff;font-size:16px;font-weight:700;cursor:pointer">\u2212</button>
+        <span id="pd-qty-val" style="min-width:20px;text-align:center;font-weight:800">1</span>
+        <button onclick="pdChangeQty(1)" style="width:30px;height:30px;border-radius:50%;border:none;background:#fff;font-size:16px;font-weight:700;cursor:pointer">+</button>
+      </div>
+    </div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:16px">
+      Subtotal: <strong id="pd-subtotal">\u20b1${Number(p.price).toLocaleString()}</strong> \u00b7 Est. delivery fee (${feePct}%): <strong id="pd-fee-preview">\u20b1${Math.round(p.price*feePct/100).toLocaleString()}</strong>
+    </div>
     <div class="card-actions" style="gap:10px">
-      <button class="btn-cart${p.stock===0?' btn-off':''}" style="flex:1;padding:12px" onclick="addCart('${id}','${n}',${p.price},this,'${p.merchantId||''}','${(p.merchantName||'').replace(/'/g,"\\'")}')">🛒 Add to Cart</button>
-      <button class="btn-buy${p.stock===0?' btn-off':''}" style="flex:1;padding:12px" onclick="buyNow('${id}','${n}',${p.price},this,'${p.merchantId||''}','${(p.merchantName||'').replace(/'/g,"\\'")}')">⚡ Buy Now</button>
+      <button class="btn-cart${p.stock===0?' btn-off':''}" style="flex:1;padding:12px" onclick="addToCartFromDetail()">\ud83d\uded2 Add to Cart</button>
+      <button class="btn-buy${p.stock===0?' btn-off':''}" style="flex:1;padding:12px" onclick="buyNowFromDetail()">\u26a1 Buy Now</button>
+    </div>
+    <div style="margin-top:20px;border-top:1px solid #eee;padding-top:16px">
+      <div style="font-size:14px;font-weight:800;color:var(--gd);margin-bottom:10px">\ud83d\udcac Reviews</div>
+      <div id="pd-reviews"><div style="font-size:13px;color:var(--muted)">Loading reviews\u2026</div></div>
     </div>`;
   document.getElementById('productModal').classList.add('open');
+  loadProductReviews(id);
+}
+function addToCartFromDetail(){
+  const p=products.find(x=>(x._id||x.id)===pdCurrentId);
+  if(!p)return;
+  const n=p.name.replace(/'/g,"\\'");
+  addCart(pdCurrentId,n,p.price,null,p.merchantId||'',p.merchantName||'',pdQty);
+}
+function buyNowFromDetail(){
+  const p=products.find(x=>(x._id||x.id)===pdCurrentId);
+  if(!p)return;
+  directBuyItem={id:pdCurrentId,name:p.name,price:p.price,qty:pdQty,merchantId:p.merchantId||'',merchantName:p.merchantName||'',deliveryFeePercent:p.deliveryFeePercent||15};
+  closeProductModal();
+  openCheckout(true);
+}
+async function loadProductReviews(id){
+  try{
+    const r=await fetch(`${API}/reviews/${id}`);
+    const list=await r.json();
+    const el=document.getElementById('pd-reviews');
+    if(!el)return;
+    if(!Array.isArray(list)||!list.length){el.innerHTML=`<div style="font-size:13px;color:var(--muted)">No reviews yet. Be the first to review after your order!</div>`;return;}
+    el.innerHTML=list.map(rv=>`<div style="padding:10px 0;border-bottom:1px solid #f0f0f0">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:13px;font-weight:700">${rv.customerName||'Customer'}</span>
+        <span style="font-size:12px;color:#f5a623">${'\u2b50'.repeat(rv.rating||0)}</span>
+      </div>
+      ${rv.review?`<div style="font-size:13px;color:var(--text);margin-top:4px">${rv.review}</div>`:''}
+    </div>`).join('');
+  }catch(e){
+    const el=document.getElementById('pd-reviews');
+    if(el)el.innerHTML=`<div style="font-size:13px;color:var(--muted)">Could not load reviews.</div>`;
+  }
 }
 function closeProductModal(){document.getElementById('productModal').classList.remove('open');}
 
@@ -912,32 +978,42 @@ function renderCart(){
   document.getElementById('cartTotal').textContent='₱'+cart.reduce((s,i)=>s+i.price*i.qty,0).toLocaleString();
 }
 function chgQty(id,d){const it=cart.find(i=>i.id===id);if(!it)return;it.qty+=d;if(it.qty<=0)cart=cart.filter(i=>i.id!==id);updateCartBadge();renderCart();}
-function addCart(id,name,price,btn,merchantId,merchantName){
+function addCart(id,name,price,btn,merchantId,merchantName,qty=1){
   if(btn){btn.classList.add('btn-off');btn.textContent='Added!';}
-  const ex=cart.find(i=>i.id===id);if(ex)ex.qty++;else cart.push({id,name,price,qty:1,merchantId,merchantName});
+  const prod=products.find(p=>(p._id||p.id)===id);
+  const feePct=prod?.deliveryFeePercent||15;
+  const ex=cart.find(i=>i.id===id);
+  if(ex)ex.qty+=qty;else cart.push({id,name,price,qty,merchantId,merchantName,deliveryFeePercent:feePct});
   updateCartBadge();toast(`${name} added to cart!`);
   if(btn)setTimeout(()=>{btn.classList.remove('btn-off');btn.innerHTML='🛒 Add';},700);
 }
 function quickAdd(id,name,price){
-  const ex=cart.find(i=>i.id===id);if(ex)ex.qty++;else cart.push({id,name,price,qty:1,merchantId,merchantName});
+  const prod=products.find(p=>(p._id||p.id)===id);
+  const merchantId=prod?.merchantId||'';
+  const merchantName=prod?.merchantName||'';
+  const feePct=prod?.deliveryFeePercent||15;
+  const ex=cart.find(i=>i.id===id);if(ex)ex.qty++;else cart.push({id,name,price,qty:1,merchantId,merchantName,deliveryFeePercent:feePct});
   updateCartBadge();document.getElementById('searchDrop').classList.remove('open');document.getElementById('searchInput').value='';
   toast(`${name} added to cart!`);
 }
 
 // ── CHECKOUT ──
-function openCheckout(){
-  if(!cart.length)return;
-  const total=cart.reduce((s,i)=>s+i.price*i.qty,0);
-  const delivery=50;
+function itemFee(it){return Math.round(it.price*it.qty*((it.deliveryFeePercent||15)/100));}
+let directBuyItem=null;
+function openCheckout(direct=false){
+  if(!direct&&!cart.length)return;
+  const items=direct?[directBuyItem]:cart;
+  const total=items.reduce((s,i)=>s+i.price*i.qty,0);
+  const delivery=items.reduce((s,i)=>s+itemFee(i),0);
   document.getElementById('checkoutSummary').innerHTML=`
-    ${cart.map(it=>`<div class="cs-row"><span>${emo(it.name)} ${it.name} ×${it.qty}</span><span>₱${(it.price*it.qty).toLocaleString()}</span></div>`).join('')}
-    <div class="cs-row"><span>Delivery Fee</span><span>₱${delivery}</span></div>
+    ${items.map(it=>`<div class="cs-row"><span>${emo(it.name)} ${it.name} ×${it.qty}</span><span>₱${(it.price*it.qty).toLocaleString()}</span></div>`).join('')}
+    <div class="cs-row"><span>Delivery Fee</span><span>₱${delivery.toLocaleString()}</span></div>
     <div class="cs-row total"><span>Total</span><span>₱${(total+delivery).toLocaleString()}</span></div>`;
   document.getElementById('co-address').value=currentUser?.address||'';
-  closeCart();
+  if(!direct){closeCart();directBuyItem=null;}
   document.getElementById('checkoutModal').classList.add('open');
 }
-function closeCheckout(){document.getElementById('checkoutModal').classList.remove('open');}
+function closeCheckout(){document.getElementById('checkoutModal').classList.remove('open');directBuyItem=null;}
 function selectPayment(m){
   selectedPayment=m;
   ['cod','gcash','maya'].forEach(p=>{
@@ -950,11 +1026,36 @@ function selectPayment(m){
 async function placeOrder(){
   const addr=document.getElementById('co-address').value.trim();
   if(!addr){toast('Please enter delivery address');return;}
+  if(directBuyItem){
+    const it=directBuyItem;
+    const total=it.price*it.qty;
+    const delivery=itemFee(it);
+    const order={
+      id:'ORD-'+Date.now(),
+      customerId:currentUser.id||currentUser._id,
+      customerName:currentUser.name,
+      customerAddress:addr,
+      merchantId:it.merchantId,
+      merchantName:it.merchantName,
+      items:[{id:it.id,name:it.name,qty:it.qty,price:it.price}],total,deliveryFee:delivery,
+      paymentMethod:selectedPayment,
+      status:'pending',
+      date:new Date().toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'})
+    };
+    try{await fetch(`${API}/orders`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify(order)});}catch(e){}
+    orders.unshift(order);
+    directBuyItem=null;
+    renderOrders();closeCheckout();
+    toast('Order placed! Merchant will be notified 🎉');
+    setTimeout(()=>{showPage('orders',document.querySelectorAll('.nav-item')[4]);},1000);
+    return;
+  }
   const groups={};
   cart.forEach(i=>{const mid=i.merchantId||'unknown';if(!groups[mid])groups[mid]={merchantId:i.merchantId,merchantName:i.merchantName,items:[]};groups[mid].items.push(i);});
   for(const mid in groups){
     const g=groups[mid];
     const total=g.items.reduce((s,i)=>s+i.price*i.qty,0);
+    const delivery=g.items.reduce((s,i)=>s+itemFee(i),0);
     const order={
       id:'ORD-'+Date.now()+'-'+mid,
       customerId:currentUser.id||currentUser._id,
@@ -962,7 +1063,7 @@ async function placeOrder(){
       customerAddress:addr,
       merchantId:g.merchantId,
       merchantName:g.merchantName,
-      items:g.items,total,deliveryFee:50,
+      items:g.items,total,deliveryFee:delivery,
       paymentMethod:selectedPayment,
       status:'pending',
       date:new Date().toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'})
@@ -976,14 +1077,8 @@ async function placeOrder(){
   setTimeout(()=>{showPage('orders',document.querySelectorAll('.nav-item')[4]);},1000);
 }
 
-async function buyNow(id,name,price,btn,merchantId,merchantName){
-  btn.classList.add('btn-off');btn.textContent='⏳…';
-  const order={id:'ORD-'+Date.now(),customerId:currentUser.id||currentUser._id,customerName:currentUser.name,customerAddress:currentUser.address||'',merchantId,merchantName,items:[{id,name,qty:1,price}],total:price,deliveryFee:50,paymentMethod:'cod',status:'pending',date:new Date().toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'})};
-  try{await fetch(`${API}/orders`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify(order)});}catch(e){}
-  orders.unshift(order);renderOrders();
-  toast(`Order placed for ${name}! 🎉`);
-  btn.classList.remove('btn-off');btn.innerHTML='⚡ Buy';
-  setTimeout(()=>showPage('orders',document.querySelectorAll('.nav-item')[4]),800);
+function buyNow(id,name,price,btn,merchantId,merchantName){
+  openProductModal(id);
 }
 
 // ── ORDERS ──
