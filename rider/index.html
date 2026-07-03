@@ -443,13 +443,13 @@ function renderAvailable(){
   const el=document.getElementById('available-wrap');
   if(!availableOrders.length){el.innerHTML=`<div class="empty-state"><div class="ei">🕐</div><p>No orders ready yet.<br/>We'll notify you when one arrives!</p></div>`;return;}
   el.innerHTML=availableOrders.map((o,i)=>`<div class="delivery-card" style="animation-delay:${i*60}ms">
-    <div class="del-hdr"><div><div class="del-id">${o.id}</div><div style="font-size:11px;color:var(--muted)">${o.date||''}</div></div><div class="del-badge b-ready">📦 Ready to Pick Up</div></div>
+    <div class="del-hdr"><div><div class="del-id">${o.id||o._id}</div><div style="font-size:11px;color:var(--muted)">${o.date||''}</div></div><div class="del-badge b-ready">📦 Ready to Pick Up</div></div>
     <div class="del-merchant">🏪 ${o.merchantName||'Merchant'}</div>
     <div class="del-items">${(o.items||[]).map(it=>`${emo(it.name)} ${it.name} ×${it.qty}`).join('<br>')}</div>
     <div class="del-address">📍 Deliver to: <strong>${o.customerName}</strong><br>${o.deliveryAddress||'Address on file'}<br>📱 ${o.customerPhone||'—'}</div>
     <div class="del-fee">Delivery Fee: ₱50 &nbsp;·&nbsp; Order: ₱${(o.total||0).toLocaleString()}</div>
     <div class="del-actions">
-      <button class="btn-pickup" onclick="acceptDelivery('${o.id}',this)">🛵 Accept</button>
+      <button class="btn-pickup" onclick="acceptDelivery('${o._id||o.id}',this)">🛵 Accept</button>
       <button class="btn-nav" onclick="openMaps('${o.merchantAddress||''}')">🗺️ Map</button>
     </div>
   </div>`).join('');
@@ -458,8 +458,8 @@ function renderAvailable(){
 async function acceptDelivery(id,btn){
   btn.classList.add('btn-off');btn.textContent='Accepting…';
   try{await fetch(`${API}/orders/${id}/status`,{method:'PATCH',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({status:'picked_up',riderName:currentRider.name})});}catch(e){}
-  const order=availableOrders.find(o=>o.id===id);
-  if(order){order.status='picked_up';activeDeliveries.push(order);availableOrders=availableOrders.filter(o=>o.id!==id);}
+  const order=availableOrders.find(o=>o.id===id||o._id===id);
+  if(order){order.status='picked_up';activeDeliveries.push(order);availableOrders=availableOrders.filter(o=>o.id!==id&&o._id!==id);}
   renderAvailable();renderActive();updateBadges();updateStats();
   toast('Order accepted! Head to the merchant now 🏪');
 }
@@ -468,14 +468,14 @@ function renderActive(){
   const el=document.getElementById('active-wrap');
   if(!activeDeliveries.length){el.innerHTML=`<div class="empty-state"><div class="ei">✅</div><p>No active deliveries right now</p></div>`;return;}
   el.innerHTML=activeDeliveries.map((o,i)=>`<div class="delivery-card active-d" style="animation-delay:${i*60}ms">
-    <div class="del-hdr"><div><div class="del-id">${o.id}</div></div><div class="del-badge b-active">🛵 On the Way</div></div>
+    <div class="del-hdr"><div><div class="del-id">${o.id||o._id}</div></div><div class="del-badge b-active">🛵 On the Way</div></div>
     <div class="del-merchant">🏪 Pickup: ${o.merchantName||'Merchant'}</div>
     <div class="del-items">${(o.items||[]).map(it=>`${emo(it.name)} ${it.name} ×${it.qty}`).join('<br>')}</div>
     <div class="del-address">📍 Deliver to: <strong>${o.customerName}</strong><br>${o.deliveryAddress||'Address on file'}<br>📱 <a href="tel:${o.customerPhone||''}" style="color:var(--gm);font-weight:700">${o.customerPhone||'—'}</a></div>
     <div class="del-fee">Delivery Fee: ₱50</div>
     <div class="del-actions">
-      <button class="btn-proof" onclick="openProofModal('${o.id}')">📸 Proof</button>
-      <button class="btn-delivered" onclick="markDelivered('${o.id}',this)">✅ Delivered</button>
+      <button class="btn-proof" onclick="openProofModal('${o._id||o.id}')">📸 Proof</button>
+      <button class="btn-delivered" onclick="markDelivered('${o._id||o.id}',this)">✅ Delivered</button>
       <button class="btn-nav" onclick="openMaps('${o.deliveryAddress||''}')">🗺️</button>
     </div>
   </div>`).join('');
@@ -510,8 +510,8 @@ async function submitProof(){
 async function markDelivered(id,btn){
   if(btn){btn.classList.add('btn-off');btn.textContent='Updating…';}
   try{await fetch(`${API}/orders/${id}/status`,{method:'PATCH',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({status:'delivered'})});}catch(e){}
-  const order=activeDeliveries.find(o=>o.id===id);
-  if(order){order.status='delivered';completedDeliveries.unshift(order);activeDeliveries=activeDeliveries.filter(o=>o.id!==id);totalEarned+=50;}
+  const order=activeDeliveries.find(o=>o.id===id||o._id===id);
+  if(order){order.status='delivered';completedDeliveries.unshift(order);activeDeliveries=activeDeliveries.filter(o=>o.id!==id&&o._id!==id);totalEarned+=50;}
   renderActive();updateBadges();updateStats();loadHistory();
   toast('Delivery completed! +₱50 earned 🎉');
 }
@@ -538,7 +538,7 @@ function loadHistory(){
   el.innerHTML=completedDeliveries.map((o,i)=>`<div class="hist-item" style="animation-delay:${i*50}ms">
     <div class="hist-icon">🛵</div>
     <div class="hist-info">
-      <div class="hist-id">${o.id} · ${o.date||''}</div>
+      <div class="hist-id">${o.id||o._id} · ${o.date||''}</div>
       <div class="hist-items">${o.customerName} — ${(o.items||[]).map(it=>it.name).join(', ')}</div>
       <div class="hist-status">📍 ${o.deliveryAddress||'—'}</div>
     </div>
