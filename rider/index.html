@@ -337,10 +337,12 @@ async function doLogin(){
   try{
     const r=await fetch(`${API}/riders/login`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password:pw})});
     const d=await r.json();
+    alert('DEBUG LOGIN: status='+r.status+' data='+JSON.stringify(d));
     if(d.success&&d.token){token=d.token;currentRider=d.user;saveSession();enterApp();return;}
     if(d.status==='pending'){showErr('login-err','Application still pending.');return;}
     showErr('login-err',d.error||'Invalid credentials.');
   }catch(e){
+    alert('DEBUG CATCH ERROR: '+e.message);
     const db=JSON.parse(localStorage.getItem('pde_riders_db')||'[]');
     const u=db.find(x=>x.email===email&&x.password===pw);
     if(!u){showErr('login-err','Account not found.');return;}
