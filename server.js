@@ -130,13 +130,6 @@ const OrderSchema = new mongoose.Schema({
   statusHistory: [{ status: String, time: Date, note: String }],
   proofOfDelivery: String, rating: Number, review: String,
   estimatedDelivery: Date, deliveredAt: Date,
-  riderEarnings: { type: Number, default: 0 },
-  companyEarnings: { type: Number, default: 0 },
-  totalCashCollected: { type: Number, default: 0 },
-  amountToRemit: { type: Number, default: 0 },
-  remittanceStatus: { type: String, default: null },
-  remittedAt: Date, verifiedAt: Date,
-  merchantPayoutStatus: { type: String, default: 'pending' },
   date: { type: Date, default: Date.now }
 });
 
@@ -152,14 +145,6 @@ const ReviewSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
-const PayoutSchema = new mongoose.Schema({
-  merchantId: String, merchantName: String,
-  amount: Number,
-  orderIds: [String],
-  status: { type: String, default: 'pending' },
-  requestedAt: { type: Date, default: Date.now },
-  processedAt: Date
-});
 const AuditSchema = new mongoose.Schema({
   adminId: String, action: String, target: String, targetId: String,
   details: String, createdAt: { type: Date, default: Date.now }
@@ -173,7 +158,6 @@ const Order = mongoose.model('Order', OrderSchema);
 const Notification = mongoose.model('Notification', NotificationSchema);
 const Review = mongoose.model('Review', ReviewSchema);
 const Audit = mongoose.model('Audit', AuditSchema);
-const Payout = mongoose.model('Payout', PayoutSchema);
 const RemittanceSchema = new mongoose.Schema({
   orderId: String, riderId: String, riderName: String,
   merchantId: String, merchantName: String,
@@ -873,27 +857,35 @@ app.patch('/api/orders/:id/status', auth(['merchant', 'rider', 'admin']), async 
     if (!order) return res.status(404).json({ error: 'Order not found' });
     order.status = status;
     order.statusHistory.push({ status, time: new Date(), note: note || '' });
+    if (status === 'picked_up') { order.riderId = req.user.id; order.riderName = req.user.name; }
+    await order.save();
+
     if (status === 'delivered') {
-      order.deliveredAt = new Date();
       const deliveryFee = order.deliveryFee || 0;
       const riderEarnings = Math.round(deliveryFee * 0.8);
       const companyEarnings = deliveryFee - riderEarnings;
-      order.riderEarnings = riderEarnings;
-      order.companyEarnings = companyEarnings;
-      if (order.paymentMethod === 'cod') {
-        order.totalCashCollected = order.total + deliveryFee;
-        order.amountToRemit = order.totalCashCollected - riderEarnings;
-        order.remittanceStatus = 'pending_remit';
-        order.merchantPayoutStatus = 'pending';
+      const totalCashCollected = order.paymentMethod === 'cod' ? (order.total + deliveryFee) : 0;
+      const amountToRemit = order.paymentMethod === 'cod' ? (totalCashCollected - riderEarnings) : 0;
+
+      const remittance = await Remittance.create({
+        orderId: order._id.toString(),
+        riderId: order.riderId, riderName: order.riderName,
+        merchantId: order.merchantId, merchantName: order.merchantName,
+        productAmount: order.total, deliveryFee,
+        totalCashCollected, riderEarnings, companyEarnings, amountToRemit,
+        status: order.paymentMethod === 'cod' ? 'pending' : 'verified',
+        verifiedAt: order.paymentMethod === 'cod' ? null : new Date()
+      });
+
+      if (order.paymentMethod !== 'cod') {
+        // Non-COD: payment already settled electronically, credit balances immediately
+        await Merchant.findByIdAndUpdate(order.merchantId, { $inc: { availableBalance: order.total } });
+        if (order.riderId) await Rider.findByIdAndUpdate(order.riderId, { $inc: { wallet: riderEarnings, totalEarningsAmount: riderEarnings } });
       } else {
-        order.totalCashCollected = 0;
-        order.amountToRemit = 0;
-        order.remittanceStatus = 'not_applicable';
-        order.merchantPayoutStatus = 'available';
+        // COD: merchant amount stays pending until rider remits and admin verifies
+        await Merchant.findByIdAndUpdate(order.merchantId, { $inc: { pendingBalance: order.total } });
       }
     }
-    if (status === 'picked_up') { order.riderId = req.user.id; order.riderName = req.user.name; }
-    await order.save();
 
     // Notify based on status
     const messages = {
@@ -906,145 +898,6 @@ app.patch('/api/orders/:id/status', auth(['merchant', 'rider', 'admin']), async 
     if (status === 'ready') await createNotification('all_riders', 'rider', '📦 New Delivery Available!', `Order ready for pickup at ${order.merchantName}`, 'order', order._id);
 
     res.json(order);
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-// ============================================================
-// REMITTANCE & PAYOUTS
-// ============================================================
-
-// Rider wallet summary
-app.get('/api/riders/wallet', auth(['rider']), async (req, res) => {
-  try {
-    const codOrders = await Order.find({ riderId: req.user.id, paymentMethod: 'cod', status: 'delivered' }).sort('-deliveredAt');
-    const allDelivered = await Order.find({ riderId: req.user.id, status: 'delivered' });
-
-    const totalCashCollected = codOrders.reduce((s, o) => s + (o.totalCashCollected || 0), 0);
-    const yourEarnings = allDelivered.filter(o => o.remittanceStatus === 'verified' || o.remittanceStatus === 'not_applicable').reduce((s, o) => s + (o.riderEarnings || 0), 0);
-    const amountToRemit = codOrders.filter(o => o.remittanceStatus === 'pending_remit').reduce((s, o) => s + (o.amountToRemit || 0), 0);
-
-    let remittanceStatus = 'All Clear';
-    if (codOrders.some(o => o.remittanceStatus === 'pending_remit')) remittanceStatus = 'Pending Remittance';
-    else if (codOrders.some(o => o.remittanceStatus === 'remitted')) remittanceStatus = 'Awaiting Verification';
-
-    res.json({
-      totalCashCollected, yourEarnings, amountToRemit, remittanceStatus,
-      remittanceHistory: codOrders.slice(0, 30)
-    });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-// Rider submits remittance (marks all pending_remit orders as remitted)
-app.post('/api/riders/remit', auth(['rider']), async (req, res) => {
-  try {
-    const result = await Order.updateMany(
-      { riderId: req.user.id, remittanceStatus: 'pending_remit' },
-      { $set: { remittanceStatus: 'remitted', remittedAt: new Date() } }
-    );
-    res.json({ success: true, updated: result.modifiedCount || 0 });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-// Admin: list remittances (pending + remitted awaiting verification)
-app.get('/api/admin/remittances', auth(['admin']), async (req, res) => {
-  try {
-    const orders = await Order.find({ remittanceStatus: { $in: ['pending_remit', 'remitted', 'verified'] } }).sort('-deliveredAt').limit(100);
-    res.json(orders);
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-// Admin: verify all remitted orders for a rider
-app.put('/api/admin/riders/:riderId/verify-remittance', auth(['admin']), async (req, res) => {
-  try {
-    const orders = await Order.find({ riderId: req.params.riderId, remittanceStatus: 'remitted' });
-    for (const o of orders) {
-      o.remittanceStatus = 'verified';
-      o.verifiedAt = new Date();
-      o.merchantPayoutStatus = 'available';
-      await o.save();
-    }
-    res.json({ success: true, verified: orders.length });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-// Admin: financial overview
-app.get('/api/admin/financials', auth(['admin']), async (req, res) => {
-  try {
-    const delivered = await Order.find({ status: 'delivered' });
-    const totalCashCollected = delivered.reduce((s, o) => s + (o.totalCashCollected || 0), 0);
-    const riderEarnings = delivered.reduce((s, o) => s + (o.riderEarnings || 0), 0);
-    const companyEarnings = delivered.reduce((s, o) => s + (o.companyEarnings || 0), 0);
-    const amountRemitted = delivered.filter(o => o.remittanceStatus === 'verified').reduce((s, o) => s + (o.amountToRemit || 0), 0);
-    const pendingRemittances = delivered.filter(o => o.remittanceStatus === 'pending_remit' || o.remittanceStatus === 'remitted').length;
-
-    const merchantMap = {};
-    delivered.forEach(o => {
-      if (!o.merchantId) return;
-      if (!merchantMap[o.merchantId]) merchantMap[o.merchantId] = { merchantId: o.merchantId, merchantName: o.merchantName, pendingBalance: 0, availableBalance: 0, paidOut: 0 };
-      if (o.merchantPayoutStatus === 'pending') merchantMap[o.merchantId].pendingBalance += o.total;
-      else if (o.merchantPayoutStatus === 'available') merchantMap[o.merchantId].availableBalance += o.total;
-      else if (o.merchantPayoutStatus === 'paid_out') merchantMap[o.merchantId].paidOut += o.total;
-    });
-
-    res.json({
-      totalCashCollected, riderEarnings, companyEarnings, amountRemitted, pendingRemittances,
-      merchantBalances: Object.values(merchantMap)
-    });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-// Merchant wallet summary
-app.get('/api/merchants/wallet', auth(['merchant']), async (req, res) => {
-  try {
-    const orders = await Order.find({ merchantId: req.user.id, status: 'delivered' });
-    const pendingBalance = orders.filter(o => o.merchantPayoutStatus === 'pending').reduce((s, o) => s + o.total, 0);
-    const availableBalance = orders.filter(o => o.merchantPayoutStatus === 'available').reduce((s, o) => s + o.total, 0);
-    const totalPaidOut = orders.filter(o => o.merchantPayoutStatus === 'paid_out').reduce((s, o) => s + o.total, 0);
-    const totalEarnings = pendingBalance + availableBalance + totalPaidOut;
-    res.json({ pendingBalance, availableBalance, totalPaidOut, totalEarnings });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-// Merchant requests payout
-app.post('/api/merchants/payout-request', auth(['merchant']), async (req, res) => {
-  try {
-    const orders = await Order.find({ merchantId: req.user.id, status: 'delivered', merchantPayoutStatus: 'available' });
-    const amount = orders.reduce((s, o) => s + o.total, 0);
-    if (amount <= 0) return res.status(400).json({ error: 'No available balance to withdraw' });
-    const payout = await Payout.create({
-      merchantId: req.user.id, merchantName: req.user.storeName || req.user.name,
-      amount, orderIds: orders.map(o => o._id.toString())
-    });
-    res.json(payout);
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-// Merchant: payout status/history
-app.get('/api/merchants/payouts', auth(['merchant']), async (req, res) => {
-  try { res.json(await Payout.find({ merchantId: req.user.id }).sort('-requestedAt')); } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-// Admin: list pending payouts
-app.get('/api/admin/payouts', auth(['admin']), async (req, res) => {
-  try { res.json(await Payout.find({}).sort('-requestedAt')); } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-// Admin: approve/reject payout
-app.put('/api/admin/payouts/:id/approve', auth(['admin']), async (req, res) => {
-  try {
-    const payout = await Payout.findById(req.params.id);
-    if (!payout) return res.status(404).json({ error: 'Payout not found' });
-    payout.status = 'approved';
-    payout.processedAt = new Date();
-    await payout.save();
-    await Order.updateMany({ _id: { $in: payout.orderIds } }, { $set: { merchantPayoutStatus: 'paid_out' } });
-    res.json({ success: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-app.put('/api/admin/payouts/:id/reject', auth(['admin']), async (req, res) => {
-  try {
-    const payout = await Payout.findByIdAndUpdate(req.params.id, { status: 'rejected', processedAt: new Date() }, { new: true });
-    res.json({ success: true, payout });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -1291,8 +1144,48 @@ app.put('/api/admin/payouts/:id/approve', auth(['admin']), async (req, res) => {
 });
 app.get('/api/riders/wallet', auth(['rider']), async (req, res) => {
   try {
-    const r = await Rider.findById(req.user.id).select('wallet totalEarningsAmount name');
-    res.json(r);
+    const remittances = await Remittance.find({ riderId: req.user.id }).sort('-createdAt').limit(50);
+    const codRemittances = remittances.filter(r => r.totalCashCollected > 0);
+    const totalCashCollected = codRemittances.reduce((s, r) => s + (r.totalCashCollected || 0), 0);
+    const yourEarnings = remittances.filter(r => r.status === 'verified').reduce((s, r) => s + (r.riderEarnings || 0), 0);
+    const amountToRemit = remittances.filter(r => r.status === 'pending').reduce((s, r) => s + (r.amountToRemit || 0), 0);
+    let remittanceStatus = 'All Clear';
+    if (remittances.some(r => r.status === 'pending')) remittanceStatus = 'Pending Remittance';
+    else if (remittances.some(r => r.status === 'remitted')) remittanceStatus = 'Awaiting Verification';
+    res.json({ totalCashCollected, yourEarnings, amountToRemit, remittanceStatus, remittanceHistory: remittances });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+app.post('/api/riders/remit-all', auth(['rider']), async (req, res) => {
+  try {
+    const result = await Remittance.updateMany(
+      { riderId: req.user.id, status: 'pending' },
+      { $set: { status: 'remitted', remittedAt: new Date() } }
+    );
+    res.json({ success: true, updated: result.modifiedCount || 0 });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+app.put('/api/admin/riders/:riderId/verify-all-remittances', auth(['admin']), async (req, res) => {
+  try {
+    const list = await Remittance.find({ riderId: req.params.riderId, status: 'remitted' });
+    for (const remittance of list) {
+      remittance.status = 'verified';
+      remittance.verifiedAt = new Date();
+      await remittance.save();
+      await Merchant.findByIdAndUpdate(remittance.merchantId, {
+        $inc: { pendingBalance: -remittance.productAmount, availableBalance: remittance.productAmount }
+      });
+      await Rider.findByIdAndUpdate(remittance.riderId, {
+        $inc: { wallet: remittance.riderEarnings, totalEarningsAmount: remittance.riderEarnings }
+      });
+    }
+    res.json({ success: true, verified: list.length });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+app.put('/api/admin/payouts/:id/reject', auth(['admin']), async (req, res) => {
+  try {
+    const payout = await Payout.findByIdAndUpdate(req.params.id, { status: 'rejected', paidAt: new Date() }, { new: true });
+    if (!payout) return res.status(404).json({ error: 'Payout not found' });
+    res.json({ success: true, payout });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
