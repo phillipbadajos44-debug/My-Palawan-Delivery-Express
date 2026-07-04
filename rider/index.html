@@ -563,32 +563,11 @@ async function submitProof(){
     try{await fetch(`${API}/riders/proof-of-delivery/${orderId}`,{method:'POST',headers:{'Authorization':'Bearer '+token},body:formData});}catch(e){}
   }
   closeProofModal();
-  await markDelivered(orderId, null);
+  await markDelivered(orderId,null);
 }
 
 async function markPickedUp(id,btn){
-  if(btn){btn.classList.add('btn-off');btn.textContent='Updating…';}
-  try{
-    const res=await fetch(`${API}/orders/${id}/status`,{
-      method:"PATCH",
-      headers:{
-        "Content-Type":"application/json",
-        "Authorization":"Bearer "+token
-      },
-      body:JSON.stringify({status:"picked_up"})
-    });
-    if(!res.ok) throw new Error(await res.text());
-    const order=activeDeliveries.find(o=>o.id===id||o._id===id);
-    if(order){order.status="picked_up";}
-    renderActive();updateBadges();updateStats();
-    toast("Order picked up! Head to the customer now 🛵");
-    openMaps(order?.deliveryAddress||"");
-  }catch(err){
-    console.error(err);
-    toast("Failed to update order.");
-    if(btn){btn.classList.remove("btn-off");btn.textContent="Picked Up";}
-  }
-}
+  if(btn){btn.classList.add('btn-off');btn.textContent='Updating...';}
   try{await fetch(`${API}/orders/${id}/status`,{method:'PATCH',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({status:'picked_up'})});}catch(e){}
   const order=activeDeliveries.find(o=>o.id===id||o._id===id);
   if(order){order.status='picked_up';}
@@ -598,32 +577,7 @@ async function markPickedUp(id,btn){
 }
 
 async function markDelivered(id,btn){
-  if(btn){btn.classList.add('btn-off');btn.textContent='Updating…';}
-  try{
-    const res=await fetch(`${API}/orders/${id}/status`,{
-      method:"PATCH",
-      headers:{
-        "Content-Type":"application/json",
-        "Authorization":"Bearer "+token
-      },
-      body:JSON.stringify({status:"delivered"})
-    });
-    if(!res.ok) throw new Error(await res.text());
-    const order=activeDeliveries.find(o=>o.id===id||o._id===id);
-    if(order){
-      order.status="delivered";
-      completedDeliveries.unshift(order);
-      activeDeliveries=activeDeliveries.filter(o=>o.id!==id&&o._id!==id);
-      totalEarned+=50;
-    }
-    renderActive();updateBadges();updateStats();loadHistory();
-    toast("Delivery completed! +₱50 earned 🎉");
-  }catch(err){
-    console.error(err);
-    toast("Failed to complete delivery.");
-    if(btn){btn.classList.remove("btn-off");btn.textContent="Delivered";}
-  }
-}
+  if(btn){btn.classList.add('btn-off');btn.textContent='Updating...';}
   try{await fetch(`${API}/orders/${id}/status`,{method:'PATCH',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({status:'delivered'})});}catch(e){}
   const order=activeDeliveries.find(o=>o.id===id||o._id===id);
   if(order){order.status='delivered';completedDeliveries.unshift(order);activeDeliveries=activeDeliveries.filter(o=>o.id!==id&&o._id!==id);totalEarned+=50;}
@@ -662,7 +616,12 @@ function loadHistory(){
 }
 
 function openMaps(address){
-  if(address){window.open(`https://maps.google.com/?q=${encodeURIComponent(address)}`);}
+  if(address && address.trim()!==''){
+    window.open('https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(address),'_blank');
+  } else {
+    toast('Walang address na available 📍');
+  }
+}`);}
   else toast('No address available for navigation');
 }
 
