@@ -616,13 +616,11 @@ function loadHistory(){
 }
 
 function openMaps(address){
-  if(address && address.trim()!==''){
+  if(address&&address.trim()!==''){
     window.open('https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(address),'_blank');
   } else {
     toast('Walang address na available 📍');
   }
-}`);}
-  else toast('No address available for navigation');
 }
 
 function toast(msg){const t=document.getElementById('toastEl');document.getElementById('toastMsg').textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2800);}
