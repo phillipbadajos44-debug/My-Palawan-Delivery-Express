@@ -508,28 +508,36 @@ function renderAvailable(){
 
 async function acceptDelivery(id,btn){
   btn.classList.add('btn-off');btn.textContent='Accepting…';
-  try{await fetch(`${API}/orders/${id}/status`,{method:'PATCH',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({status:'picked_up',riderName:currentRider.name})});}catch(e){}
+  try{await fetch(`${API}/orders/${id}/status`,{method:'PATCH',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({status:'rider_assigned',riderName:currentRider.name})});}catch(e){}
   const order=availableOrders.find(o=>o.id===id||o._id===id);
-  if(order){order.status='picked_up';activeDeliveries.push(order);availableOrders=availableOrders.filter(o=>o.id!==id&&o._id!==id);}
+  if(order){order.status='rider_assigned';activeDeliveries.push(order);availableOrders=availableOrders.filter(o=>o.id!==id&&o._id!==id);}
   renderAvailable();renderActive();updateBadges();updateStats();
   toast('Order accepted! Head to the merchant now 🏪');
+  openMaps(order&&order.merchantAddress?order.merchantAddress:'');
 }
 
 function renderActive(){
   const el=document.getElementById('active-wrap');
   if(!activeDeliveries.length){el.innerHTML=`<div class="empty-state"><div class="ei">✅</div><p>No active deliveries right now</p></div>`;return;}
-  el.innerHTML=activeDeliveries.map((o,i)=>`<div class="delivery-card active-d" style="animation-delay:${i*60}ms">
-    <div class="del-hdr"><div><div class="del-id">${o.id||o._id}</div></div><div class="del-badge b-active">🛵 On the Way</div></div>
+  el.innerHTML=activeDeliveries.map((o,i)=>{
+    const isAssigned=o.status==='rider_assigned';
+    return `<div class="delivery-card active-d" style="animation-delay:${i*60}ms">
+    <div class="del-hdr"><div><div class="del-id">${o.id||o._id}</div></div><div class="del-badge b-active">${isAssigned?'🏪 Heading to Merchant':'🛵 On the Way'}</div></div>
     <div class="del-merchant">🏪 Pickup: ${o.merchantName||'Merchant'}</div>
     <div class="del-items">${(o.items||[]).map(it=>`${emo(it.name)} ${it.name} ×${it.qty}`).join('<br>')}</div>
     <div class="del-address">📍 Deliver to: <strong>${o.customerName}</strong><br>${o.deliveryAddress||'Address on file'}<br>📱 <a href="tel:${o.customerPhone||''}" style="color:var(--gm);font-weight:700">${o.customerPhone||'—'}</a></div>
     <div class="del-fee">Delivery Fee: ₱50</div>
     <div class="del-actions">
+      ${isAssigned?`
+      <button class="btn-pickup" onclick="markPickedUp('${o._id||o.id}',this)">📦 Picked Up</button>
+      <button class="btn-nav" onclick="openMaps('${o.merchantAddress||''}')">🗺️ Merchant</button>
+      `:`
       <button class="btn-proof" onclick="openProofModal('${o._id||o.id}')">📸 Proof</button>
       <button class="btn-delivered" onclick="markDelivered('${o._id||o.id}',this)">✅ Delivered</button>
       <button class="btn-nav" onclick="openMaps('${o.deliveryAddress||''}')">🗺️</button>
+      `}
     </div>
-  </div>`).join('');
+  </div>`;}).join('');
 }
 
 // Proof of delivery
@@ -555,11 +563,67 @@ async function submitProof(){
     try{await fetch(`${API}/riders/proof-of-delivery/${orderId}`,{method:'POST',headers:{'Authorization':'Bearer '+token},body:formData});}catch(e){}
   }
   closeProofModal();
-  await markDelivered(orderId,null);
+  await markDelivered(orderId, null);
+}
+
+async function markPickedUp(id,btn){
+  if(btn){btn.classList.add('btn-off');btn.textContent='Updating…';}
+  try{
+    const res=await fetch(`${API}/orders/${id}/status`,{
+      method:"PATCH",
+      headers:{
+        "Content-Type":"application/json",
+        "Authorization":"Bearer "+token
+      },
+      body:JSON.stringify({status:"picked_up"})
+    });
+    if(!res.ok) throw new Error(await res.text());
+    const order=activeDeliveries.find(o=>o.id===id||o._id===id);
+    if(order){order.status="picked_up";}
+    renderActive();updateBadges();updateStats();
+    toast("Order picked up! Head to the customer now 🛵");
+    openMaps(order?.deliveryAddress||"");
+  }catch(err){
+    console.error(err);
+    toast("Failed to update order.");
+    if(btn){btn.classList.remove("btn-off");btn.textContent="Picked Up";}
+  }
+}
+  try{await fetch(`${API}/orders/${id}/status`,{method:'PATCH',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({status:'picked_up'})});}catch(e){}
+  const order=activeDeliveries.find(o=>o.id===id||o._id===id);
+  if(order){order.status='picked_up';}
+  renderActive();updateBadges();updateStats();
+  toast('Order picked up! Head to the customer now 🛵');
+  openMaps(order&&order.deliveryAddress?order.deliveryAddress:'');
 }
 
 async function markDelivered(id,btn){
   if(btn){btn.classList.add('btn-off');btn.textContent='Updating…';}
+  try{
+    const res=await fetch(`${API}/orders/${id}/status`,{
+      method:"PATCH",
+      headers:{
+        "Content-Type":"application/json",
+        "Authorization":"Bearer "+token
+      },
+      body:JSON.stringify({status:"delivered"})
+    });
+    if(!res.ok) throw new Error(await res.text());
+    const order=activeDeliveries.find(o=>o.id===id||o._id===id);
+    if(order){
+      order.status="delivered";
+      completedDeliveries.unshift(order);
+      activeDeliveries=activeDeliveries.filter(o=>o.id!==id&&o._id!==id);
+      totalEarned+=50;
+    }
+    renderActive();updateBadges();updateStats();loadHistory();
+    toast("Delivery completed! +₱50 earned 🎉");
+  }catch(err){
+    console.error(err);
+    toast("Failed to complete delivery.");
+    if(btn){btn.classList.remove("btn-off");btn.textContent="Delivered";}
+  }
+}
   try{await fetch(`${API}/orders/${id}/status`,{method:'PATCH',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({status:'delivered'})});}catch(e){}
   const order=activeDeliveries.find(o=>o.id===id||o._id===id);
   if(order){order.status='delivered';completedDeliveries.unshift(order);activeDeliveries=activeDeliveries.filter(o=>o.id!==id&&o._id!==id);totalEarned+=50;}
