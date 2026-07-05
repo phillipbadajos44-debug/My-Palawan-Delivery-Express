@@ -417,14 +417,10 @@ async function loadRiderState(){
     totalEarned=list.reduce((s,o)=>s+(o.deliveryFee||50),0);
   }catch(e){}
   try{
-    const [ra,rp]=await Promise.all([
-      fetch(`${API}/orders?status=rider_assigned`,{headers:{'Authorization':'Bearer '+token}}),
-      fetch(`${API}/orders?status=picked_up`,{headers:{'Authorization':'Bearer '+token}})
-    ]);
-    const da=await ra.json();const dp=await rp.json();
-    const listA=Array.isArray(da)?da:(da.orders||[]);
-    const listP=Array.isArray(dp)?dp:(dp.orders||[]);
-    activeDeliveries=[...listA,...listP];
+    const r3=await fetch(`${API}/orders?status=picked_up`,{headers:{'Authorization':'Bearer '+token}});
+    const d3=await r3.json();
+    const list3=Array.isArray(d3)?d3:(d3.orders||[]);
+    activeDeliveries=list3;
   }catch(e){}
   updateStats();updateBadges();loadHistory();renderActive();
 }
@@ -571,7 +567,7 @@ async function submitProof(){
 }
 
 async function markPickedUp(id,btn){
-  if(btn){btn.classList.add('btn-off');btn.textContent='Updating...';}
+  if(btn){btn.classList.add('btn-off');btn.textContent='Updating…';}
   try{await fetch(`${API}/orders/${id}/status`,{method:'PATCH',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({status:'picked_up'})});}catch(e){}
   const order=activeDeliveries.find(o=>o.id===id||o._id===id);
   if(order){order.status='picked_up';}
@@ -581,7 +577,7 @@ async function markPickedUp(id,btn){
 }
 
 async function markDelivered(id,btn){
-  if(btn){btn.classList.add('btn-off');btn.textContent='Updating...';}
+  if(btn){btn.classList.add('btn-off');btn.textContent='Updating…';}
   try{await fetch(`${API}/orders/${id}/status`,{method:'PATCH',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({status:'delivered'})});}catch(e){}
   const order=activeDeliveries.find(o=>o.id===id||o._id===id);
   if(order){order.status='delivered';completedDeliveries.unshift(order);activeDeliveries=activeDeliveries.filter(o=>o.id!==id&&o._id!==id);totalEarned+=50;}
@@ -620,11 +616,8 @@ function loadHistory(){
 }
 
 function openMaps(address){
-  if(address&&address.trim()!==''){
-    window.open('https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(address),'_blank');
-  } else {
-    toast('Walang address na available 📍');
-  }
+  if(address){window.open(`https://maps.google.com/?q=${encodeURIComponent(address)}`);}
+  else toast('No address available for navigation');
 }
 
 function toast(msg){const t=document.getElementById('toastEl');document.getElementById('toastMsg').textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2800);}

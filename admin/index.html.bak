@@ -321,27 +321,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
     </div>
   </div>
 
-  <!-- REMITTANCE -->
-  <div id="page-remittance" class="page">
-    <div class="section-title">💸 Remittance</div>
-    <div class="stats-grid">
-      <div class="stat-card green"><div class="stat-icon">💵</div><div class="stat-val" id="ra-collected">₱0</div><div class="stat-label">Total Collected</div></div>
-      <div class="stat-card gold"><div class="stat-icon">🛵</div><div class="stat-val" id="ra-rider">₱0</div><div class="stat-label">Rider Earnings</div></div>
-      <div class="stat-card"><div class="stat-icon">🏢</div><div class="stat-val" id="ra-company">₱0</div><div class="stat-label">Company Share</div></div>
-      <div class="stat-card red"><div class="stat-icon">⏳</div><div class="stat-val" id="ra-pending">0</div><div class="stat-label">Pending Verify</div></div>
-    </div>
-    <div class="filter-tabs">
-      <div class="ftab active" onclick="filterRemit('all',this)">All</div>
-      <div class="ftab" onclick="filterRemit('remitted',this)">📤 For Verify</div>
-      <div class="ftab" onclick="filterRemit('verified',this)">✅ Verified</div>
-    </div>
-    <div style="padding:0 18px 16px" id="remit-list"><div class="spinner"></div></div>
-  </div>
-  <!-- PAYOUTS -->
-  <div id="page-payouts" class="page">
-    <div class="section-title">🏦 Merchant Payouts</div>
-    <div style="padding:0 18px 16px" id="payout-list"><div class="spinner"></div></div>
-  </div>
   <!-- AUDIT LOGS -->
   <div id="page-audit" class="page">
     <div class="section-title">🕵️ Audit Logs</div>
@@ -357,8 +336,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
     <button class="nav-item" onclick="showPage('orders',this);renderOrderTable()"><div class="nav-icon">📦</div><span class="nav-label">Orders</span></button>
     <button class="nav-item" onclick="showPage('users',this);showUsers('customers',null)"><div class="nav-icon">👥</div><span class="nav-label">Users</span></button>
     <button class="nav-item" onclick="showPage('analytics',this);loadAnalytics('monthly',null)"><div class="nav-icon">📈</div><span class="nav-label">Analytics</span></button>
-    <button class="nav-item" onclick="showPage('remittance',this);loadAdminRemit()"><div class="nav-icon">💸</div><span class="nav-label">Remit</span></button>
-    <button class="nav-item" onclick="showPage('payouts',this);loadAdminPayouts()"><div class="nav-icon">🏦</div><span class="nav-label">Payouts</span></button>
     <button class="nav-item" onclick="showPage('audit',this);loadAuditLogs()"><div class="nav-icon">🕵️</div><span class="nav-label">Audit</span></button>
   </nav>
 </div>
@@ -652,7 +629,7 @@ function renderOrderTable(search=''){
 }
 
 async function advanceOrder(id){
-  const flow=['pending','accepted','ready','rider_assigned','picked_up','delivered'];
+  const flow=['pending','accepted','ready','picked_up','delivered'];
   const o=allOrders.find(x=>(x.id||x._id)===id);if(!o)return;
   const i=flow.indexOf(o.status);
   if(i<flow.length-1){o.status=flow[i+1];

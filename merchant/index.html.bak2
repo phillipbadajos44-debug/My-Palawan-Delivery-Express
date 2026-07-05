@@ -942,6 +942,57 @@ async function deleteProduct(id,btn){
   renderMyProducts();toast('Product removed.');
 }
 
+// ── BALANCE & PAYOUT ──
+async function loadBalance(){
+  try{
+    const res=await fetch(API+'/merchants/balance',{headers:{'Authorization':'Bearer '+token}});
+    const d=await res.json();
+    const pending=d.pendingBalance||0,available=d.availableBalance||0,paid=d.totalPaidOut||0;
+    const el=document.getElementById('merchant-balance-card');
+    if(!el)return;
+    el.innerHTML=`<div style="background:linear-gradient(135deg,var(--gd),var(--gm));border-radius:20px;margin:0 0 16px;padding:24px 20px;color:#fff">
+      <div style="font-size:12px;opacity:.8;margin-bottom:12px">💰 Merchant Wallet</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
+        <div style="background:rgba(255,255,255,.15);border-radius:12px;padding:14px;text-align:center">
+          <div style="font-size:22px;font-weight:900">₱${available.toLocaleString()}</div>
+          <div style="font-size:11px;opacity:.8;margin-top:4px">✅ Available</div>
+        </div>
+        <div style="background:rgba(255,255,255,.15);border-radius:12px;padding:14px;text-align:center">
+          <div style="font-size:22px;font-weight:900">₱${pending.toLocaleString()}</div>
+          <div style="font-size:11px;opacity:.8;margin-top:4px">⏳ Pending</div>
+        </div>
+      </div>
+      <div style="background:rgba(255,255,255,.1);border-radius:10px;padding:10px 14px;display:flex;justify-content:space-between;margin-bottom:12px">
+        <span style="font-size:13px;opacity:.8">Total Paid Out</span>
+        <span style="font-size:14px;font-weight:800">₱${paid.toLocaleString()}</span>
+      </div>
+      ${available>0?`<button onclick="requestPayout()" style="width:100%;padding:12px;background:#fff;color:var(--gd);border:none;border-radius:12px;font-size:14px;font-weight:800;cursor:pointer">🏦 Request Payout</button>`:'<div style="text-align:center;opacity:.7;font-size:13px">Walang available balance pa</div>'}
+    </div>
+    <div style="font-size:15px;font-weight:800;color:var(--gd);margin-bottom:10px">📋 Payout History</div>
+    <div id="payout-history-list"><div class="spinner"></div></div>`;
+    loadPayoutHistory();
+  }catch(e){}
+}
+async function requestPayout(){
+  try{
+    const r=await fetch(API+'/merchants/payout',{method:'POST',headers:{'Authorization':'Bearer '+token}});
+    const d=await r.json();
+    if(d.success){toast('Payout request submitted! 🏦');loadBalance();}
+    else toast(d.error||'Cannot request payout');
+  }catch(e){toast('Error');}
+}
+async function loadPayoutHistory(){
+  try{
+    const r=await fetch(API+'/merchants/payouts',{headers:{'Authorization':'Bearer '+token}});
+    const list=await r.json();
+    const el=document.getElementById('payout-history-list');if(!el)return;
+    el.innerHTML=list.length?list.map(p=>`<div style="background:#fff;border-radius:12px;box-shadow:var(--sh);padding:12px 14px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">
+      <div><div style="font-size:15px;font-weight:800;color:var(--gm)">₱${(p.amount||0).toLocaleString()}</div>
+      <div style="font-size:11px;color:var(--muted)">${p.requestedAt?new Date(p.requestedAt).toLocaleDateString():''}</div></div>
+      <span style="font-size:11px;font-weight:800;padding:3px 10px;border-radius:20px;background:${p.status==='paid'?'#d1fae5':'#fef3c7'};color:${p.status==='paid'?'#065f46':'#92400e'}">${p.status==='paid'?'✅ Paid':'⏳ Pending'}</span>
+    </div>`).join(''):'<div style="text-align:center;padding:16px;color:var(--muted);font-size:13px">Walang payout requests pa</div>';
+  }catch(e){}
+}
 // ── EARNINGS ──
 function loadEarnings(){
   const done=allOrders.filter(o=>o.status==='delivered');

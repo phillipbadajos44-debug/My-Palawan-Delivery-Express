@@ -120,7 +120,7 @@ const ProductSchema = new mongoose.Schema({
 
 const OrderSchema = new mongoose.Schema({
   customerId: String, customerName: String, customerPhone: String,
-  customerAddress: String, merchantId: String, merchantName: String,
+  customerAddress: String, merchantId: String, merchantName: String, merchantAddress: String,
   riderId: String, riderName: String,
   items: [{ id: String, name: String, qty: Number, price: Number }],
   total: Number, deliveryFee: { type: Number, default: 50 },
@@ -827,10 +827,12 @@ app.get('/api/orders/:id', async (req, res) => {
 app.post('/api/orders', auth(['customer']), async (req, res) => {
   try {
     const { items, merchantId, merchantName, total, deliveryFee, paymentMethod, customerAddress } = req.body;
+    const merchant = await Merchant.findById(merchantId);
     const order = await Order.create({
       customerId: req.user.id, customerName: req.user.name,
       merchantId, merchantName, items, total, deliveryFee: deliveryFee || 50,
       paymentMethod: paymentMethod || 'cod', customerAddress,
+      merchantAddress: merchant ? merchant.address : '',
       statusHistory: [{ status: 'pending', time: new Date(), note: 'Order placed by customer' }]
     });
 
@@ -857,7 +859,7 @@ app.patch('/api/orders/:id/status', auth(['merchant', 'rider', 'admin']), async 
     if (!order) return res.status(404).json({ error: 'Order not found' });
     order.status = status;
     order.statusHistory.push({ status, time: new Date(), note: note || '' });
-    if (status === 'picked_up') { order.riderId = req.user.id; order.riderName = req.user.name; }
+    if (status === 'rider_assigned') { order.riderId = req.user.id; order.riderName = req.user.name; }
     await order.save();
 
     if (status === 'delivered') {
@@ -891,6 +893,7 @@ app.patch('/api/orders/:id/status', auth(['merchant', 'rider', 'admin']), async 
     const messages = {
       accepted: { title: '✅ Order Accepted!', msg: 'Merchant accepted your order and is preparing it.' },
       ready: { title: '📦 Order Ready!', msg: 'Your order is packed and ready for pickup.' },
+      rider_assigned: { title: '🛵 Rider Assigned!', msg: `${req.user.name} is heading to the merchant to pick up your order.` },
       picked_up: { title: '🛵 Rider On The Way!', msg: `${req.user.name} picked up your order and is on the way.` },
       delivered: { title: '🎉 Order Delivered!', msg: 'Your order has been delivered successfully.' }
     };

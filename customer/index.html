@@ -1091,7 +1091,7 @@ const STATUS_LABELS={
   delivered:{label:'🎉 Delivered',cls:'s-done'},
   rejected:{label:'❌ Rejected',cls:'s-rej'},
 };
-const STEPS_LIST=['pending','accepted','ready','picked_up','delivered'];
+const STEPS_LIST=['pending','accepted','ready','rider_assigned','picked_up','delivered'];
 
 async function loadOrders(){
   try{
@@ -1125,7 +1125,7 @@ function renderOrders(){
   if(active>0){b.style.display='flex';b.textContent=active;}else b.style.display='none';
   let filtered=orders;
   if(orderFilter==='pending')filtered=orders.filter(o=>o.status==='pending');
-  else if(orderFilter==='active')filtered=orders.filter(o=>['accepted','ready','picked_up'].includes(o.status));
+  else if(orderFilter==='active')filtered=orders.filter(o=>['accepted','ready','rider_assigned','picked_up'].includes(o.status));
   else if(orderFilter==='delivered')filtered=orders.filter(o=>o.status==='delivered');
   const el=document.getElementById('orders-list');
   if(!filtered.length){el.innerHTML=`<div class="loading-state"><div style="font-size:48px">📦</div><h3 style="color:var(--text)">No orders</h3></div>`;return;}
@@ -1147,7 +1147,7 @@ function renderOrders(){
       <div class="order-hdr"><div class="order-id">${o.id}</div><div class="o-status ${st.cls}">${st.label}</div></div>
       <div class="order-items">${(o.items||[]).map(it=>`${emo(it.name)} ${it.name} ×${it.qty}`).join(', ')}</div>
       <div class="status-bar">${STEPS_LIST.map((_,j)=>`<div class="sb ${j<si?'done':j===si?'act':''}"></div>`).join('')}</div>
-      ${['accepted','ready','picked_up'].includes(o.status)?tracking:''}
+      ${['accepted','ready','rider_assigned','picked_up'].includes(o.status)?tracking:''}
       <div class="order-foot"><div class="order-total">₱${(o.total||0).toLocaleString()}</div><div class="order-date">${o.date||''}</div></div>
       ${rateBtn}
     </div>`;
