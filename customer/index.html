@@ -137,6 +137,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
 .modal-sheet{background:#fff;border-radius:24px 24px 0 0;padding:24px 18px 36px;width:100%;max-height:90vh;overflow-y:auto;}
 .modal-handle{width:40px;height:4px;background:#e5e7eb;border-radius:4px;margin:0 auto 20px;}
 .modal-title{font-size:18px;font-weight:800;margin-bottom:20px;}
+.modal-close-x{position:absolute;top:14px;right:14px;width:32px;height:32px;border-radius:50%;background:#f3f4f6;border:none;font-size:16px;color:#374151;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.chat-box{border:1px solid #e5e7eb;border-radius:14px;margin:14px 0;overflow:hidden;}
+.chat-thread{max-height:220px;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:8px;background:#f9fafb;}
+.chat-msg{max-width:78%;padding:8px 12px;border-radius:14px;font-size:13px;line-height:1.4;}
+.chat-msg.mine{align-self:flex-end;background:var(--gm);color:#fff;border-bottom-right-radius:4px;}
+.chat-msg.theirs{align-self:flex-start;background:#fff;border:1px solid #e5e7eb;border-bottom-left-radius:4px;}
+.chat-input-row{display:flex;gap:6px;padding:8px;background:#fff;border-top:1px solid #e5e7eb;}
+.chat-input-row input{flex:1;border:1px solid #e5e7eb;border-radius:20px;padding:8px 14px;font-size:13px;}
+.chat-input-row button{background:var(--gm);color:#fff;border:none;border-radius:20px;padding:8px 16px;font-size:13px;font-weight:700;cursor:pointer;}
+.btn-chat-rider{width:100%;padding:12px;background:#f3f4f6;color:#374151;border:none;border-radius:12px;font-size:13px;font-weight:700;cursor:pointer;margin-top:10px;}
 .pay-option{display:flex;align-items:center;gap:14px;padding:14px 16px;border:2px solid #e5e7eb;border-radius:14px;margin-bottom:10px;cursor:pointer;transition:all .15s;}
 .pay-option.selected{border-color:var(--gm);background:#f0faf4;}
 .pay-icon{font-size:32px;}
@@ -498,6 +508,24 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
       <textarea class="review-input" id="reviewText" placeholder="Tell us about your experience…"></textarea>
     </div>
     <button class="modal-btn" onclick="submitRating()">Submit Rating</button>
+  </div>
+</div>
+
+<!-- RIDER CHAT MODAL -->
+<div class="modal-bg" id="chatModal">
+  <div class="modal-sheet" style="position:relative">
+    <button class="modal-close-x" onclick="closeChatModal()">✕</button>
+    <div class="modal-handle"></div>
+    <div class="modal-title">🛵 Chat with Rider</div>
+    <div id="chat-order-info" style="font-size:13px;color:var(--muted);margin-bottom:10px"></div>
+    <div class="chat-box">
+      <div class="chat-thread" id="chat-thread"></div>
+      <div class="chat-input-row">
+        <input type="text" id="chat-input" placeholder="Type a message..." onkeypress="if(event.key==='Enter')sendChatMessage()"/>
+        <button onclick="sendChatMessage()">Send</button>
+      </div>
+    </div>
+    <input type="hidden" id="chat-order-id"/>
   </div>
 </div>
 
@@ -1082,7 +1110,7 @@ function buyNow(id,name,price,btn,merchantId,merchantName){
 }
 
 // ── ORDERS ──
-const STEP_MAP={pending:0,accepted:1,ready:2,picked_up:3,delivered:4};
+const STEP_MAP={pending:0,accepted:1,ready:2,rider_assigned:3,picked_up:4,delivered:5};
 const STATUS_LABELS={
   pending:{label:'⏳ Pending',cls:'s-pend'},
   accepted:{label:'✅ Accepted',cls:'s-acc'},
@@ -1134,7 +1162,8 @@ function renderOrders(){
     const si=STEP_MAP[o.status]||0;
     const trackSteps=[
       {label:'Order Placed',icon:'📝'},{label:'Merchant Accepted',icon:'✅'},
-      {label:'Ready for Pickup',icon:'📦'},{label:'On the Way',icon:'🛵'},{label:'Delivered',icon:'🎉'}
+      {label:'Ready for Pickup',icon:'📦'},{label:'Rider Heading to Merchant',icon:'🏪'},
+      {label:'On the Way',icon:'🛵'},{label:'Delivered',icon:'🎉'}
     ];
     const tracking=`<div class="tracking-card" style="margin:12px 0 0">
       <div class="tracking-header"><h3>📍 Order Tracking</h3><p>${o.id}</p></div>
@@ -1143,12 +1172,14 @@ function renderOrders(){
         <div class="t-info"><h4>${s.label}</h4><p>${j<si?'Completed':j===si?'In Progress':'Waiting'}</p></div>
       </div>`).join('')}</div></div>`;
     const rateBtn=o.status==='delivered'&&!o.rating?`<button class="rate-btn" onclick="openRating('${o.id}')">⭐ Rate this Order</button>`:'';
+    const chatBtn=o.status==='picked_up'?`<button class="btn-chat-rider" onclick="openChatModal('${o.id}','${(o.riderName||'Rider').replace(/'/g,"\\'")}')">💬 Chat with Rider</button>`:'';
     return`<div class="order-card" style="animation-delay:${i*60}ms">
       <div class="order-hdr"><div class="order-id">${o.id}</div><div class="o-status ${st.cls}">${st.label}</div></div>
       <div class="order-items">${(o.items||[]).map(it=>`${emo(it.name)} ${it.name} ×${it.qty}`).join(', ')}</div>
       <div class="status-bar">${STEPS_LIST.map((_,j)=>`<div class="sb ${j<si?'done':j===si?'act':''}"></div>`).join('')}</div>
       ${['accepted','ready','rider_assigned','picked_up'].includes(o.status)?tracking:''}
       <div class="order-foot"><div class="order-total">₱${(o.total||0).toLocaleString()}</div><div class="order-date">${o.date||''}</div></div>
+      ${chatBtn}
       ${rateBtn}
     </div>`;
   }).join('');
@@ -1165,6 +1196,51 @@ async function submitRating(){
   try{await fetch(`${API}/reviews`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({orderId:ratingOrderId,rating:selectedStar,review})});}catch(e){}
   const o=orders.find(x=>x.id===ratingOrderId);if(o)o.rating=selectedStar;
   closeRating();renderOrders();toast('Thank you for your rating! ⭐');
+}
+
+// ── RIDER CHAT ──
+let chatCurrentOrderId=null;
+let chatPollInterval=null;
+
+function openChatModal(orderId,riderName){
+  chatCurrentOrderId=orderId;
+  document.getElementById('chat-order-id').value=orderId;
+  document.getElementById('chat-order-info').textContent=`Order ${orderId} · Rider: ${riderName}`;
+  document.getElementById('chatModal').classList.add('open');
+  loadChat(orderId);
+  if(chatPollInterval)clearInterval(chatPollInterval);
+  chatPollInterval=setInterval(()=>loadChat(orderId),5000);
+}
+
+function closeChatModal(){
+  document.getElementById('chatModal').classList.remove('open');
+  if(chatPollInterval){clearInterval(chatPollInterval);chatPollInterval=null;}
+}
+
+async function loadChat(orderId){
+  try{
+    const r=await fetch(`${API}/messages/${orderId}?channel=customer`,{headers:{'Authorization':'Bearer '+token}});
+    const messages=await r.json();
+    renderChat(Array.isArray(messages)?messages:[]);
+  }catch(e){}
+}
+
+function renderChat(messages){
+  const el=document.getElementById('chat-thread');
+  if(!messages.length){el.innerHTML=`<div style="text-align:center;color:var(--muted);font-size:12px;padding:8px">No messages yet</div>`;return;}
+  el.innerHTML=messages.map(m=>`<div class="chat-msg ${m.senderRole==='customer'?'mine':'theirs'}">${m.text}</div>`).join('');
+  el.scrollTop=el.scrollHeight;
+}
+
+async function sendChatMessage(){
+  const input=document.getElementById('chat-input');
+  const text=input.value.trim();
+  if(!text||!chatCurrentOrderId)return;
+  input.value='';
+  try{
+    await fetch(`${API}/messages/${chatCurrentOrderId}`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({text,channel:'customer'})});
+  }catch(e){}
+  loadChat(chatCurrentOrderId);
 }
 
 // ── NOTIFICATIONS ──
