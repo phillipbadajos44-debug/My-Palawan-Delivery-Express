@@ -1,6 +1,4 @@
-.env
+*.bak
+*.bak[0-9]*
 node_modules/
-__pycache__/
-*.pyc
-.DS_Store
-
+.env
