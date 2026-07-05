@@ -700,9 +700,13 @@ function closeOrderActionModal(){
   if(oamChatInterval){clearInterval(oamChatInterval);oamChatInterval=null;}
 }
 
+function oamChannel(){
+  return oamCurrentOrder&&oamCurrentOrder.status==='rider_assigned'?'merchant':'customer';
+}
+
 async function loadOamChat(orderId){
   try{
-    const r=await fetch(`${API}/messages/${orderId}`,{headers:{'Authorization':'Bearer '+token}});
+    const r=await fetch(`${API}/messages/${orderId}?channel=${oamChannel()}`,{headers:{'Authorization':'Bearer '+token}});
     const messages=await r.json();
     renderOamChat(Array.isArray(messages)?messages:[]);
   }catch(e){}
@@ -720,9 +724,10 @@ async function sendOamMessage(){
   const text=input.value.trim();
   if(!text||!oamCurrentOrder)return;
   const orderId=oamCurrentOrder._id||oamCurrentOrder.id;
+  const channel=oamChannel();
   input.value='';
   try{
-    await fetch(`${API}/messages/${orderId}`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({text})});
+    await fetch(`${API}/messages/${orderId}`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({text,channel})});
   }catch(e){}
   loadOamChat(orderId);
 }

@@ -151,7 +151,7 @@ const AuditSchema = new mongoose.Schema({
 });
 
 const MessageSchema = new mongoose.Schema({
-  orderId: String,
+  orderId: String, channel: String,
   senderId: String, senderRole: String, senderName: String,
   text: String,
   isRead: { type: Boolean, default: false },
@@ -1002,17 +1002,20 @@ app.put('/api/notifications/read-all', auth(['customer', 'merchant', 'rider']), 
 // ============================================================
 app.get('/api/messages/:orderId', auth(['customer', 'merchant', 'rider']), async (req, res) => {
   try {
-    const messages = await Message.find({ orderId: req.params.orderId }).sort('createdAt');
+    const { channel } = req.query;
+    const query = { orderId: req.params.orderId };
+    if (channel) query.channel = channel;
+    const messages = await Message.find(query).sort('createdAt');
     res.json(messages);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 app.post('/api/messages/:orderId', auth(['customer', 'merchant', 'rider']), async (req, res) => {
   try {
-    const { text } = req.body;
+    const { text, channel } = req.body;
     if (!text || !text.trim()) return res.status(400).json({ error: 'Message text required' });
     const message = await Message.create({
-      orderId: req.params.orderId,
+      orderId: req.params.orderId, channel: channel || 'customer',
       senderId: req.user.id, senderRole: req.user.role, senderName: req.user.name,
       text: text.trim()
     });
