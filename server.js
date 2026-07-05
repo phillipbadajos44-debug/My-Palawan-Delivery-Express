@@ -120,7 +120,7 @@ const ProductSchema = new mongoose.Schema({
 
 const OrderSchema = new mongoose.Schema({
   customerId: String, customerName: String, customerPhone: String,
-  customerAddress: String, merchantId: String, merchantName: String, merchantAddress: String,
+  customerAddress: String, merchantId: String, merchantName: String, merchantAddress: String, merchantPhone: String,
   riderId: String, riderName: String,
   items: [{ id: String, name: String, qty: Number, price: Number }],
   total: Number, deliveryFee: { type: Number, default: 50 },
@@ -854,11 +854,14 @@ app.post('/api/orders', auth(['customer']), async (req, res) => {
   try {
     const { items, merchantId, merchantName, total, deliveryFee, paymentMethod, customerAddress } = req.body;
     const merchant = await Merchant.findById(merchantId);
+    const customer = await Customer.findById(req.user.id);
     const order = await Order.create({
       customerId: req.user.id, customerName: req.user.name,
+      customerPhone: customer ? customer.phone : '',
       merchantId, merchantName, items, total, deliveryFee: deliveryFee || 50,
       paymentMethod: paymentMethod || 'cod', customerAddress,
       merchantAddress: merchant ? merchant.address : '',
+      merchantPhone: merchant ? merchant.phone : '',
       statusHistory: [{ status: 'pending', time: new Date(), note: 'Order placed by customer' }]
     });
 

@@ -127,6 +127,21 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
 .upload-box{border:2px dashed #d1d5db;border-radius:12px;padding:24px;text-align:center;cursor:pointer;position:relative;overflow:hidden;transition:border-color .2s;}
 .upload-box:hover{border-color:var(--gm);}
 .upload-box input{position:absolute;inset:0;opacity:0;cursor:pointer;}
+.modal-sheet{max-height:88vh;overflow-y:auto;position:relative;}
+.modal-close-x{position:absolute;top:14px;right:14px;width:32px;height:32px;border-radius:50%;background:#f3f4f6;border:none;font-size:16px;color:#374151;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.order-info-row{font-size:14px;margin-bottom:6px;color:#374151;}
+.order-info-row strong{color:#111827;}
+.call-btn{display:inline-flex;align-items:center;gap:4px;background:var(--gl);color:var(--gd);padding:6px 12px;border-radius:20px;font-size:13px;font-weight:700;text-decoration:none;margin-left:6px;}
+.chat-box{border:1px solid #e5e7eb;border-radius:14px;margin:14px 0;overflow:hidden;}
+.chat-thread{max-height:180px;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:8px;background:#f9fafb;}
+.chat-msg{max-width:78%;padding:8px 12px;border-radius:14px;font-size:13px;line-height:1.4;}
+.chat-msg.mine{align-self:flex-end;background:var(--gm);color:#fff;border-bottom-right-radius:4px;}
+.chat-msg.theirs{align-self:flex-start;background:#fff;border:1px solid #e5e7eb;border-bottom-left-radius:4px;}
+.chat-input-row{display:flex;gap:6px;padding:8px;background:#fff;border-top:1px solid #e5e7eb;}
+.chat-input-row input{flex:1;border:1px solid #e5e7eb;border-radius:20px;padding:8px 14px;font-size:13px;}
+.chat-input-row button{background:var(--gm);color:#fff;border:none;border-radius:20px;padding:8px 16px;font-size:13px;font-weight:700;cursor:pointer;}
+.modal-btn:disabled{opacity:.45;cursor:not-allowed;}
+.btn-view{flex:1;padding:12px;background:#f3f4f6;color:#374151;border:none;border-radius:12px;font-size:13px;font-weight:700;cursor:pointer;}
 .toast{position:fixed;bottom:calc(var(--nav)+12px);left:50%;transform:translateX(-50%) translateY(80px);background:var(--gd);color:#fff;padding:12px 22px;border-radius:40px;font-size:14px;font-weight:600;z-index:500;display:flex;align-items:center;gap:8px;box-shadow:0 8px 24px rgba(234,88,12,.35);transition:transform .35s cubic-bezier(.32,.72,0,1),opacity .35s;opacity:0;white-space:nowrap;max-width:90vw;}
 .toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
 .empty-state{text-align:center;padding:40px 24px;color:var(--muted);}
@@ -297,6 +312,35 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
     <button class="nav-item" onclick="showPage('remit',this);loadRemittances()"><div class="nav-icon">💸</div><span class="nav-label">Remit</span></button>
     <button class="nav-item" onclick="showPage('account',this)"><div class="nav-icon">👤</div><span class="nav-label">Account</span></button>
   </nav>
+</div>
+
+<!-- ORDER ACTION MODAL (pickup / delivery) -->
+<div class="modal-bg" id="orderActionModal">
+  <div class="modal-sheet">
+    <button class="modal-close-x" onclick="closeOrderActionModal()">✕</button>
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="oam-title">Order Details</div>
+    <div id="oam-info"></div>
+
+    <div class="chat-box">
+      <div class="chat-thread" id="oam-chat-thread"></div>
+      <div class="chat-input-row">
+        <input type="text" id="oam-chat-input" placeholder="Type a message..." onkeypress="if(event.key==='Enter')sendOamMessage()"/>
+        <button onclick="sendOamMessage()">Send</button>
+      </div>
+    </div>
+
+    <div style="font-size:14px;font-weight:700;margin-bottom:8px" id="oam-photo-label">📸 Photo required</div>
+    <div class="upload-box" id="oam-upload-box">
+      <input type="file" accept="image/*" capture="environment" id="oam-photo-input" onchange="handleOamPhoto(this)"/>
+      <div style="font-size:36px;margin-bottom:8px">📷</div>
+      <div style="font-size:13px;font-weight:600;color:var(--muted)">Tap to take photo or upload</div>
+      <div id="oam-photo-preview" style="margin-top:8px"></div>
+    </div>
+
+    <input type="hidden" id="oam-order-id"/>
+    <button class="modal-btn" id="oam-action-btn" disabled onclick="confirmOamAction()">Submit</button>
+  </div>
 </div>
 
 <!-- PROOF OF DELIVERY MODAL -->
@@ -532,14 +576,8 @@ function renderActive(){
     <div class="del-address">📍 Deliver to: <strong>${o.customerName}</strong><br>${o.deliveryAddress||'Address on file'}<br>📱 <a href="tel:${o.customerPhone||''}" style="color:var(--gm);font-weight:700">${o.customerPhone||'—'}</a></div>
     <div class="del-fee">Delivery Fee: ₱50</div>
     <div class="del-actions">
-      ${isAssigned?`
-      <button class="btn-pickup" onclick="markPickedUp('${o._id||o.id}',this)">📦 Picked Up</button>
-      <button class="btn-nav" onclick="openMaps('${o.merchantAddress||''}')">🗺️ Merchant</button>
-      `:`
-      <button class="btn-proof" onclick="openProofModal('${o._id||o.id}')">📸 Proof</button>
-      <button class="btn-delivered" onclick="markDelivered('${o._id||o.id}',this)">✅ Delivered</button>
-      <button class="btn-nav" onclick="openMaps('${o.deliveryAddress||''}')">🗺️</button>
-      `}
+      <button class="btn-view" onclick="openOrderActionModal('${o._id||o.id}')">📋 View Details</button>
+      <button class="btn-nav" onclick="openMaps('${isAssigned?(o.merchantAddress||''):(o.deliveryAddress||'')}')">🗺️ Map</button>
     </div>
   </div>`;}).join('');
 }
@@ -617,6 +655,105 @@ function loadHistory(){
     </div>
     <div class="hist-pay">+₱50</div>
   </div>`).join('');
+}
+
+let oamCurrentOrder=null;
+let oamPhotoFile=null;
+let oamChatInterval=null;
+
+function findActiveOrder(id){
+  return activeDeliveries.find(o=>o.id===id||o._id===id);
+}
+
+function openOrderActionModal(id){
+  const order=findActiveOrder(id);
+  if(!order)return;
+  oamCurrentOrder=order;
+  oamPhotoFile=null;
+  const isAssigned=order.status==='rider_assigned';
+  document.getElementById('oam-order-id').value=id;
+  document.getElementById('oam-title').textContent=isAssigned?'🏪 Pickup from Merchant':'🛵 Deliver to Customer';
+
+  const name=isAssigned?(order.merchantName||'Merchant'):(order.customerName||'Customer');
+  const phone=isAssigned?(order.merchantPhone||''):(order.customerPhone||'');
+  const address=isAssigned?(order.merchantAddress||'Address on file'):(order.deliveryAddress||'Address on file');
+
+  document.getElementById('oam-info').innerHTML=`
+    <div class="order-info-row"><strong>${name}</strong></div>
+    <div class="order-info-row">📍 ${address}</div>
+    <div class="order-info-row">📱 ${phone||'—'} ${phone?`<a class="call-btn" href="tel:${phone}">📞 Call</a>`:''}</div>
+  `;
+
+  document.getElementById('oam-photo-label').textContent=isAssigned?'📸 Photo of picked-up order (required)':'📸 Proof of delivery (required)';
+  document.getElementById('oam-photo-preview').innerHTML='';
+  document.getElementById('oam-action-btn').textContent=isAssigned?'✅ Confirm Picked Up':'✅ Confirm Delivered';
+  document.getElementById('oam-action-btn').disabled=true;
+
+  document.getElementById('orderActionModal').classList.add('open');
+  loadOamChat(id);
+  if(oamChatInterval)clearInterval(oamChatInterval);
+  oamChatInterval=setInterval(()=>loadOamChat(id),5000);
+}
+
+function closeOrderActionModal(){
+  document.getElementById('orderActionModal').classList.remove('open');
+  if(oamChatInterval){clearInterval(oamChatInterval);oamChatInterval=null;}
+}
+
+async function loadOamChat(orderId){
+  try{
+    const r=await fetch(`${API}/messages/${orderId}`,{headers:{'Authorization':'Bearer '+token}});
+    const messages=await r.json();
+    renderOamChat(Array.isArray(messages)?messages:[]);
+  }catch(e){}
+}
+
+function renderOamChat(messages){
+  const el=document.getElementById('oam-chat-thread');
+  if(!messages.length){el.innerHTML=`<div style="text-align:center;color:var(--muted);font-size:12px;padding:8px">No messages yet</div>`;return;}
+  el.innerHTML=messages.map(m=>`<div class="chat-msg ${m.senderRole==='rider'?'mine':'theirs'}">${m.text}</div>`).join('');
+  el.scrollTop=el.scrollHeight;
+}
+
+async function sendOamMessage(){
+  const input=document.getElementById('oam-chat-input');
+  const text=input.value.trim();
+  if(!text||!oamCurrentOrder)return;
+  const orderId=oamCurrentOrder._id||oamCurrentOrder.id;
+  input.value='';
+  try{
+    await fetch(`${API}/messages/${orderId}`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({text})});
+  }catch(e){}
+  loadOamChat(orderId);
+}
+
+function handleOamPhoto(input){
+  if(input.files&&input.files[0]){
+    oamPhotoFile=input.files[0];
+    const r=new FileReader();
+    r.onload=e=>{document.getElementById('oam-photo-preview').innerHTML=`<img src="${e.target.result}" style="max-width:100%;max-height:120px;border-radius:8px;margin-top:8px"/>`;};
+    r.readAsDataURL(oamPhotoFile);
+    document.getElementById('oam-action-btn').disabled=false;
+  }
+}
+
+async function confirmOamAction(){
+  if(!oamCurrentOrder||!oamPhotoFile)return;
+  const orderId=oamCurrentOrder._id||oamCurrentOrder.id;
+  const isAssigned=oamCurrentOrder.status==='rider_assigned';
+  const btn=document.getElementById('oam-action-btn');
+  btn.disabled=true;btn.textContent='Processing…';
+
+  const formData=new FormData();formData.append('proof',oamPhotoFile);
+  const endpoint=isAssigned?'proof-of-pickup':'proof-of-delivery';
+  try{await fetch(`${API}/riders/${endpoint}/${orderId}`,{method:'POST',headers:{'Authorization':'Bearer '+token},body:formData});}catch(e){}
+
+  closeOrderActionModal();
+  if(isAssigned){
+    await markPickedUp(orderId,null);
+  }else{
+    await markDelivered(orderId,null);
+  }
 }
 
 function openMaps(address){

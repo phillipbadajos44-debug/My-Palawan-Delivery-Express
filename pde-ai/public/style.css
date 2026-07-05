@@ -1,0 +1,67 @@
+body{
+    margin:0;
+    font-family:Arial;
+    background:#111827;
+    color:white;
+}
+
+.container{
+    max-width:900px;
+    margin:auto;
+    height:100vh;
+    display:flex;
+    flex-direction:column;
+}
+
+.header{
+    padding:20px;
+    text-align:center;
+    background:#1f2937;
+}
+
+.chat{
+    flex:1;
+    overflow:auto;
+    padding:20px;
+}
+
+.ai,
+.user{
+    padding:15px;
+    border-radius:12px;
+    margin-bottom:15px;
+    max-width:80%;
+}
+
+.ai{
+    background:#374151;
+}
+
+.user{
+    background:#2563eb;
+    margin-left:auto;
+}
+
+.input-area{
+    display:flex;
+    padding:15px;
+    background:#1f2937;
+}
+
+textarea{
+    flex:1;
+    height:60px;
+    border:none;
+    border-radius:10px;
+    padding:10px;
+}
+
+button{
+    margin-left:10px;
+    width:120px;
+    border:none;
+    border-radius:10px;
+    background:#10b981;
+    color:white;
+    font-size:16px;
+}
