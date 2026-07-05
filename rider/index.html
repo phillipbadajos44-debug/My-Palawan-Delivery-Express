@@ -536,7 +536,7 @@ async function loadAvailable(){
   renderAvailable();updateBadges();updateStats();
 }
 
-function getSample(){return[{id:'ORD-001',merchantName:"Susie's Store",merchantAddress:'Brgy. San Jose',items:[{name:'Canned Sardines',qty:3,price:35},{name:'Rice 5kg',qty:1,price:280}],total:385,customerName:'Juan dela Cruz',customerPhone:'09171234567',deliveryAddress:'Blk 5 Lot 3, Brgy. Tiniguiban, Puerto Princesa',status:'ready',date:'Jun 27, 2026'}];}
+function getSample(){return[{id:'ORD-001',merchantName:"Susie's Store",merchantAddress:'Brgy. San Jose',items:[{name:'Canned Sardines',qty:3,price:35},{name:'Rice 5kg',qty:1,price:280}],total:385,customerName:'Juan dela Cruz',customerPhone:'09171234567',customerAddress:'Blk 5 Lot 3, Brgy. Tiniguiban, Puerto Princesa',status:'ready',date:'Jun 27, 2026'}];}
 
 function renderAvailable(){
   const el=document.getElementById('available-wrap');
@@ -545,7 +545,7 @@ function renderAvailable(){
     <div class="del-hdr"><div><div class="del-id">${o.id||o._id}</div><div style="font-size:11px;color:var(--muted)">${o.date||''}</div></div><div class="del-badge b-ready">📦 Ready to Pick Up</div></div>
     <div class="del-merchant">🏪 ${o.merchantName||'Merchant'}</div>
     <div class="del-items">${(o.items||[]).map(it=>`${emo(it.name)} ${it.name} ×${it.qty}`).join('<br>')}</div>
-    <div class="del-address">📍 Deliver to: <strong>${o.customerName}</strong><br>${o.deliveryAddress||'Address on file'}<br>📱 ${o.customerPhone||'—'}</div>
+    <div class="del-address">📍 Deliver to: <strong>${o.customerName}</strong><br>${o.customerAddress||'Address on file'}<br>📱 ${o.customerPhone||'—'}</div>
     <div class="del-fee">Delivery Fee: ₱50 &nbsp;·&nbsp; Order: ₱${(o.total||0).toLocaleString()}</div>
     <div class="del-actions">
       <button class="btn-pickup" onclick="acceptDelivery('${o._id||o.id}',this)">🛵 Accept</button>
@@ -573,11 +573,11 @@ function renderActive(){
     <div class="del-hdr"><div><div class="del-id">${o.id||o._id}</div></div><div class="del-badge b-active">${isAssigned?'🏪 Heading to Merchant':'🛵 On the Way'}</div></div>
     <div class="del-merchant">🏪 Pickup: ${o.merchantName||'Merchant'}</div>
     <div class="del-items">${(o.items||[]).map(it=>`${emo(it.name)} ${it.name} ×${it.qty}`).join('<br>')}</div>
-    <div class="del-address">📍 Deliver to: <strong>${o.customerName}</strong><br>${o.deliveryAddress||'Address on file'}<br>📱 <a href="tel:${o.customerPhone||''}" style="color:var(--gm);font-weight:700">${o.customerPhone||'—'}</a></div>
+    <div class="del-address">📍 Deliver to: <strong>${o.customerName}</strong><br>${o.customerAddress||'Address on file'}<br>📱 <a href="tel:${o.customerPhone||''}" style="color:var(--gm);font-weight:700">${o.customerPhone||'—'}</a></div>
     <div class="del-fee">Delivery Fee: ₱50</div>
     <div class="del-actions">
       <button class="btn-view" onclick="openOrderActionModal('${o._id||o.id}')">📋 View Details</button>
-      <button class="btn-nav" onclick="openMaps('${isAssigned?(o.merchantAddress||''):(o.deliveryAddress||'')}')">🗺️ Map</button>
+      <button class="btn-nav" onclick="openMaps('${isAssigned?(o.merchantAddress||''):(o.customerAddress||'')}')">🗺️ Map</button>
     </div>
   </div>`;}).join('');
 }
@@ -615,7 +615,7 @@ async function markPickedUp(id,btn){
   if(order){order.status='picked_up';}
   renderActive();updateBadges();updateStats();
   toast('Order picked up! Head to the customer now 🛵');
-  openMaps(order&&order.deliveryAddress?order.deliveryAddress:'');
+  openMaps(order&&order.customerAddress?order.customerAddress:'');
 }
 
 async function markDelivered(id,btn){
@@ -651,7 +651,7 @@ function loadHistory(){
     <div class="hist-info">
       <div class="hist-id">${o.id||o._id} · ${o.date||''}</div>
       <div class="hist-items">${o.customerName} — ${(o.items||[]).map(it=>it.name).join(', ')}</div>
-      <div class="hist-status">📍 ${o.deliveryAddress||'—'}</div>
+      <div class="hist-status">📍 ${o.customerAddress||'—'}</div>
     </div>
     <div class="hist-pay">+₱50</div>
   </div>`).join('');
@@ -676,7 +676,7 @@ function openOrderActionModal(id){
 
   const name=isAssigned?(order.merchantName||'Merchant'):(order.customerName||'Customer');
   const phone=isAssigned?(order.merchantPhone||''):(order.customerPhone||'');
-  const address=isAssigned?(order.merchantAddress||'Address on file'):(order.deliveryAddress||'Address on file');
+  const address=isAssigned?(order.merchantAddress||'Address on file'):(order.customerAddress||'Address on file');
 
   document.getElementById('oam-info').innerHTML=`
     <div class="order-info-row"><strong>${name}</strong></div>
