@@ -222,7 +222,7 @@ app.post('/api/customers/register', async (req, res) => {
     const hashed = await bcrypt.hash(password, 10);
     const customer = await Customer.create({ name, phone, email, password: hashed, address });
     const token = jwt.sign({ id: customer._id, role: 'customer', name }, JWT_SECRET, { expiresIn: '30d' });
-    res.json({ success: true, token, user: { id: customer._id, name, email, phone, address, role: 'customer' } });
+    res.json({ success: true, token, user: { id: customer._id, name, email, phone, address, addresses: customer.addresses || [], role: 'customer' } });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -233,7 +233,7 @@ app.post('/api/customers/login', async (req, res) => {
     if (!customer || !await bcrypt.compare(password, customer.password)) return res.status(401).json({ error: 'Invalid credentials' });
     if (!customer.isActive) return res.status(403).json({ error: 'Account disabled' });
     const token = jwt.sign({ id: customer._id, role: 'customer', name: customer.name }, JWT_SECRET, { expiresIn: '30d' });
-    res.json({ success: true, token, user: { id: customer._id, name: customer.name, email, phone: customer.phone, address: customer.address, role: 'customer' } });
+    res.json({ success: true, token, user: { id: customer._id, name: customer.name, email, phone: customer.phone, address: customer.address, addresses: customer.addresses || [], role: 'customer' } });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 

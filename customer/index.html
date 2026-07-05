@@ -154,6 +154,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
 .faq-item.open .faq-arr{transform:rotate(90deg);}
 .faq-a{max-height:0;overflow:hidden;transition:max-height .25s ease;font-size:13px;color:var(--muted);line-height:1.5;padding:0 4px;}
 .faq-item.open .faq-a{max-height:200px;padding-bottom:14px;}
+.addr-card{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid #f0faf4;}
+.addr-card-icon{font-size:24px;width:40px;height:40px;background:var(--bg);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.addr-card-label{font-size:14px;font-weight:700;}
+.addr-card-text{font-size:12px;color:var(--muted);}
+.addr-del-btn{background:#fee2e2;color:#ef4444;border:none;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:700;cursor:pointer;}
+.addr-chip{display:inline-block;padding:8px 14px;border:1.5px solid #d1fae5;border-radius:20px;font-size:12px;font-weight:700;color:var(--gd);cursor:pointer;white-space:nowrap;margin-right:8px;}
+.addr-chip.active{background:var(--gm);color:#fff;border-color:var(--gm);}
+.addr-chips-row{display:flex;overflow-x:auto;padding-bottom:4px;margin-bottom:10px;}
 .pay-option{display:flex;align-items:center;gap:14px;padding:14px 16px;border:2px solid #e5e7eb;border-radius:14px;margin-bottom:10px;cursor:pointer;transition:all .15s;}
 .pay-option.selected{border-color:var(--gm);background:#f0faf4;}
 .pay-icon{font-size:32px;}
@@ -418,6 +426,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
     <div class="menu-item" onclick="openChangePassword()"><div class="mi-icon">🔒</div><div class="mi-label">Change Password</div><div class="mi-arr">›</div></div>
     <div class="menu-item" onclick="showPage('orders',document.querySelectorAll('.nav-item')[4])"><div class="mi-icon">📦</div><div class="mi-label">Order History</div><div class="mi-arr">›</div></div>
     <div class="menu-item" onclick="openFavPanel()"><div class="mi-icon">❤️</div><div class="mi-label">My Favorites</div><div class="mi-arr">›</div></div>
+    <div class="menu-item" onclick="openAddressesModal()"><div class="mi-icon">📍</div><div class="mi-label">Saved Addresses</div><div class="mi-arr">›</div></div>
     <div class="menu-item" onclick="openNotif()"><div class="mi-icon">🔔</div><div class="mi-label">Notifications</div><div class="mi-arr">›</div></div>
     <div class="menu-item" onclick="openHelpModal()"><div class="mi-icon">🆘</div><div class="mi-label">Help & Support</div><div class="mi-arr">›</div></div>
     <div class="menu-item" onclick="logout()"><div class="mi-icon">🚪</div><div class="mi-label" style="color:#ef4444">Log Out</div><div class="mi-arr">›</div></div>
@@ -452,6 +461,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
     <div class="modal-title">💳 Checkout</div>
     <div class="checkout-summary" id="checkoutSummary"></div>
     <div style="font-size:13px;font-weight:800;color:var(--gd);margin-bottom:12px">📦 Delivery Address</div>
+    <div class="addr-chips-row" id="co-addr-chips"></div>
     <div class="field"><input id="co-address" type="text" placeholder="Enter delivery address"/></div>
     <div style="font-size:13px;font-weight:800;color:var(--gd);margin-bottom:12px">💳 Payment Method</div>
     <div class="pay-option selected" id="pay-cod" onclick="selectPayment('cod')">
@@ -533,6 +543,19 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
       </div>
     </div>
     <input type="hidden" id="chat-order-id"/>
+  </div>
+</div>
+
+<!-- SAVED ADDRESSES MODAL -->
+<div class="modal-bg" id="addressesModal" onclick="if(event.target===this)closeAddressesModal()">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">📍 Saved Addresses</div>
+    <div id="addr-list"></div>
+    <div class="sec-title">Add New Address</div>
+    <div class="field"><label>Label (e.g. Home, Work)</label><input id="addr-label" type="text" placeholder="Home"/></div>
+    <div class="field"><label>Address</label><input id="addr-text" type="text" placeholder="Brgy. San Jose, Puerto Princesa"/></div>
+    <button class="modal-btn" onclick="addSavedAddress()">+ Save Address</button>
   </div>
 </div>
 
@@ -1085,8 +1108,25 @@ function openCheckout(direct=false){
     <div class="cs-row"><span>Delivery Fee</span><span>₱${delivery.toLocaleString()}</span></div>
     <div class="cs-row total"><span>Total</span><span>₱${(total+delivery).toLocaleString()}</span></div>`;
   document.getElementById('co-address').value=currentUser?.address||'';
+  renderAddrChips();
   if(!direct){closeCart();directBuyItem=null;}
   document.getElementById('checkoutModal').classList.add('open');
+}
+
+function renderAddrChips(){
+  const list=(currentUser&&currentUser.addresses)||[];
+  const el=document.getElementById('co-addr-chips');
+  if(!list.length){el.innerHTML='';return;}
+  el.innerHTML=list.map((a,i)=>`<span class="addr-chip" onclick="selectAddrChip(${i},this)">${a.label||'Address'}</span>`).join('');
+}
+
+function selectAddrChip(index,el){
+  const list=(currentUser&&currentUser.addresses)||[];
+  const a=list[index];
+  if(!a)return;
+  document.getElementById('co-address').value=a.address;
+  document.querySelectorAll('.addr-chip').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
 }
 function closeCheckout(){document.getElementById('checkoutModal').classList.remove('open');directBuyItem=null;}
 function selectPayment(m){
@@ -1233,6 +1273,53 @@ function renderOrders(){
 }
 
 // ── RATINGS ──
+function openAddressesModal(){
+  document.getElementById('addr-label').value='';
+  document.getElementById('addr-text').value='';
+  renderSavedAddresses();
+  document.getElementById('addressesModal').classList.add('open');
+}
+function closeAddressesModal(){document.getElementById('addressesModal').classList.remove('open');}
+
+function renderSavedAddresses(){
+  const list=(currentUser&&currentUser.addresses)||[];
+  const el=document.getElementById('addr-list');
+  if(!list.length){el.innerHTML=`<div style="text-align:center;color:var(--muted);font-size:13px;padding:16px 0">No saved addresses yet</div>`;return;}
+  el.innerHTML=list.map((a,i)=>`<div class="addr-card">
+    <div class="addr-card-icon">📍</div>
+    <div style="flex:1"><div class="addr-card-label">${a.label||'Address'}</div><div class="addr-card-text">${a.address}</div></div>
+    <button class="addr-del-btn" onclick="deleteSavedAddress(${i})">Delete</button>
+  </div>`).join('');
+}
+
+async function addSavedAddress(){
+  const label=document.getElementById('addr-label').value.trim();
+  const address=document.getElementById('addr-text').value.trim();
+  if(!address){toast('Please enter an address');return;}
+  const list=(currentUser.addresses||[]).slice();
+  list.push({label:label||'Address',address});
+  await saveAddressList(list);
+  document.getElementById('addr-label').value='';
+  document.getElementById('addr-text').value='';
+  toast('Address saved 📍');
+}
+
+async function deleteSavedAddress(index){
+  const list=(currentUser.addresses||[]).slice();
+  list.splice(index,1);
+  await saveAddressList(list);
+  toast('Address removed');
+}
+
+async function saveAddressList(list){
+  currentUser.addresses=list;
+  saveSession();
+  renderSavedAddresses();
+  try{
+    await fetch(`${API}/customers/me`,{method:'PUT',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({addresses:list})});
+  }catch(e){}
+}
+
 function openHelpModal(){document.getElementById('helpModal').classList.add('open');}
 function closeHelpModal(){document.getElementById('helpModal').classList.remove('open');}
 function toggleFaq(el){
