@@ -128,7 +128,7 @@ const OrderSchema = new mongoose.Schema({
   paymentStatus: { type: String, default: 'pending' },
   status: { type: String, default: 'pending' },
   statusHistory: [{ status: String, time: Date, note: String }],
-  proofOfDelivery: String, rating: Number, review: String,
+  proofOfPickup: String, proofOfDelivery: String, rating: Number, review: String,
   estimatedDelivery: Date, deliveredAt: Date,
   date: { type: Date, default: Date.now }
 });
@@ -150,6 +150,14 @@ const AuditSchema = new mongoose.Schema({
   details: String, createdAt: { type: Date, default: Date.now }
 });
 
+const MessageSchema = new mongoose.Schema({
+  orderId: String,
+  senderId: String, senderRole: String, senderName: String,
+  text: String,
+  isRead: { type: Boolean, default: false },
+  createdAt: { type: Date, default: Date.now }
+});
+
 const Customer = mongoose.model('Customer', CustomerSchema);
 const Merchant = mongoose.model('Merchant', MerchantSchema);
 const Rider = mongoose.model('Rider', RiderSchema);
@@ -158,6 +166,7 @@ const Order = mongoose.model('Order', OrderSchema);
 const Notification = mongoose.model('Notification', NotificationSchema);
 const Review = mongoose.model('Review', ReviewSchema);
 const Audit = mongoose.model('Audit', AuditSchema);
+const Message = mongoose.model('Message', MessageSchema);
 const RemittanceSchema = new mongoose.Schema({
   orderId: String, riderId: String, riderName: String,
   merchantId: String, merchantName: String,
@@ -474,13 +483,30 @@ app.put('/api/riders/toggle-online', auth(['rider']), async (req, res) => {
 
 // Proof of delivery upload
 app.post('/api/riders/proof-of-delivery/:orderId', auth(['rider']), (req, res) => {
-  req.uploadDir = 'deliveries';
   upload.single('proof')(req, res, async (err) => {
     if (err) return res.status(400).json({ error: err.message });
     if (!req.file) return res.status(400).json({ error: 'No file' });
-    const url = `/uploads/deliveries/${req.file.filename}`;
-    await Order.findByIdAndUpdate(req.params.orderId, { proofOfDelivery: url });
-    res.json({ url });
+    try {
+      const result = await uploadToCloudinary(req.file.buffer, 'deliveries');
+      await Order.findByIdAndUpdate(req.params.orderId, { proofOfDelivery: result.secure_url });
+      res.json({ url: result.secure_url });
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+});
+
+app.post('/api/riders/proof-of-pickup/:orderId', auth(['rider']), (req, res) => {
+  upload.single('proof')(req, res, async (err) => {
+    if (err) return res.status(400).json({ error: err.message });
+    if (!req.file) return res.status(400).json({ error: 'No file' });
+    try {
+      const result = await uploadToCloudinary(req.file.buffer, 'pickups');
+      await Order.findByIdAndUpdate(req.params.orderId, { proofOfPickup: result.secure_url });
+      res.json({ url: result.secure_url });
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
   });
 });
 
@@ -966,6 +992,29 @@ app.put('/api/notifications/:id/read', auth(['customer', 'merchant', 'rider']), 
 
 app.put('/api/notifications/read-all', auth(['customer', 'merchant', 'rider']), async (req, res) => {
   try { await Notification.updateMany({ userId: req.user.id }, { isRead: true }); res.json({ success: true }); } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ============================================================
+// ORDER CHAT MESSAGES
+// ============================================================
+app.get('/api/messages/:orderId', auth(['customer', 'merchant', 'rider']), async (req, res) => {
+  try {
+    const messages = await Message.find({ orderId: req.params.orderId }).sort('createdAt');
+    res.json(messages);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/messages/:orderId', auth(['customer', 'merchant', 'rider']), async (req, res) => {
+  try {
+    const { text } = req.body;
+    if (!text || !text.trim()) return res.status(400).json({ error: 'Message text required' });
+    const message = await Message.create({
+      orderId: req.params.orderId,
+      senderId: req.user.id, senderRole: req.user.role, senderName: req.user.name,
+      text: text.trim()
+    });
+    res.json(message);
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 // ============================================================
