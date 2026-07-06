@@ -13,6 +13,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const cors = require('cors');
 const multer = require('multer');
+const { getAllRegions, getProvincesByRegion, getMunicipalitiesByProvince, getBarangaysByMunicipality } = require('@aivangogh/ph-address');
 const path = require('path');
 const fs = require('fs');
 const cloudinary = require('cloudinary').v2;
@@ -72,8 +73,13 @@ const upload = multer({
 // SCHEMAS
 // ============================================================
 const CustomerSchema = new mongoose.Schema({
-  name: String, phone: String, email: { type: String, unique: true },
+  name: String, firstName: String, lastName: String, phone: String, email: { type: String, unique: true },
   password: String, address: String, addresses: [{ label: String, address: String }],
+  birthday: Date, gender: String,
+  addressDetails: {
+    region: String, province: String, municipality: String, barangay: String,
+    street: String, additionalInfo: String
+  },
   profilePic: String, favorites: [String], role: { type: String, default: 'customer' },
   isActive: { type: Boolean, default: true }, createdAt: { type: Date, default: Date.now }
 });
@@ -211,18 +217,34 @@ async function createNotification(userId, userRole, title, message, type, orderI
 app.get('/', (req, res) => res.json({ status: 'PDE API Running', version: '2.0' }));
 
 // ============================================================
+// PHILIPPINE LOCATIONS (Region/Province/Municipality/Barangay)
+// ============================================================
+app.get('/api/locations/regions', (req, res) => {
+  try { res.json(getAllRegions()); } catch (e) { res.status(500).json({ error: e.message }); }
+});
+app.get('/api/locations/provinces/:regionCode', (req, res) => {
+  try { res.json(getProvincesByRegion(req.params.regionCode)); } catch (e) { res.status(500).json({ error: e.message }); }
+});
+app.get('/api/locations/municipalities/:provinceCode', (req, res) => {
+  try { res.json(getMunicipalitiesByProvince(req.params.provinceCode)); } catch (e) { res.status(500).json({ error: e.message }); }
+});
+app.get('/api/locations/barangays/:municipalityCode', (req, res) => {
+  try { res.json(getBarangaysByMunicipality(req.params.municipalityCode)); } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ============================================================
 // CUSTOMER AUTH
 // ============================================================
 app.post('/api/customers/register', async (req, res) => {
   try {
-    const { name, phone, email, password, address } = req.body;
+    const { name, firstName, lastName, phone, email, password, address, birthday, gender, addressDetails } = req.body;
     if (!name || !email || !password) return res.status(400).json({ error: 'Missing fields' });
     const exists = await Customer.findOne({ email });
     if (exists) return res.status(400).json({ error: 'Email already registered' });
     const hashed = await bcrypt.hash(password, 10);
-    const customer = await Customer.create({ name, phone, email, password: hashed, address });
+    const customer = await Customer.create({ name, firstName, lastName, phone, email, password: hashed, address, birthday, gender, addressDetails });
     const token = jwt.sign({ id: customer._id, role: 'customer', name }, JWT_SECRET, { expiresIn: '30d' });
-    res.json({ success: true, token, user: { id: customer._id, name, email, phone, address, addresses: customer.addresses || [], role: 'customer' } });
+    res.json({ success: true, token, user: { id: customer._id, name, firstName, lastName, email, phone, address, addressDetails, birthday, gender, addresses: customer.addresses || [], role: 'customer' } });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 

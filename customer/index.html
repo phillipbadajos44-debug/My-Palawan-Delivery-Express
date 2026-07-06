@@ -33,6 +33,47 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
 .auth-error{background:#fee2e2;color:#991b1b;padding:12px 16px;border-radius:12px;font-size:13px;font-weight:600;margin-bottom:16px;display:none;}
 .auth-error.show{display:block;}
 .pw-wrap{position:relative;}
+
+/* SPLASH */
+.splash-screen{position:fixed;inset:0;background:linear-gradient(135deg,var(--gd),var(--gm));display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:1000;animation:splashFade 2.2s ease forwards;}
+.splash-logo{font-size:88px;animation:splashPop .7s cubic-bezier(.34,1.56,.64,1);}
+.splash-name{color:#fff;font-size:20px;font-weight:800;margin-top:16px;letter-spacing:.5px;opacity:0;animation:splashTextIn .6s ease .4s forwards;}
+@keyframes splashPop{0%{transform:scale(0.3);opacity:0;}100%{transform:scale(1);opacity:1;}}
+@keyframes splashTextIn{to{opacity:1;}}
+@keyframes splashFade{0%{opacity:1;}80%{opacity:1;}100%{opacity:0;visibility:hidden;}}
+
+/* WELCOME / LOGIN / SIGNUP-INTRO SCREENS */
+.welcome-screen{min-height:100vh;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 28px;text-align:center;position:relative;}
+.welcome-logo{font-size:72px;margin-bottom:18px;}
+.welcome-title{font-size:24px;font-weight:900;color:var(--text);letter-spacing:-.5px;line-height:1.3;}
+.welcome-sub{font-size:14px;color:var(--muted);margin-top:10px;margin-bottom:32px;max-width:320px;}
+.welcome-btns{width:100%;max-width:340px;display:flex;flex-direction:column;gap:12px;}
+.welcome-btn{width:100%;padding:16px;border-radius:16px;font-size:15px;font-weight:800;cursor:pointer;border:none;}
+.welcome-btn.primary{background:linear-gradient(135deg,var(--gd),var(--gm));color:#fff;}
+.welcome-btn.secondary{background:#fff;color:var(--gd);border:2px solid var(--gl);}
+.welcome-btn.text{background:transparent;color:var(--muted);font-weight:700;}
+.back-arrow{position:absolute;top:24px;left:20px;font-size:22px;cursor:pointer;color:var(--text);width:40px;height:40px;display:flex;align-items:center;justify-content:center;}
+.welcome-screen .field,.wizard-screen .field{width:100%;max-width:340px;text-align:left;}
+.welcome-screen .auth-btn,.welcome-screen .auth-error{width:100%;max-width:340px;}
+
+/* WIZARD */
+.wizard-screen{min-height:100vh;background:var(--bg);padding:70px 24px 40px;}
+.wizard-top{position:fixed;top:0;left:0;right:0;background:var(--bg);padding:20px 24px 12px;z-index:10;}
+.wizard-progress{height:6px;background:#e5e7eb;border-radius:6px;overflow:hidden;margin-top:16px;}
+.wizard-progress-bar{height:100%;background:linear-gradient(90deg,var(--gd),var(--gm));border-radius:6px;transition:width .3s ease;width:12.5%;}
+.wizard-step-title{font-size:22px;font-weight:900;color:var(--text);margin-bottom:6px;}
+.wizard-step-sub{font-size:13px;color:var(--muted);margin-bottom:24px;}
+.wizard-next-btn{width:100%;padding:16px;background:linear-gradient(135deg,var(--gd),var(--gm));color:#fff;border:none;border-radius:16px;font-size:16px;font-weight:800;cursor:pointer;margin-top:12px;}
+.gender-row{display:flex;gap:12px;margin-bottom:16px;}
+.gender-opt{flex:1;padding:24px 12px;border:2px solid #e5e7eb;border-radius:16px;text-align:center;cursor:pointer;transition:all .15s;}
+.gender-opt.selected{border-color:var(--gm);background:var(--gl);}
+.gender-opt .g-icon{font-size:36px;margin-bottom:8px;}
+.gender-opt .g-label{font-size:14px;font-weight:700;}
+.bday-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px;}
+.bday-row select{width:100%;padding:13px 8px;border:1.5px solid #e5e7eb;border-radius:14px;font-size:14px;font-family:inherit;outline:none;background:#fff;}
+.required-mark{color:#ef4444;}
+.save-login-row{display:flex;align-items:center;gap:10px;padding:14px 16px;background:#fff;border:1.5px solid #e5e7eb;border-radius:14px;margin-bottom:16px;cursor:pointer;}
+.save-login-row input{width:20px;height:20px;}
 .pw-wrap input{padding-right:46px;}
 .pw-eye{position:absolute;right:14px;top:50%;transform:translateY(-50%);font-size:18px;cursor:pointer;color:var(--muted);}
 /* APP */
@@ -273,43 +314,66 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
 <body>
 
 <!-- ══ AUTH ══ -->
-<div class="auth-screen" id="authScreen">
-  <div class="auth-hero">
-    <div class="auth-hero-icon">🚚</div>
-    <h1>Palawan Delivery Express</h1>
-    <p>Fast. Affordable. Reliable.</p>
+<!-- SPLASH SCREEN -->
+<div class="splash-screen" id="splashScreen">
+  <div class="splash-logo">🚚</div>
+  <div class="splash-name">Palawan Delivery Express</div>
+</div>
+
+<!-- WELCOME SCREEN -->
+<div class="welcome-screen" id="welcomeScreen" style="display:none">
+  <div class="welcome-logo">🚚</div>
+  <h1 class="welcome-title">Welcome to<br/>Palawan Delivery Express</h1>
+  <p class="welcome-sub">Fast. Affordable. Reliable local delivery.</p>
+  <div class="welcome-btns">
+    <button class="welcome-btn primary" onclick="goScreen('loginScreen')">Log In</button>
+    <button class="welcome-btn secondary" onclick="goScreen('signupIntroScreen')">Create New Account</button>
+    <button class="welcome-btn text" onclick="goScreen('forgotScreen')">Forgot Password?</button>
   </div>
-  <div class="auth-body">
-    <div class="auth-tabs">
-      <div class="auth-tab active" onclick="switchTab('login')">Log In</div>
-      <div class="auth-tab" onclick="switchTab('signup')">Sign Up</div>
-    </div>
-    <div class="auth-form active" id="form-login">
-      <div class="auth-error" id="login-err"></div>
-      <div class="field"><label>Email Address</label><input id="l-email" type="email" placeholder="juan@email.com"/></div>
-      <div class="field"><label>Password</label>
-        <div class="pw-wrap"><input id="l-pw" type="password" placeholder="Your password"/><span class="pw-eye" onclick="togglePw('l-pw',this)">👁️</span></div>
-      </div>
-      <button class="auth-btn" onclick="doLogin()">Log In</button>
-    </div>
-    <div class="auth-form" id="form-signup">
-      <div class="auth-error" id="signup-err"></div>
-      <div class="field-row">
-        <div class="field"><label>First Name</label><input id="su-fname" type="text" placeholder="Juan"/></div>
-        <div class="field"><label>Last Name</label><input id="su-lname" type="text" placeholder="dela Cruz"/></div>
-      </div>
-      <div class="field"><label>Phone Number</label><input id="su-phone" type="tel" placeholder="09171234567"/></div>
-      <div class="field"><label>Email Address</label><input id="su-email" type="email" placeholder="juan@email.com"/></div>
-      <div class="field"><label>Delivery Address</label><input id="su-address" type="text" placeholder="Brgy. San Jose, Puerto Princesa"/></div>
-      <div class="field"><label>Password</label>
-        <div class="pw-wrap"><input id="su-pw" type="password" placeholder="At least 6 characters"/><span class="pw-eye" onclick="togglePw('su-pw',this)">👁️</span></div>
-      </div>
-      <div class="field"><label>Confirm Password</label>
-        <div class="pw-wrap"><input id="su-pw2" type="password" placeholder="Repeat password"/><span class="pw-eye" onclick="togglePw('su-pw2',this)">👁️</span></div>
-      </div>
-      <button class="auth-btn" onclick="doSignUp()">Create Account</button>
-    </div>
+</div>
+
+<!-- LOGIN SCREEN -->
+<div class="welcome-screen" id="loginScreen" style="display:none">
+  <div class="back-arrow" onclick="goScreen('welcomeScreen')">←</div>
+  <div class="welcome-logo" style="font-size:44px">🚚</div>
+  <h1 class="welcome-title" style="font-size:20px">Log In</h1>
+  <div class="auth-error" id="login-err"></div>
+  <div class="field"><label>Email Address</label><input id="l-email" type="email" placeholder="juan@email.com"/></div>
+  <div class="field"><label>Password</label>
+    <div class="pw-wrap"><input id="l-pw" type="password" placeholder="Your password"/><span class="pw-eye" onclick="togglePw('l-pw',this)">👁️</span></div>
   </div>
+  <button class="auth-btn" onclick="doLogin()">Log In</button>
+</div>
+
+<!-- FORGOT PASSWORD / FIND ACCOUNT SCREEN -->
+<div class="welcome-screen" id="forgotScreen" style="display:none">
+  <div class="back-arrow" onclick="goScreen('welcomeScreen')">←</div>
+  <div class="welcome-logo" style="font-size:44px">🔍</div>
+  <h1 class="welcome-title" style="font-size:20px">Find My Account</h1>
+  <p class="welcome-sub">This feature is coming soon. Please contact support for help recovering your account.</p>
+  <button class="welcome-btn secondary" onclick="goScreen('welcomeScreen')">Back to Welcome</button>
+</div>
+
+<!-- SIGNUP INTRO SCREEN -->
+<div class="welcome-screen" id="signupIntroScreen" style="display:none">
+  <div class="back-arrow" onclick="goScreen('welcomeScreen')">←</div>
+  <div class="welcome-logo">🚚</div>
+  <h1 class="welcome-title">Let's Get You Started!</h1>
+  <p class="welcome-sub">Join thousands of Palaweños enjoying fast, reliable delivery right to their doorstep.</p>
+  <div class="welcome-btns">
+    <button class="welcome-btn primary" onclick="startWizard()">Get Started</button>
+    <button class="welcome-btn text" onclick="goScreen('forgotScreen')">Find My Account</button>
+  </div>
+</div>
+
+<!-- SIGNUP WIZARD -->
+<div class="wizard-screen" id="wizardScreen" style="display:none">
+  <div class="wizard-top">
+    <div class="back-arrow" onclick="wizardBack()">←</div>
+    <div class="wizard-progress"><div class="wizard-progress-bar" id="wizardProgressBar"></div></div>
+  </div>
+  <div class="auth-error" id="signup-err"></div>
+  <div id="wizardStepsContainer"></div>
 </div>
 
 <!-- ══ MAIN APP ══ -->
@@ -674,7 +738,24 @@ let searchFilter='all',orderFilter='all';
 function checkSession(){
   const saved=localStorage.getItem('pde_cust_token');
   const savedUser=localStorage.getItem('pde_cust_user');
-  if(saved&&savedUser){token=saved;currentUser=JSON.parse(savedUser);enterApp();}
+  if(saved&&savedUser){
+    token=saved;currentUser=JSON.parse(savedUser);
+    document.getElementById('splashScreen').style.display='none';
+    enterApp();
+    return;
+  }
+  setTimeout(()=>{
+    document.getElementById('splashScreen').style.display='none';
+    goScreen('welcomeScreen');
+  },2200);
+}
+
+// ── SCREEN NAVIGATION ──
+function goScreen(id){
+  ['welcomeScreen','loginScreen','forgotScreen','signupIntroScreen'].forEach(s=>{
+    document.getElementById(s).style.display=s===id?'flex':'none';
+  });
+  document.getElementById('wizardScreen').style.display=id==='wizardScreen'?'block':'none';
 }
 
 function switchTab(tab){
@@ -700,6 +781,269 @@ async function doLogin(){
     const u=db.find(x=>x.email===email&&x.password===pw);
     if(u){token='local_'+u.id;currentUser=u;saveSession();enterApp();}
     else showErr('login-err','Invalid email or password.');
+  }
+}
+
+let wizardStep=1;
+const wizardTotalSteps=8;
+let wizardData={};
+
+function startWizard(){
+  wizardStep=1;wizardData={};
+  goScreen('wizardScreen');
+  renderWizardStep(1);
+}
+
+function updateWizardProgress(){
+  document.getElementById('wizardProgressBar').style.width=(wizardStep/wizardTotalSteps*100)+'%';
+}
+
+function renderWizardStep(n){
+  wizardStep=n;
+  updateWizardProgress();
+  document.getElementById('signup-err').classList.remove('show');
+  const el=document.getElementById('wizardStepsContainer');
+  let html='';
+  if(n===1){
+    html=`<div class="wizard-step-title">What's your name?</div>
+    <div class="wizard-step-sub">Let's start with the basics.</div>
+    <div class="field"><label>First Name <span class="required-mark">*</span></label><input id="wz-fname" type="text" placeholder="Juan" value="${wizardData.firstName||''}"/></div>
+    <div class="field"><label>Last Name <span class="required-mark">*</span></label><input id="wz-lname" type="text" placeholder="dela Cruz" value="${wizardData.lastName||''}"/></div>
+    <button class="wizard-next-btn" onclick="wizardNext()">Next</button>`;
+  } else if(n===2){
+    html=`<div class="wizard-step-title">When were you born?</div>
+    <div class="wizard-step-sub">Select your date of birth.</div>
+    <div class="bday-row">
+      <select id="wz-bmonth" class="field"></select>
+      <select id="wz-bday" class="field"></select>
+      <select id="wz-byear" class="field"></select>
+    </div>
+    <button class="wizard-next-btn" onclick="wizardNext()">Next</button>`;
+  } else if(n===3){
+    html=`<div class="wizard-step-title">What's your gender?</div>
+    <div class="wizard-step-sub">Select one.</div>
+    <div class="gender-row">
+      <div class="gender-opt ${wizardData.gender==='Female'?'selected':''}" onclick="selectGender('Female',this)"><div class="g-icon">👩</div><div class="g-label">Female</div></div>
+      <div class="gender-opt ${wizardData.gender==='Male'?'selected':''}" onclick="selectGender('Male',this)"><div class="g-icon">👨</div><div class="g-label">Male</div></div>
+    </div>
+    <button class="wizard-next-btn" onclick="wizardNext()">Next</button>`;
+  } else if(n===4){
+    html=`<div class="wizard-step-title">Your mobile number</div>
+    <div class="wizard-step-sub">We'll use this for delivery updates.</div>
+    <div class="field"><label>Mobile Number <span class="required-mark">*</span></label><input id="wz-phone" type="tel" placeholder="09171234567" value="${wizardData.phone||''}"/></div>
+    <button class="wizard-next-btn" onclick="wizardNext()">Next</button>`;
+  } else if(n===5){
+    html=`<div class="wizard-step-title">Your email address</div>
+    <div class="wizard-step-sub">Used for logging in and account recovery.</div>
+    <div class="field"><label>Email Address <span class="required-mark">*</span></label><input id="wz-email" type="email" placeholder="juan@email.com" value="${wizardData.email||''}"/></div>
+    <button class="wizard-next-btn" onclick="wizardNext()">Next</button>`;
+  } else if(n===6){
+    html=`<div class="wizard-step-title">Where are you located?</div>
+    <div class="wizard-step-sub">This helps us find merchants and riders near you.</div>
+    <div class="field"><label>Region <span class="required-mark">*</span></label><select id="wz-region" onchange="onRegionChange()"><option value="">Loading…</option></select></div>
+    <div class="field"><label>Province <span class="required-mark">*</span></label><select id="wz-province" onchange="onProvinceChange()" disabled><option value="">Select region first</option></select></div>
+    <div class="field"><label>City / Municipality <span class="required-mark">*</span></label><select id="wz-municipality" onchange="onMunicipalityChange()" disabled><option value="">Select province first</option></select></div>
+    <div class="field"><label>Barangay <span class="required-mark">*</span></label><select id="wz-barangay" disabled><option value="">Select city/municipality first</option></select></div>
+    <div class="field"><label>Street / House / Lot Number <span class="required-mark">*</span></label><input id="wz-street" type="text" placeholder="123 Rizal St."/></div>
+    <div class="field"><label>Additional Information (optional)</label><input id="wz-addinfo" type="text" placeholder="Landmark, unit number, etc."/></div>
+    <button class="wizard-next-btn" onclick="wizardNext()">Next</button>`;
+  } else if(n===7){
+    html=`<div class="wizard-step-title">Create a password</div>
+    <div class="wizard-step-sub">At least 6 characters.</div>
+    <div class="field"><label>Password <span class="required-mark">*</span></label><div class="pw-wrap"><input id="wz-pw" type="password" placeholder="At least 6 characters"/><span class="pw-eye" onclick="togglePw('wz-pw',this)">👁️</span></div></div>
+    <div class="field"><label>Confirm Password <span class="required-mark">*</span></label><div class="pw-wrap"><input id="wz-pw2" type="password" placeholder="Repeat password"/><span class="pw-eye" onclick="togglePw('wz-pw2',this)">👁️</span></div></div>
+    <button class="wizard-next-btn" onclick="wizardNext()">Next</button>`;
+  } else if(n===8){
+    html=`<div class="wizard-step-title">Almost done!</div>
+    <div class="wizard-step-sub">Review and confirm to create your account.</div>
+    <label class="save-login-row"><input type="checkbox" id="wz-savelogin" checked/> Keep me logged in</label>
+    <button class="wizard-next-btn" onclick="wizardNext()">Create Account</button>`;
+  }
+  el.innerHTML=html;
+  if(n===2)populateBirthdaySelects();
+  if(n===6)initAddressStep();
+}
+
+function wizardBack(){
+  if(wizardStep===1){goScreen('signupIntroScreen');return;}
+  renderWizardStep(wizardStep-1);
+}
+
+function wizardNext(){
+  document.getElementById('signup-err').classList.remove('show');
+  if(wizardStep===1){
+    const fname=document.getElementById('wz-fname').value.trim();
+    const lname=document.getElementById('wz-lname').value.trim();
+    if(!fname||!lname){showErr('signup-err','Please fill in your first and last name.');return;}
+    wizardData.firstName=fname;wizardData.lastName=lname;
+  } else if(wizardStep===2){
+    const m=document.getElementById('wz-bmonth').value;
+    const d=document.getElementById('wz-bday').value;
+    const y=document.getElementById('wz-byear').value;
+    if(!m||!d||!y){showErr('signup-err','Please select your complete birthdate.');return;}
+    wizardData.birthMonth=m;wizardData.birthDay=d;wizardData.birthYear=y;
+  } else if(wizardStep===3){
+    if(!wizardData.gender){showErr('signup-err','Please select your gender.');return;}
+  } else if(wizardStep===4){
+    const phone=document.getElementById('wz-phone').value.trim();
+    if(!phone){showErr('signup-err','Please enter your mobile number.');return;}
+    wizardData.phone=phone;
+  } else if(wizardStep===5){
+    const email=document.getElementById('wz-email').value.trim();
+    if(!email){showErr('signup-err','Please enter your email address.');return;}
+    wizardData.email=email;
+  } else if(wizardStep===6){
+    const region=document.getElementById('wz-region');
+    const province=document.getElementById('wz-province');
+    const municipality=document.getElementById('wz-municipality');
+    const barangay=document.getElementById('wz-barangay');
+    const street=document.getElementById('wz-street').value.trim();
+    if(!region.value||!province.value||!municipality.value||!barangay.value||!street){showErr('signup-err','Please complete all required address fields.');return;}
+    wizardData.region=region.options[region.selectedIndex].text;
+    wizardData.regionCode=region.value;
+    wizardData.province=province.options[province.selectedIndex].text;
+    wizardData.provinceCode=province.value;
+    wizardData.municipality=municipality.options[municipality.selectedIndex].text;
+    wizardData.municipalityCode=municipality.value;
+    wizardData.barangay=barangay.options[barangay.selectedIndex].text;
+    wizardData.street=street;
+    wizardData.additionalInfo=document.getElementById('wz-addinfo').value.trim();
+  } else if(wizardStep===7){
+    const pw=document.getElementById('wz-pw').value;
+    const pw2=document.getElementById('wz-pw2').value;
+    if(!pw||!pw2){showErr('signup-err','Please fill in both password fields.');return;}
+    if(pw!==pw2){showErr('signup-err','Passwords do not match.');return;}
+    if(pw.length<6){showErr('signup-err','Password must be at least 6 characters.');return;}
+    wizardData.password=pw;
+  } else if(wizardStep===8){
+    wizardData.saveLogin=document.getElementById('wz-savelogin').checked;
+    submitWizardSignup();
+    return;
+  }
+  renderWizardStep(wizardStep+1);
+}
+
+function selectGender(g,el){
+  wizardData.gender=g;
+  document.querySelectorAll('.gender-opt').forEach(o=>o.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+function populateBirthdaySelects(){
+  const months=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const monthSel=document.getElementById('wz-bmonth');
+  monthSel.innerHTML='<option value="">Month</option>'+months.map((m,i)=>`<option value="${i+1}" ${wizardData.birthMonth==(i+1)?'selected':''}>${m}</option>`).join('');
+  const daySel=document.getElementById('wz-bday');
+  let dayOpts='<option value="">Day</option>';
+  for(let d=1;d<=31;d++)dayOpts+=`<option value="${d}" ${wizardData.birthDay==d?'selected':''}>${d}</option>`;
+  daySel.innerHTML=dayOpts;
+  const yearSel=document.getElementById('wz-byear');
+  const nowY=new Date().getFullYear();
+  let yearOpts='<option value="">Year</option>';
+  for(let y=nowY-13;y>=nowY-100;y--)yearOpts+=`<option value="${y}" ${wizardData.birthYear==y?'selected':''}>${y}</option>`;
+  yearSel.innerHTML=yearOpts;
+}
+
+async function initAddressStep(){
+  const regionSel=document.getElementById('wz-region');
+  regionSel.innerHTML='<option value="">Loading…</option>';
+  try{
+    const r=await fetch(`${API}/locations/regions`);
+    const regions=await r.json();
+    regionSel.innerHTML='<option value="">Select Region</option>'+regions.map(rg=>`<option value="${rg.psgcCode}" ${wizardData.regionCode===rg.psgcCode?'selected':''}>${rg.name}</option>`).join('');
+  }catch(e){regionSel.innerHTML='<option value="">Failed to load</option>';}
+  if(wizardData.regionCode){
+    await onRegionChange();
+    const provinceSel=document.getElementById('wz-province');
+    if(provinceSel&&wizardData.provinceCode){
+      provinceSel.value=wizardData.provinceCode;
+      await onProvinceChange();
+      const munSel=document.getElementById('wz-municipality');
+      if(munSel&&wizardData.municipalityCode){
+        munSel.value=wizardData.municipalityCode;
+        await onMunicipalityChange();
+        const brgySel=document.getElementById('wz-barangay');
+        if(brgySel&&wizardData.barangayCode)brgySel.value=wizardData.barangayCode;
+      }
+    }
+  }
+  document.getElementById('wz-street').value=wizardData.street||'';
+  document.getElementById('wz-addinfo').value=wizardData.additionalInfo||'';
+}
+
+async function onRegionChange(){
+  const regionCode=document.getElementById('wz-region').value;
+  const provinceSel=document.getElementById('wz-province');
+  const munSel=document.getElementById('wz-municipality');
+  const brgySel=document.getElementById('wz-barangay');
+  provinceSel.innerHTML='<option value="">Loading…</option>';provinceSel.disabled=true;
+  munSel.innerHTML='<option value="">Select province first</option>';munSel.disabled=true;
+  brgySel.innerHTML='<option value="">Select city/municipality first</option>';brgySel.disabled=true;
+  if(!regionCode)return;
+  try{
+    const r=await fetch(`${API}/locations/provinces/${regionCode}`);
+    const provinces=await r.json();
+    provinceSel.innerHTML='<option value="">Select Province</option>'+provinces.map(p=>`<option value="${p.psgcCode}">${p.name}</option>`).join('');
+    provinceSel.disabled=false;
+  }catch(e){provinceSel.innerHTML='<option value="">Failed to load</option>';}
+}
+
+async function onProvinceChange(){
+  const provinceCode=document.getElementById('wz-province').value;
+  const munSel=document.getElementById('wz-municipality');
+  const brgySel=document.getElementById('wz-barangay');
+  munSel.innerHTML='<option value="">Loading…</option>';munSel.disabled=true;
+  brgySel.innerHTML='<option value="">Select city/municipality first</option>';brgySel.disabled=true;
+  if(!provinceCode)return;
+  try{
+    const r=await fetch(`${API}/locations/municipalities/${provinceCode}`);
+    const munis=await r.json();
+    munSel.innerHTML='<option value="">Select City/Municipality</option>'+munis.map(m=>`<option value="${m.psgcCode}">${m.name}</option>`).join('');
+    munSel.disabled=false;
+  }catch(e){munSel.innerHTML='<option value="">Failed to load</option>';}
+}
+
+async function onMunicipalityChange(){
+  const munCode=document.getElementById('wz-municipality').value;
+  const brgySel=document.getElementById('wz-barangay');
+  brgySel.innerHTML='<option value="">Loading…</option>';brgySel.disabled=true;
+  if(!munCode)return;
+  try{
+    const r=await fetch(`${API}/locations/barangays/${munCode}`);
+    const brgys=await r.json();
+    brgySel.innerHTML='<option value="">Select Barangay</option>'+brgys.map(b=>`<option value="${b.psgcCode}">${b.name}</option>`).join('');
+    brgySel.disabled=false;
+  }catch(e){brgySel.innerHTML='<option value="">Failed to load</option>';}
+}
+
+async function submitWizardSignup(){
+  const name=wizardData.firstName+' '+wizardData.lastName;
+  const address=`${wizardData.street}, ${wizardData.barangay}, ${wizardData.municipality}, ${wizardData.province}`;
+  const birthday=`${wizardData.birthYear}-${String(wizardData.birthMonth).padStart(2,'0')}-${String(wizardData.birthDay).padStart(2,'0')}`;
+  const payload={
+    name,firstName:wizardData.firstName,lastName:wizardData.lastName,
+    phone:wizardData.phone,email:wizardData.email,password:wizardData.password,
+    address,birthday,gender:wizardData.gender,
+    addressDetails:{region:wizardData.region,province:wizardData.province,municipality:wizardData.municipality,barangay:wizardData.barangay,street:wizardData.street,additionalInfo:wizardData.additionalInfo}
+  };
+  const btn=document.querySelector('.wizard-next-btn');
+  if(btn){btn.disabled=true;btn.textContent='Creating account…';}
+  try{
+    const r=await fetch(`${API}/customers/register`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    const d=await r.json();
+    if(d.success&&d.token){
+      token=d.token;currentUser=d.user;
+      if(wizardData.saveLogin!==false)saveSession();
+      else{localStorage.removeItem('pde_cust_token');localStorage.removeItem('pde_cust_user');}
+      document.getElementById('wizardScreen').style.display='none';
+      enterApp();
+      return;
+    }
+    showErr('signup-err',d.error||'Registration failed.');
+    renderWizardStep(8);
+  }catch(e){
+    showErr('signup-err','Something went wrong. Please check your connection and try again.');
+    renderWizardStep(8);
   }
 }
 
@@ -732,7 +1076,9 @@ async function doSignUp(){
 function saveSession(){localStorage.setItem('pde_cust_token',token);localStorage.setItem('pde_cust_user',JSON.stringify(currentUser));}
 
 async function enterApp(){
-  document.getElementById('authScreen').style.display='none';
+  ['splashScreen','welcomeScreen','loginScreen','forgotScreen','signupIntroScreen','wizardScreen'].forEach(id=>{
+    const e=document.getElementById(id);if(e)e.style.display='none';
+  });
   document.getElementById('mainApp').classList.add('active');
   document.body.style.paddingBottom=0;
   updateAccountUI();
@@ -775,7 +1121,7 @@ function logout(){
   token=null;currentUser=null;cart=[];orders=[];notifications=[];favorites=[];
   localStorage.removeItem('pde_cust_token');localStorage.removeItem('pde_cust_user');
   document.getElementById('mainApp').classList.remove('active');
-  document.getElementById('authScreen').style.display='flex';
+  goScreen('welcomeScreen');
   toast('Logged out.');
 }
 
