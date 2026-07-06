@@ -300,8 +300,25 @@ app.post('/api/riders/login', async (req, res) => {
     if (rider.status === 'pending' || rider.status === 'rejected') return res.status(403).json({ error: rider.status, status: rider.status });
     if (!rider.isActive) return res.status(403).json({ error: 'Account disabled' });
     const token = jwt.sign({ id: rider._id, role: 'rider', name: rider.name }, JWT_SECRET, { expiresIn: '30d' });
+    rider.isOnline = true; await rider.save();
     res.json({ success: true, token, user: { id: rider._id, name: rider.name, email, vehicleType: rider.vehicleType, plateNumber: rider.plateNumber, role: 'rider' } });
   } catch (e) { res.status(500).json({ error: e.message }); }
+app.get('/api/riders/me', auth(['rider']), async (req, res) => {
+  try {
+    const rider = await Rider.findById(req.user.id);
+    if (!rider) return res.status(404).json({ error: 'Not found' });
+    res.json({ isOnline: rider.isOnline, name: rider.name, email: rider.email, vehicleType: rider.vehicleType, plateNumber: rider.plateNumber });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.put('/api/riders/toggle-online', auth(['rider']), async (req, res) => {
+  try {
+    const rider = await Rider.findById(req.user.id);
+    rider.isOnline = !rider.isOnline;
+    await rider.save();
+    res.json({ success: true, isOnline: rider.isOnline });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
 });
 
 app.get('/api/products', async (req, res) => {
