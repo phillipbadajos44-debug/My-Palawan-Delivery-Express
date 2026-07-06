@@ -1,34 +1,27 @@
-from flask import Flask, request, jsonify
-from flask_cors import CORS
-from pymongo import MongoClient
 import os
-from dotenv import load_dotenv
+from flask import Flask, jsonify, request
 
-# I-load ang mga sikretong impormasyon mula sa .env
-load_dotenv()
-
-# Simulan ang app
 app = Flask(__name__)
-CORS(app)  # Para makakonekta ang mga pahina mo sa server
 
-# Kumonekta sa MongoDB Atlas
-MONGODB_URI = os.getenv("MONGODB_URI")
-client = MongoClient(MONGODB_URI)
-db = client["delivery_db"]  # Pangalan ng database mo
-
-# --------------------------
-# Dito mo ilalagay ang sarili mong code sa hinaharap
-# Halimbawa: login, register, order, atbp.
-# Wala ka pang ilalagay ngayon — okay lang ito!
-# --------------------------
-
-# Pagsubok lang kung gumagana ang server
-@app.route('/')
+@app.route('/', methods=['GET'])
 def home():
-    return jsonify(message="✅ Gumagana ang Palawan Delivery App!")
+    return jsonify({
+        "status": "online",
+        "message": "Palawan Delivery Express AI Service is running on Render."
+    }), 200
 
-# Patakbuhin ang server
+@app.route('/predict', methods=['POST'])
+def predict():
+    # Dito inilalagay ang iyong AI/Distance logic para sa mga riders sa Palawan
+    data = request.get_json() or {}
+    return jsonify({
+        "status": "success",
+        "message": "AI Dispatch system ready",
+        "received_data": data
+    }), 200
+
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
+    # Awtomatikong babasahin ang PORT na ibibigay ng Render sa production.
+    # Kung wala sa local (Termux), gagamitin nito ang Port 5001.
+    port = int(os.environ.get("PORT", 5001))
     app.run(host="0.0.0.0", port=port)
-
