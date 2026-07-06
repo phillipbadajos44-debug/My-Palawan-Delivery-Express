@@ -152,7 +152,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
 </head>
 <body>
 
-<!-- AUTH -->
 <div class="auth-screen" id="authScreen">
   <div class="auth-hero">
     <div class="auth-hero-icon">🛵</div>
@@ -200,7 +199,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
   </div>
 </div>
 
-<!-- PENDING -->
 <div class="pending-screen" id="pendingScreen">
   <div class="pending-icon">⏳</div>
   <div class="pending-title">Application Submitted!</div>
@@ -209,7 +207,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
   <div class="logout-link" onclick="logout()">Log out</div>
 </div>
 
-<!-- MAIN APP -->
 <div class="app" id="mainApp">
   <div class="header">
     <div class="header-top">
@@ -224,7 +221,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
     </div>
   </div>
 
-  <!-- HOME -->
   <div id="page-home" class="page active">
     <div class="status-card" id="statusCard">
       <div class="sc-emoji">💤</div>
@@ -243,7 +239,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
     </div>
   </div>
 
-  <!-- ACTIVE -->
   <div id="page-active" class="page">
     <div class="section-title">🚀 My Active Deliveries</div>
     <div class="orders-wrap" id="active-wrap">
@@ -251,7 +246,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
     </div>
   </div>
 
-  <!-- HISTORY -->
   <div id="page-history" class="page">
     <div class="section-title">📋 Delivery History</div>
     <div class="earn-card">
@@ -268,7 +262,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
     </div>
   </div>
 
-  <!-- REMITTANCE -->
   <div id="page-remit" class="page">
     <div class="section-title">💸 Remittance</div>
     <div class="earn-card">
@@ -283,7 +276,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
     <div class="section-title" style="padding-top:0">📋 Remittance List</div>
     <div style="padding:0 18px 16px" id="remit-list"><div class="empty-state"><div class="ei">💸</div><p>No remittances yet</p></div></div>
   </div>
-  <!-- ACCOUNT -->
   <div id="page-account" class="page">
     <div class="acct-hero">
       <div class="avatar">🛵</div>
@@ -314,7 +306,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
   </nav>
 </div>
 
-<!-- ORDER ACTION MODAL (pickup / delivery) -->
 <div class="modal-bg" id="orderActionModal">
   <div class="modal-sheet">
     <button class="modal-close-x" onclick="closeOrderActionModal()">✕</button>
@@ -343,7 +334,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
   </div>
 </div>
 
-<!-- PROOF OF DELIVERY MODAL -->
 <div class="modal-bg" id="proofModal" onclick="if(event.target===this)closeProofModal()">
   <div class="modal-sheet">
     <div class="modal-handle"></div>
@@ -365,7 +355,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
 <script>
 const API_URL = "https://my-palawan-delivery-express.onrender.com";
 const API = API_URL + '/api';
-const EM={rice:'🍚',vegetable:'🥦',fish:'🐟',meat:'🥩',chicken:'🍗',egg:'🥚',milk:'🥛',canned:'🥫',chips:'🍿',beef:'🥩',pork:'🥩',bangus:'🐟',oil:'🫙',bread:'🍞',coffee:'☕',noodle:'🍜',mango:'🥭',shrimp:'🦐'};
+const EM={rice:'🍚',vegetable:'🥦',fish:'🐟',meat:'🥩',chicken:' 🍗',egg:'🥚',milk:'🥛',canned:'🥫',chips:'🍿',beef:'🥩',pork:'🥩',bangus:'🐟',oil:'🫙',bread:'🍞',coffee:'☕',noodle:'🍜',mango:' 🥭',shrimp:'🦐'};
 function emo(n){if(!n)return'📦';const l=n.toLowerCase();for(const[k,e]of Object.entries(EM))if(l.includes(k))return e;return'📦';}
 
 let token=null,currentRider=null;
@@ -373,6 +363,7 @@ let isOnline=false;
 let availableOrders=[],activeDeliveries=[],completedDeliveries=[];
 let totalEarned=0;
 let proofFile=null;
+let watchId=null; // PANGHAWAK SA GPS TRACKER ID
 
 function checkSession(){
   const t=localStorage.getItem('pde_rider_token');
@@ -446,10 +437,12 @@ async function loadRiderState(){
       if(isOnline){
         tgl.classList.add('on');lbl.textContent='Online';
         card.innerHTML=`<div class="sc-emoji">🟢</div><div class="sc-status">You're Online!</div><div class="sc-sub">Watching for ready orders…</div>`;
+        startLiveGpsTracking(); // BUKASAN ANG GPS TRACKER PAG ONLINE
         loadAvailable();
       }else{
         tgl.classList.remove('on');lbl.textContent='Offline';
         card.innerHTML=`<div class="sc-emoji">💤</div><div class="sc-status">You're Offline</div><div class="sc-sub">Toggle online to receive deliveries</div>`;
+        stopLiveGpsTracking(); // PATAYIN ANG GPS PAG OFFLINE
       }
     }
   }catch(e){}
@@ -480,6 +473,7 @@ function enterApp(){
   loadRiderState();
 }
 function logout(){
+  stopLiveGpsTracking();
   token=null;currentRider=null;
   localStorage.removeItem('pde_rider_token');localStorage.removeItem('pde_rider_user');
   document.getElementById('mainApp').classList.remove('active');
@@ -515,6 +509,7 @@ function toggleOnline(){
     tgl.classList.add('on');lbl.textContent='Online';
     card.innerHTML=`<div class="sc-emoji">🟢</div><div class="sc-status">You're Online!</div><div class="sc-sub">Watching for ready orders…</div>`;
     toast('You are now online! Watching for deliveries…');
+    startLiveGpsTracking(); // BUKASAN ANG GPS TRACKER
     loadAvailable();
     try{fetch(`${API}/riders/toggle-online`,{method:'PUT',headers:{'Authorization':'Bearer '+token}});}catch(e){}
   }else{
@@ -522,7 +517,61 @@ function toggleOnline(){
     card.innerHTML=`<div class="sc-emoji">💤</div><div class="sc-status">You're Offline</div><div class="sc-sub">Toggle online to receive deliveries</div>`;
     document.getElementById('available-wrap').innerHTML=`<div class="empty-state"><div class="ei">🛵</div><p>Go online to see available deliveries</p></div>`;
     document.getElementById('availBadge').style.display='none';
+    stopLiveGpsTracking(); // PATAYIN ANG GPS TRACKER
     toast('You are now offline.');
+    try{fetch(`${API}/riders/toggle-online`,{method:'PUT',headers:{'Authorization':'Bearer '+token}});}catch(e){}
+  }
+}
+
+// ─── 🤖 AUTOMATED REAL-TIME GPS TRACKING SUBSYSTEM ──────────────────────
+function startLiveGpsTracking() {
+  if (!navigator.geolocation) {
+    console.log("GPS Geolocation is not supported by this browser.");
+    return;
+  }
+  
+  if (watchId) navigator.geolocation.clearWatch(watchId);
+  
+  // watchPosition ay gumagana sa background tuwing uusad ang motor ng rider
+  watchId = navigator.geolocation.watchPosition(
+    async (position) => {
+      const lat = position.coords.latitude;
+      const lng = position.coords.longitude;
+      
+      console.log(`📡 PDE-AI Signal Send: Lat ${lat}, Lng ${lng}`);
+      
+      if (!token) return;
+      
+      try {
+        // Ipadala ang coordinates sa Node backend na binuo natin
+        await fetch(`${API}/riders/location`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + token
+          },
+          body: JSON.stringify({ lat, lng })
+        });
+      } catch (e) {
+        console.error("Failed to sync GPS packet with cloud cluster:", e);
+      }
+    },
+    (error) => {
+      console.error("GPS Tracking Error code:", error.code);
+    },
+    {
+      enableHighAccuracy: true, // Gumamit ng mataas na kalidad na GPS (Fine location)
+      maximumAge: 4000,         // Huwag gumamit ng lokasyon na mas matanda sa 4 na segundo
+      timeout: 10000            // Mag-timeout pagkalipas ng 10 segundo
+    }
+  );
+}
+
+function stopLiveGpsTracking() {
+  if (watchId) {
+    navigator.geolocation.clearWatch(watchId);
+    watchId = null;
+    console.log("🛑 Live GPS tracking suspended.");
   }
 }
 
@@ -546,7 +595,7 @@ function renderAvailable(){
     <div class="del-merchant">🏪 ${o.merchantName||'Merchant'}</div>
     <div class="del-items">${(o.items||[]).map(it=>`${emo(it.name)} ${it.name} ×${it.qty}`).join('<br>')}</div>
     <div class="del-address">📍 Deliver to: <strong>${o.customerName}</strong><br>${o.customerAddress||'Address on file'}<br>📱 ${o.customerPhone||'—'}</div>
-    <div class="del-fee">Delivery Fee: ₱50 &nbsp;·&nbsp; Order: ₱${(o.total||0).toLocaleString()}</div>
+    <div class="del-fee">Delivery Fee: ₱50  ·  Order: ₱${(o.total||0).toLocaleString()}</div>
     <div class="del-actions">
       <button class="btn-pickup" onclick="acceptDelivery('${o._id||o.id}',this)">🛵 Accept</button>
       <button class="btn-nav" onclick="openMaps('${o.merchantAddress||''}')">🗺️ Map</button>
@@ -582,7 +631,6 @@ function renderActive(){
   </div>`;}).join('');
 }
 
-// Proof of delivery
 function openProofModal(orderId){
   document.getElementById('proof-order-id').value=orderId;
   document.getElementById('proof-preview').innerHTML='';
