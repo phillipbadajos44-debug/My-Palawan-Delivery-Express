@@ -313,15 +313,6 @@ app.get('/api/products', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-app.get('/api/products-public', async (req, res) => {
-  try {
-    const { merchantId, category, search, page = 1, limit = 20, sort = '-createdAt' } = req.query;
-    const query = { isAvailable: true }; if (merchantId) query.merchantId = merchantId; if (category) query.category = category; if (search) query.name = new RegExp(search, 'i');
-    const products = await Product.find(query).sort(sort).limit(Number(limit)).skip((page - 1) * limit);
-    res.json({ products, total: await Product.countDocuments(query) });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
 app.post('/api/orders', auth(['customer']), async (req, res) => {
   try {
     const { items, merchantId, merchantName, total, deliveryFee, paymentMethod, customerAddress } = req.body;

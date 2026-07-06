@@ -96,21 +96,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
 .order-pay{font-size:12px;color:var(--muted);margin-bottom:8px;}
 .order-total{font-size:17px;font-weight:900;color:var(--gm);margin-bottom:12px;}
 .order-actions{display:flex;gap:8px;flex-wrap:wrap;}
-.btn-accept{flex:1;min-width:80px;padding:11px;background:var(--gm);color:#fff;border:none;border-radius:12px;font-size:13px;font-weight:700;cursor:pointer;}
+.btn-accept{flex:1;min-width:80px;padding:11px;background:var(--gm);color:#fff;border:none;border-radius:12px;font-size:13px;font-weight:700;cursor:pointer;transition:background .15s;}
+.btn-accept:hover{background:var(--gd);}
 .btn-ready{flex:1;min-width:80px;padding:11px;background:#8b5cf6;color:#fff;border:none;border-radius:12px;font-size:13px;font-weight:700;cursor:pointer;}
-.btn-ai-dispatch{width:100%;padding:12px;background:linear-gradient(135deg, #10b981, #059669);color:#fff;border:none;border-radius:12px;font-size:13px;font-weight:800;cursor:pointer;margin-top:6px;display:flex;align-items:center;justify-content:center;gap:6px;}
 .btn-reject{flex:1;min-width:80px;padding:11px;background:#fee2e2;color:#991b1b;border:none;border-radius:12px;font-size:13px;font-weight:700;cursor:pointer;}
 .btn-off{background:var(--muted)!important;pointer-events:none;}
-
-/* 🤖 MODERN AI RADAR SCANNER ANIMATION */
-.radar-box {width:120px;height:120px;border-radius:50%;border:2px solid rgba(37,99,235,0.2);margin:24px auto;position:relative;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle, rgba(37,99,235,0.05) 0%, transparent 70%);}
-.radar-box::after {content:'';position:absolute;inset:0;border-radius:50%;border:2px solid var(--gm);animation:radarPulse 1.8s cubic-bezier(0.1, 0.8, 0.3, 1) infinite;}
-.radar-sweep {position:absolute;inset:0;border-radius:50%;background:conic-gradient(from 0deg, transparent 50%, rgba(37,99,235,0.4) 100%);animation:radarSweep 1.5s linear infinite;}
-.radar-center {font-size:32px;z-index:2;animation:bounce 1s infinite alternate;}
-@keyframes radarPulse {0% {transform:scale(0.6);opacity:1;}100% {transform:scale(1.3);opacity:0;}}
-@keyframes radarSweep {to {transform:rotate(360deg);}}
-@keyframes bounce {from {transform:translateY(0);}to {transform:translateY(-6px);}}
-
 /* PRODUCT FORM */
 .add-form{background:var(--card);border-radius:20px;margin:0 18px 20px;box-shadow:var(--sh);padding:20px;}
 .add-form h3{font-size:15px;font-weight:800;margin-bottom:14px;color:var(--gd);}
@@ -119,7 +109,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
 .prod-list{padding:0 18px 16px;}
 .prod-item{background:var(--card);border-radius:14px;box-shadow:var(--sh);padding:14px;margin-bottom:12px;animation:fadeUp .3s ease both;}
 .prod-item-top{display:flex;align-items:center;gap:12px;}
-.prod-img{width:56px;height:56px;border-radius:12px;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0;overflow:hidden;border:1px solid #e5e7eb;}
+.prod-img{width:56px;height:56px;border-radius:12px;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0;overflow:hidden;}
 .prod-img img{width:100%;height:100%;object-fit:cover;}
 .prod-info{flex:1;}
 .prod-name{font-size:14px;font-weight:700;}
@@ -130,6 +120,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
 .btn-edit-prod{background:var(--gl);color:var(--gm);}
 .btn-del-prod{background:#fee2e2;color:var(--red);}
 .btn-toggle-stock{background:#f0fdf4;color:var(--green);}
+/* STOCK BADGE */
 .stock-badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;margin-top:4px;}
 .stock-ok{background:#d1fae5;color:#065f46;}
 .stock-low{background:#fef3c7;color:#92400e;}
@@ -164,23 +155,31 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
 .pf-info{flex:1;}
 .pf-label{font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px;}
 .pf-value{font-size:14px;font-weight:700;margin-top:2px;}
-/* MODALS */
+.pf-edit{font-size:18px;color:var(--muted);cursor:pointer;padding:4px;}
+.sec-title{font-size:13px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;padding:18px 18px 8px;}
+.menu-item{display:flex;align-items:center;gap:12px;padding:14px 18px;background:#fff;border-bottom:1px solid var(--bg);cursor:pointer;}
+.menu-item:hover{background:#f9fafb;}
+.mi-icon{font-size:20px;width:36px;text-align:center;}
+.mi-label{font-size:14px;font-weight:600;flex:1;}
+.mi-arr{color:var(--muted);}
+/* MODAL */
 .modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:400;align-items:flex-end;}
 .modal-bg.open{display:flex;}
 .modal-sheet{background:#fff;border-radius:24px 24px 0 0;padding:22px 18px 36px;width:100%;max-height:90vh;overflow-y:auto;}
-.modal-close-x{position:absolute;top:14px;right:14px;width:32px;height:32px;border-radius:50%;background:#f3f4f6;border:none;font-size:16px;color:#374151;cursor:pointer;display:flex;align-items:center;justify-content:center;}
-.chat-box{border:1px solid #e5e7eb;border-radius:14px;margin:14px 0;overflow:hidden;}
-.chat-thread{max-height:220px;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:8px;background:#f9fafb;}
-.chat-msg{max-width:78%;padding:8px 12px;border-radius:14px;font-size:13px;line-height:1.4;}
-.chat-msg.mine{align-self:flex-end;background:#059669;color:#fff;border-bottom-right-radius:4px;}
-.chat-msg.theirs{align-self:flex-start;background:#fff;border:1px solid #e5e7eb;border-bottom-left-radius:4px;}
-.chat-input-row{display:flex;gap:6px;padding:8px;background:#fff;border-top:1px solid #e5e7eb;}
-.chat-input-row input{flex:1;border:1px solid #e5e7eb;border-radius:20px;padding:8px 14px;font-size:13px;}
-.chat-input-row button{background:#059669;color:#fff;border:none;border-radius:20px;padding:8px 16px;font-size:13px;font-weight:700;cursor:pointer;}
-.btn-chat{flex:1;padding:12px;background:#f3f4f6;color:#374151;border:none;border-radius:12px;font-size:13px;font-weight:700;cursor:pointer;}
 .modal-handle{width:40px;height:4px;background:#e5e7eb;border-radius:4px;margin:0 auto 18px;}
 .modal-title{font-size:18px;font-weight:800;margin-bottom:18px;}
 .modal-btn{width:100%;padding:14px;background:linear-gradient(135deg,var(--gd),var(--gm));color:#fff;border:none;border-radius:14px;font-size:15px;font-weight:800;cursor:pointer;margin-top:8px;}
+/* NOTIF */
+.side-panel{display:none;position:fixed;top:0;right:0;bottom:0;width:min(340px,100vw);background:#fff;z-index:350;box-shadow:-4px 0 32px rgba(0,0,0,.15);overflow-y:auto;}
+.side-panel.open{display:block;}
+.sp-header{background:linear-gradient(135deg,var(--gd),var(--gm));padding:20px 18px;color:#fff;display:flex;align-items:center;justify-content:space-between;}
+.sp-header h3{font-size:18px;font-weight:800;}
+.sp-close{font-size:22px;cursor:pointer;opacity:.8;}
+.notif-item{padding:14px 18px;border-bottom:1px solid var(--bg);display:flex;gap:10px;cursor:pointer;}
+.notif-item.unread{background:var(--bg);}
+.ni-text{font-size:13px;font-weight:600;}
+.ni-sub{font-size:12px;color:var(--muted);margin-top:2px;}
+.ni-time{font-size:11px;color:var(--muted);margin-top:2px;}
 /* NAV */
 .bottom-nav{position:fixed;bottom:0;left:0;right:0;height:var(--nav);background:#fff;border-top:1px solid #e5e7eb;display:flex;align-items:center;justify-content:space-around;z-index:150;box-shadow:0 -4px 20px rgba(37,99,235,.08);}
 .nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:6px 0;cursor:pointer;position:relative;color:var(--muted);border:none;background:none;font-family:inherit;}
@@ -195,10 +194,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
 .empty-state .ei{font-size:48px;margin-bottom:10px;}
 .spinner{width:36px;height:36px;border:3px solid var(--gl);border-top-color:var(--gm);border-radius:50%;animation:spin .7s linear infinite;margin:40px auto;display:block;}
 @keyframes spin{to{transform:rotate(360deg);}}
+.avatar-input{display:none;}
 </style>
 </head>
 <body>
 
+<!-- AUTH -->
 <div class="auth-screen" id="authScreen">
   <div class="auth-hero">
     <div class="auth-hero-icon">🏪</div>
@@ -210,6 +211,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
       <div class="auth-tab active" onclick="switchTab('login')">Log In</div>
       <div class="auth-tab" onclick="switchTab('apply')">Apply as Merchant</div>
     </div>
+    <!-- LOGIN -->
     <div class="auth-form active" id="form-login">
       <div class="auth-error" id="login-err"></div>
       <div class="field"><label>Email</label><input id="l-email" type="email" placeholder="store@email.com"/></div>
@@ -218,6 +220,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
       </div>
       <button class="auth-btn" onclick="doLogin()">Log In</button>
     </div>
+    <!-- APPLY -->
     <div class="auth-form" id="form-apply">
       <div class="auth-error" id="apply-err"></div>
       <div class="auth-success" id="apply-ok">✅ Application submitted! Waiting for Admin approval.</div>
@@ -252,11 +255,32 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
       <div class="sec-div">📋 Business Documents</div>
       <div class="field"><label>DTI / SEC Registration No. *</label><input id="a-dti" type="text" placeholder="DTI-2024-12345"/></div>
       <div class="field"><label>Business Permit No. *</label><input id="a-permit" type="text" placeholder="BP-2024-00123"/></div>
+      <div class="field-row">
+        <div class="field"><label>Mayor's Permit</label><input id="a-mayor" type="text" placeholder="MP-2024-00456"/></div>
+        <div class="field"><label>TIN</label><input id="a-tin" type="text" placeholder="123-456-789"/></div>
+      </div>
+      <div class="sec-div">📸 Upload Documents</div>
+      <div class="field"><label>Government-Issued ID *</label>
+        <div class="upload-box"><input type="file" accept="image/*" onchange="previewFile(this,'prev-id')"/>
+          <div>🪪</div><div style="font-size:13px;color:var(--muted);font-weight:600">Tap to upload Gov ID</div>
+          <div class="upload-preview" id="prev-id"></div></div>
+      </div>
+      <div class="field"><label>Business Permit Photo</label>
+        <div class="upload-box"><input type="file" accept="image/*" onchange="previewFile(this,'prev-permit')"/>
+          <div>📄</div><div style="font-size:13px;color:var(--muted);font-weight:600">Tap to upload Permit</div>
+          <div class="upload-preview" id="prev-permit"></div></div>
+      </div>
+      <div class="field"><label>Store Front Photo</label>
+        <div class="upload-box"><input type="file" accept="image/*" onchange="previewFile(this,'prev-store')"/>
+          <div>🏪</div><div style="font-size:13px;color:var(--muted);font-weight:600">Tap to upload Store Photo</div>
+          <div class="upload-preview" id="prev-store"></div></div>
+      </div>
       <button class="auth-btn" onclick="doApply()">📤 Submit Application</button>
     </div>
   </div>
 </div>
 
+<!-- PENDING -->
 <div class="pending-screen" id="pendingScreen">
   <div class="pending-icon">⏳</div>
   <div class="pending-title">Application Submitted!</div>
@@ -265,6 +289,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
   <div class="logout-link" onclick="logout()">Log out</div>
 </div>
 
+<!-- MAIN APP -->
 <div class="app" id="mainApp">
   <div class="header">
     <div class="header-top">
@@ -275,18 +300,21 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
       <div class="store-toggle">
         <span class="toggle-lbl" id="storeStatusLabel">Closed</span>
         <div class="toggle" id="storeToggle" onclick="toggleStore()"></div>
+        <div style="background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.3);border-radius:10px;padding:6px 10px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;margin-left:8px" onclick="openNotif()">🔔</div>
       </div>
     </div>
   </div>
 
+  <!-- DASHBOARD -->
   <div id="page-dashboard" class="page active">
     <div class="section-title">📊 Dashboard</div>
     <div class="stats-grid">
-      <div class="stat-card"><div class="stat-icon">📦</div><div class="stat-val" id="s-total">0</div><div class="stat-label">Total Orders</div></div>
-      <div class="stat-card red"><div class="stat-icon">⏳</div><div class="stat-val" id="s-pend">0</div><div class="stat-label">Pending</div></div>
-      <div class="stat-card green"><div class="stat-icon">✅</div><div class="stat-val" id="s-acc">0</div><div class="stat-label">Accepted</div></div>
-      <div class="stat-card gold"><div class="stat-icon">💰</div><div class="stat-val" id="s-rev">₱0</div><div class="stat-label">Revenue</div></div>
+      <div class="stat-card" style="animation-delay:0ms"><div class="stat-icon">📦</div><div class="stat-val" id="s-total">0</div><div class="stat-label">Total Orders</div></div>
+      <div class="stat-card red" style="animation-delay:60ms"><div class="stat-icon">⏳</div><div class="stat-val" id="s-pend">0</div><div class="stat-label">Pending</div></div>
+      <div class="stat-card green" style="animation-delay:120ms"><div class="stat-icon">✅</div><div class="stat-val" id="s-acc">0</div><div class="stat-label">Accepted</div></div>
+      <div class="stat-card gold" style="animation-delay:180ms"><div class="stat-icon">💰</div><div class="stat-val" id="s-rev">₱0</div><div class="stat-label">Revenue</div></div>
     </div>
+    <!-- Sales mini chart -->
     <div class="sales-card">
       <h3>📈 This Week's Sales</h3>
       <div class="chart-bars" id="salesChart"></div>
@@ -297,12 +325,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
     </div>
   </div>
 
+  <!-- ALL ORDERS -->
   <div id="page-orders" class="page">
     <div class="section-title">📦 All Orders</div>
     <div class="filter-tabs">
       <div class="ftab active" onclick="filterOrders('all',this)">All</div>
       <div class="ftab" onclick="filterOrders('pending',this)">⏳ Pending</div>
-      <div class="ftab" onclick="filterOrders('accepted',this)"> ✅ Accepted</div>
+      <div class="ftab" onclick="filterOrders('accepted',this)">✅ Accepted</div>
       <div class="ftab" onclick="filterOrders('ready',this)">📦 Ready</div>
       <div class="ftab" onclick="filterOrders('picked_up',this)">🛵 Transit</div>
       <div class="ftab" onclick="filterOrders('delivered',this)">🎉 Done</div>
@@ -310,6 +339,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
     <div class="orders-wrap" id="all-orders-wrap"><div class="spinner"></div></div>
   </div>
 
+  <!-- ADD PRODUCT -->
   <div id="page-add" class="page">
     <div class="section-title" id="addFormTitle">➕ Post a Product</div>
     <div class="add-form">
@@ -322,68 +352,92 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
       <div class="field"><label>Category *</label>
         <select id="p-cat"><option value="">Select category</option>
           <option>Canned Goods</option><option>Rice & Grains</option><option>Meat & Poultry</option>
-          <option>Fish & Seafood</option><option>Vegetables</option><option>Fruits</option><option>Dairy & Eggs</option>
-          <option>Beverages</option><option>Bread & Bakery</option><option>Noodles & Pasta</option><option>Snacks</option>
+          <option>Fish & Seafood</option><option>Vegetables</option><option>Fruits</option>
+          <option>Dairy & Eggs</option><option>Beverages</option><option>Bread & Bakery</option>
+          <option>Noodles & Pasta</option><option>Condiments</option><option>Household</option>
+          <option>Snacks</option><option>Cooking Oil</option><option>Baby Products</option><option>Health & Beauty</option>
         </select>
       </div>
       <div class="field"><label>Description</label><textarea id="p-desc" placeholder="Brief description of your product…"></textarea></div>
       <div class="field"><label>Delivery Fee (% of item price) *</label>
-        <select id="p-delivery-pct"><option value="15" selected>10–20% — Standard Delivery</option></select>
+        <select id="p-delivery-pct">
+          <option value="8">5–10% — Mamahaling produkto o malapit lang ang delivery</option>
+          <option value="15" selected>10–20% — Karaniwan sa maraming local delivery</option>
+          <option value="25">20%+ — Malayo ang biyahe / maliit ang halaga / mahirap ang ruta</option>
+        </select>
       </div>
-      
-      <div class="field"><label>Product Image File *</label>
-        <div class="upload-box">
-          <input type="file" accept="image/*" id="p-img-file" onchange="triggerImagePreview(this)"/>
-          <div style="font-size:28px; margin-bottom:4px;">📸</div>
-          <div style="font-size:13px; color:var(--muted); font-weight:600;" id="p-upload-text">Tap to take photo or upload</div>
-          <div id="p-preview-container" style="margin-top:8px;"></div>
+      <div class="field"><label>Product Images (up to 5)</label>
+        <div class="upload-box"><input type="file" accept="image/*" id="p-img-input" multiple onchange="previewProductImg(this)"/>
+          <div id="p-img-preview" style="font-size:13px;color:var(--muted);font-weight:600">📸 Tap to upload product images (max 5)</div>
         </div>
       </div>
-      
       <input type="hidden" id="editing-product-id"/>
       <button class="submit-btn" onclick="saveProduct()" id="saveProductBtn">📤 Post Product</button>
       <button class="submit-btn" onclick="cancelEdit()" id="cancelEditBtn" style="display:none;background:#f3f4f6;color:var(--text);margin-top:8px">✕ Cancel Edit</button>
     </div>
   </div>
 
+  <!-- MY PRODUCTS -->
   <div id="page-products" class="page">
     <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 18px 10px">
       <div class="section-title" style="padding:0">🛍️ My Products</div>
-      <input id="prod-search" type="text" placeholder="Search…" oninput="searchProducts(this.value)" style="padding:8px 12px;border:1.5px solid var(--gl);border-radius:10px;font-size:13px;outline:none;width:120px"/>
+      <div style="display:flex;gap:8px">
+        <input id="prod-search" type="text" placeholder="Search…" oninput="searchProducts(this.value)" style="padding:8px 12px;border:1.5px solid var(--gl);border-radius:10px;font-size:13px;outline:none;font-family:inherit;width:120px"/>
+      </div>
+    </div>
+    <div class="filter-tabs">
+      <div class="ftab active" onclick="filterProducts('all',this)">All</div>
+      <div class="ftab" onclick="filterProducts('available',this)">✅ Available</div>
+      <div class="ftab" onclick="filterProducts('low',this)">⚠️ Low Stock</div>
+      <div class="ftab" onclick="filterProducts('out',this)">❌ Out of Stock</div>
     </div>
     <div class="prod-list" id="prod-list"><div class="spinner"></div></div>
   </div>
 
+  <!-- EARNINGS -->
   <div id="page-earnings" class="page">
     <div class="section-title">💰 Earnings</div>
-    <div style="padding:0 18px 16px" id="merchant-balance-card"></div>
     <div class="earn-card">
       <div class="earn-label">Total Earnings</div>
       <div class="earn-total" id="earn-total">₱0</div>
-      <div class="earn-breakdown" style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:16px;">
+      <div class="earn-breakdown">
         <div class="earn-item"><div class="earn-val" id="earn-today">₱0</div><div class="earn-lbl">Today</div></div>
-        <div class="earn-item"><div class="earn-val" id="earn-cnt">0</div><div class="earn-lbl">Completed Orders</div></div>
+        <div class="earn-item"><div class="earn-val" id="earn-week">₱0</div><div class="earn-lbl">This Week</div></div>
+        <div class="earn-item"><div class="earn-val" id="earn-cnt">0</div><div class="earn-lbl">Orders</div></div>
       </div>
     </div>
+    <div class="section-title" style="padding-top:4px">📊 Top Products</div>
+    <div class="prod-list" id="top-products-list"></div>
     <div class="section-title" style="padding-top:4px">✅ Completed Orders</div>
-    <div class="orders-wrap" id="completed-orders-wrap"></div>
+    <div class="orders-wrap" id="completed-orders-wrap">
+      <div class="empty-state"><div class="ei">📊</div><p>No completed orders yet</p></div>
+    </div>
   </div>
 
+  <!-- PROFILE -->
   <div id="page-profile" class="page">
     <div class="profile-hero">
-      <div class="store-avatar"><span id="storeAvatarEmoji">🏪</span></div>
+      <div class="store-avatar" onclick="document.getElementById('logoInput').click()">
+        <span id="storeAvatarEmoji">🏪</span>
+        <img id="storeAvatarImg" src="" style="display:none"/>
+      </div>
       <div class="store-name-display" id="storeNameDisplay">My Store</div>
-      <div class="store-sub">Verified Merchant · PDE</div>
+      <div class="store-sub" id="storeTypeDisplay">Merchant · PDE</div>
     </div>
+    <input type="file" accept="image/*" class="avatar-input" id="logoInput" onchange="handleLogo(event)"/>
     <div class="profile-card">
-      <div class="pf"><div class="pf-icon">👤</div><div class="pf-info"><div class="pf-label">Owner Name</div><div class="pf-value" id="pf-name">—</div></div></div>
-      <div class="pf"><div class="pf-icon">📱</div><div class="pf-info"><div class="pf-label">Phone</div><div class="pf-value" id="pf-phone">—</div></div></div>
+      <div class="pf"><div class="pf-icon">👤</div><div class="pf-info"><div class="pf-label">Full Name</div><div class="pf-value" id="pf-name">—</div></div><div class="pf-edit" onclick="openEditProfile()">›</div></div>
+      <div class="pf"><div class="pf-icon">📱</div><div class="pf-info"><div class="pf-label">Phone</div><div class="pf-value" id="pf-phone">—</div></div><div class="pf-edit" onclick="openEditProfile()">›</div></div>
       <div class="pf"><div class="pf-icon">✉️</div><div class="pf-info"><div class="pf-label">Email</div><div class="pf-value" id="pf-email">—</div></div></div>
-      <div class="pf"><div class="pf-icon">📍</div><div class="pf-info"><div class="pf-label">Store Location Address</div><div class="pf-value" id="pf-addr">—</div></div></div>
+      <div class="pf"><div class="pf-icon">📍</div><div class="pf-info"><div class="pf-label">Store Address</div><div class="pf-value" id="pf-addr">—</div></div><div class="pf-edit" onclick="openEditProfile()">›</div></div>
+      <div class="pf"><div class="pf-icon">🏪</div><div class="pf-info"><div class="pf-label">Business Type</div><div class="pf-value" id="pf-btype">—</div></div></div>
+      <div class="pf"><div class="pf-icon">📋</div><div class="pf-info"><div class="pf-label">DTI Number</div><div class="pf-value" id="pf-dti">—</div></div></div>
     </div>
-    <div style="padding:18px">
-      <button style="width:100%;padding:14px;background:#fee2e2;color:#991b1b;border:none;border-radius:14px;font-size:15px;font-weight:700;cursor:pointer" onclick="logout()">🚪 Log Out</button>
-    </div>
+    <div class="sec-title">Settings</div>
+    <div class="menu-item" onclick="openEditProfile()"><div class="mi-icon">✏️</div><div class="mi-label">Edit Profile</div><div class="mi-arr">›</div></div>
+    <div class="menu-item"><div class="mi-icon">🔒</div><div class="mi-label">Change Password</div><div class="mi-arr">›</div></div>
+    <div class="menu-item" onclick="logout()"><div class="mi-icon">🚪</div><div class="mi-label" style="color:var(--red)">Log Out</div><div class="mi-arr">›</div></div>
+    <div style="height:24px"></div>
   </div>
 
   <nav class="bottom-nav">
@@ -396,23 +450,21 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
   </nav>
 </div>
 
-<div class="modal-bg" id="aiDispatchModal">
-  <div class="modal-sheet" style="text-align:center; padding: 32px 20px;">
+<!-- EDIT PROFILE MODAL -->
+<div class="modal-bg" id="editProfileModal" onclick="if(event.target===this)closeEditProfile()">
+  <div class="modal-sheet">
     <div class="modal-handle"></div>
-    <div class="modal-title" style="color:var(--gd); font-weight:900;">🤖 PDE Geolocation Sweep</div>
-    <div id="ai-scanning-view">
-      <div class="radar-box"><div class="radar-sweep"></div><div class="radar-center">📦</div></div>
-      <div style="font-size:15px; font-weight:700; color:var(--gm); margin-top:16px;" id="ai-status-text">Scanning for closest available riders...</div>
-    </div>
-    <div id="ai-success-view" style="display:none; animation: fadeUp 0.4s ease both;">
-      <div style="font-size:54px; margin-bottom:12px;">🎉</div>
-      <div style="font-size:18px; font-weight:800; color:var(--green);">Rider Dispatched Automatically!</div>
-      <div style="background:var(--bg); border-radius:14px; padding:16px; margin:18px 0; text-align:left; font-size:14px;" id="ai-success-details"></div>
-      <button class="modal-btn" style="background:var(--green);" onclick="closeAiModalAndRefresh()">Sige, I-close</button>
-    </div>
+    <div class="modal-title">✏️ Edit Profile</div>
+    <div class="field"><label>Full Name</label><input id="ep-name" type="text"/></div>
+    <div class="field"><label>Phone Number</label><input id="ep-phone" type="tel"/></div>
+    <div class="field"><label>Store Name</label><input id="ep-store" type="text"/></div>
+    <div class="field"><label>Store Address</label><input id="ep-addr" type="text"/></div>
+    <div class="field"><label>Store Description</label><textarea id="ep-desc" style="height:72px;width:100%;padding:12px 14px;border:1.5px solid #e5e7eb;border-radius:12px;font-family:inherit;font-size:14px;outline:none;resize:none"></textarea></div>
+    <button class="modal-btn" onclick="saveProfile()">Save Changes</button>
   </div>
 </div>
 
+<!-- STOCK MODAL -->
 <div class="modal-bg" id="stockModal" onclick="if(event.target===this)closeStockModal()">
   <div class="modal-sheet">
     <div class="modal-handle"></div>
@@ -424,21 +476,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
   </div>
 </div>
 
-<div class="modal-bg" id="chatModal">
-  <div class="modal-sheet" style="position:relative">
-    <button class="modal-close-x" onclick="closeChatModal()">✕</button>
-    <div class="modal-handle"></div>
-    <div class="modal-title">🛵 Chat with Rider</div>
-    <div id="chat-order-info" style="font-size:13px;color:var(--muted);margin-bottom:10px"></div>
-    <div class="chat-box">
-      <div class="chat-thread" id="chat-thread"></div>
-      <div class="chat-input-row">
-        <input type="text" id="chat-input" placeholder="Type a message..." onkeypress="if(event.key==='Enter')sendChatMessage()"/>
-        <button onclick="sendChatMessage()">Send</button>
-      </div>
-    </div>
-    <input type="hidden" id="chat-order-id"/>
-  </div>
+<!-- NOTIFICATIONS -->
+<div class="side-panel" id="notifPanel">
+  <div class="sp-header"><h3>🔔 Notifications</h3><span class="sp-close" onclick="closeNotif()">✕</span></div>
+  <div id="notifList" style="padding:8px 0"><div class="notif-item"><div style="padding:20px;color:var(--muted);text-align:center;width:100%">No notifications yet</div></div></div>
 </div>
 
 <div class="toast" id="toastEl">✅ <span id="toastMsg"></span></div>
@@ -446,21 +487,24 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
 <script>
 const API_URL = "https://my-palawan-delivery-express.onrender.com";
 const API = API_URL + '/api';
-const EM={rice:'🍚',vegetable:'🥦',fish:'🐟',meat:'🥩',chicken:'🍗',egg:'🥚',milk:'🥛',oil:'🫙',bread:'🍞',coffee:'☕',noodle:'🍜',canned:'🥫',chips:'🍿'};
+const EM={rice:'🍚',vegetable:'🥦',fish:'🐟',isda:'🐟',meat:'🥩',chicken:'🍗',egg:'🥚',milk:'🥛',juice:'🧃',oil:'🫙',soap:'🧼',bread:'🍞',coffee:'☕',noodle:'🍜',canned:'🥫',sardine:'🥫',tuna:'🥫',chips:'🍿',beef:'🥩',pork:'🥩',bangus:'🐟',tilapia:'🐟',shrimp:'🦐',mango:'🥭',banana:'🍌'};
 function emo(n){if(!n)return'📦';const l=n.toLowerCase();for(const[k,e]of Object.entries(EM))if(l.includes(k))return e;return'📦';}
 
 let token=null,currentMerchant=null;
 let allOrders=[],myProducts=[];
-let currentOrderFilter='all';
+let currentOrderFilter='all',currentProdFilter='all';
 let isStoreOpen=false;
 let editingProductId=null;
-let chatCurrentOrderId=null;
-let chatPollInterval=null;
+let notifications=[];
+let salesData=[0,0,0,0,0,0,0];
 
+// ── SESSION ──
 function checkSession(){
   const t=localStorage.getItem('pde_merch_token');
   const u=localStorage.getItem('pde_merch_user');
-  if(t&&u){token=t;currentMerchant=JSON.parse(u); if(currentMerchant.status==='pending')showPending(); else enterApp();}
+  if(t&&u){token=t;currentMerchant=JSON.parse(u);
+    if(currentMerchant.status==='pending')showPending();
+    else enterApp();}
 }
 
 function switchTab(tab){
@@ -470,32 +514,50 @@ function switchTab(tab){
 }
 function togglePw(id,btn){const i=document.getElementById(id);i.type=i.type==='password'?'text':'password';btn.textContent=i.type==='password'?'👁️':'🙈';}
 function showErr(id,msg){const el=document.getElementById(id);el.textContent=msg;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),4000);}
-
-function triggerImagePreview(input) {
-  if (input.files && input.files[0]) {
-    document.getElementById('p-upload-text').textContent = "✅ " + input.files[0].name;
-    const r = new FileReader();
-    r.onload = function(e) {
-      document.getElementById('p-preview-container').innerHTML = `
-        <img src="${e.target.result}" style="max-width:100%; max-height:120px; border-radius:8px; border:1px solid #ddd; object-fit:cover;"/>
-      `;
-    };
-    r.readAsDataURL(input.files[0]);
-  }
-}
+function previewFile(input,id){if(input.files&&input.files[0])document.getElementById(id).textContent='✅ '+input.files[0].name;}
 
 async function doLogin(){
   const email=document.getElementById('l-email').value.trim();
   const pw=document.getElementById('l-pw').value;
-  if(!email||!pw){showErr('login-err','Please fill in all fields.');return;}
-  try{
-    const r=await fetch(`${API}/merchants/login`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password:pw})});
-    const d=await r.json();
-    if(d.success&&d.token){token=d.token;currentMerchant=d.user;saveSession();enterApp();return;}
-    showErr('login-err',d.error||'Invalid credentials.');
-  }catch(e){showErr('login-err','Cannot connect to server.');}
-}
 
+  if(!email||!pw){
+    showErr('login-err','Please fill in all fields.');
+    return;
+  }
+
+  try{
+    const r=await fetch(`${API_URL}/api/merchants/login`,{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json'
+      },
+      body:JSON.stringify({
+        email,
+        password:pw
+      })
+    });
+
+    const d=await r.json();
+
+    if(d.success&&d.token){
+      token=d.token;
+      currentMerchant=d.user;
+      saveSession();
+      enterApp();
+      return;
+    }
+
+    if(d.status==='pending'){
+      showErr('login-err','Your application is still pending approval.');
+      return;
+    }
+
+    showErr('login-err',d.error||'Invalid credentials.');
+
+  }catch(e){
+    showErr('login-err','Cannot connect to server.');
+  }
+}
 async function doApply() {
   const name = document.getElementById('a-name').value.trim();
   const phone = document.getElementById('a-phone').value.trim();
@@ -507,23 +569,81 @@ async function doApply() {
   const pcat = document.getElementById('a-pcat').value;
   const dti = document.getElementById('a-dti').value.trim();
   const permit = document.getElementById('a-permit').value.trim();
-  if (!name || !phone || !email || !pw || !storeName || !btype || !addr || !pcat || !dti || !permit) { showErr('apply-err', 'Please fill in all fields.'); return; }
-  try {
-    const res = await fetch(`${API}/merchants/apply`, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({name, phone, email, password: pw, storeName, businessType: btype, address: addr, productCategory: pcat, dtiNumber: dti, permitNumber: permit})});
+  const mayor = document.getElementById('a-mayor').value.trim();
+  const tin = document.getElementById('a-tin').value.trim();
+  const desc = document.getElementById('a-desc').value.trim();
+
+  if (!name || !phone || !email || !pw || !storeName || !btype || !addr || !pcat || !dti || !permit) {
+    showErr('apply-err', 'Please fill in all required (*) fields.');
+    return;
+  }
+
+  if (pw.length < 6) {
+    showErr('apply-err', 'Password must be at least 6 characters.');
+    return;
+  }
+
+try {
+  const res = await fetch(`${API_URL}/api/merchants/apply`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      name,
+      phone,
+      email,
+      password: pw,
+      storeName,
+      businessType: btype,
+      address: addr,
+      productCategory: pcat,
+      description: desc,
+      dtiNumber: dti,
+      permitNumber: permit,
+      mayorPermit: mayor,
+      tin
+    })
+  });
     const data = await res.json();
-    if (data.success) { document.getElementById('apply-ok').classList.add('show'); setTimeout(() => showPending(), 2000); } else { showErr('apply-err', data.error); }
-  } catch (err) { showErr('apply-err', 'Connection error.'); }
+
+    if (!res.ok || !data.success) {
+    showErr('apply-err', data.error || data.message || JSON.stringify(data));
+      return;
+    }
+
+    document.getElementById('apply-ok').classList.add('show');
+
+    setTimeout(() => {
+      showPending();
+    }, 2000);
+
+  } catch (err) {
+    showErr('apply-err', 'Cannot connect to server.');
+  }
+}
+function saveSession(){localStorage.setItem('pde_merch_token',token||'');localStorage.setItem('pde_merch_user',JSON.stringify(currentMerchant));}
+
+function showPending(){
+  document.getElementById('authScreen').style.display='none';
+  document.getElementById('pendingScreen').classList.add('active');
 }
 
-function saveSession(){localStorage.setItem('pde_merch_token',token||'');localStorage.setItem('pde_merch_user',JSON.stringify(currentMerchant));}
-function showPending(){document.getElementById('authScreen').style.display='none';document.getElementById('pendingScreen').classList.add('active');}
 function enterApp(){
   document.getElementById('authScreen').style.display='none';
   document.getElementById('pendingScreen').classList.remove('active');
   document.getElementById('mainApp').classList.add('active');
-  updateStoreUI(); loadDashboard(); loadMyProducts(); setInterval(loadDashboard,8000);
+  updateStoreUI();loadDashboard();loadMyProducts();
+  setInterval(loadDashboard,8000);
 }
-function logout(){ localStorage.clear(); window.location.reload(); }
+
+function logout(){
+  token=null;currentMerchant=null;
+  localStorage.removeItem('pde_merch_token');localStorage.removeItem('pde_merch_user');
+  document.getElementById('mainApp').classList.remove('active');
+  document.getElementById('pendingScreen').classList.remove('active');
+  document.getElementById('authScreen').style.display='flex';
+}
 
 function updateStoreUI(){
   if(!currentMerchant)return;
@@ -534,18 +654,27 @@ function updateStoreUI(){
   document.getElementById('pf-phone').textContent=currentMerchant.phone||'—';
   document.getElementById('pf-email').textContent=currentMerchant.email||'—';
   document.getElementById('pf-addr').textContent=currentMerchant.address||'—';
+  document.getElementById('pf-btype').textContent=currentMerchant.businessType||'—';
+  document.getElementById('pf-dti').textContent=currentMerchant.dtiNumber||'—';
   isStoreOpen=currentMerchant.isOpen||false;
   updateStoreToggle();
 }
+
 function toggleStore(){
-  isStoreOpen=!isStoreOpen; currentMerchant.isOpen=isStoreOpen; saveSession(); updateStoreToggle();
+  isStoreOpen=!isStoreOpen;
+  currentMerchant.isOpen=isStoreOpen;
+  saveSession();updateStoreToggle();
+  toast(isStoreOpen?'Store is now OPEN 🟢':'Store is now CLOSED 🔴');
   try{fetch(`${API}/merchants/toggle-store`,{method:'PUT',headers:{'Authorization':'Bearer '+token}});}catch(e){}
 }
 function updateStoreToggle(){
-  const t=document.getElementById('storeToggle'); const l=document.getElementById('storeStatusLabel');
-  if(isStoreOpen){t.classList.add('on');l.textContent='Open';} else {t.classList.remove('on');l.textContent='Closed';}
+  const t=document.getElementById('storeToggle');
+  const l=document.getElementById('storeStatusLabel');
+  if(isStoreOpen){t.classList.add('on');l.textContent='Open';}
+  else{t.classList.remove('on');l.textContent='Closed';}
 }
 
+// ── DASHBOARD ──
 function showPage(page,btn){
   document.querySelectorAll('.page').forEach(p=>{p.classList.remove('active');p.style.display='';});
   document.getElementById('page-'+page).classList.add('active');
@@ -556,52 +685,79 @@ function showPage(page,btn){
 async function loadDashboard(){
   try{
     const r=await fetch(`${API}/orders`,{headers:{'Authorization':'Bearer '+token}});
-    const d=await r.json(); allOrders=Array.isArray(d)?d:(d.orders||[]);
-  }catch{allOrders=[];}
-  updateStats(); renderNewOrders(); renderSalesChart();
+    const d=await r.json();
+    allOrders=Array.isArray(d)?d:(d.orders||getSample());
+  }catch{allOrders=getSample();}
+  updateStats();renderNewOrders();renderSalesChart();
 }
+
+function getSample(){return[
+  {id:'ORD-001',customerName:'Juan dela Cruz',customerAddress:'Brgy. San Jose',items:[{name:'Canned Sardines',qty:3,price:35},{name:'Rice 5kg',qty:1,price:280}],total:385,paymentMethod:'cod',status:'pending',date:'Jun 27, 2026'},
+  {id:'ORD-002',customerName:'Maria Santos',customerAddress:'Brgy. Tiniguiban',items:[{name:'Fresh Bangus',qty:2,price:120}],total:240,paymentMethod:'gcash',status:'accepted',date:'Jun 27, 2026'},
+];}
 
 function updateStats(){
   const pend=allOrders.filter(o=>o.status==='pending').length;
-  const acc=allOrders.filter(o=>['accepted','ready','rider_assigned','picked_up'].includes(o.status)).length;
-  const rev=allOrders.filter(o=>o.status==='delivered').reduce((s,o)=>s+(o.total||0),0);
+  const acc=allOrders.filter(o=>['accepted','ready'].includes(o.status)).length;
+  const rev=allOrders.filter(o=>o.status==='delivered').reduce((s,o)=>s+o.total,0);
   document.getElementById('s-total').textContent=allOrders.length;
-  document.getElementById('s-pend').textContent=pend; document.getElementById('s-acc').textContent=acc;
+  document.getElementById('s-pend').textContent=pend;
+  document.getElementById('s-acc').textContent=acc;
   document.getElementById('s-rev').textContent='₱'+rev.toLocaleString();
-  const pb=document.getElementById('pendBadge'); if(pend>0){pb.style.display='flex';pb.textContent=pend;}else pb.style.display='none';
+  const pb=document.getElementById('pendBadge');
+  if(pend>0){pb.style.display='flex';pb.textContent=pend;}else pb.style.display='none';
+  const nc=document.getElementById('newOrderCount');
+  if(pend>0){nc.style.display='inline';nc.textContent=pend;}else nc.style.display='none';
 }
 
 function renderSalesChart(){
-  document.getElementById('salesChart').innerHTML=['M','T','W','T','F','S','S'].map(d=>`
-    <div class="bar-wrap"><div class="bar-val">₱0</div><div class="bar" style="height:15px"></div><div class="bar-day">${d}</div></div>`).join('');
+  const days=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const vals=days.map((_,i)=>Math.floor(Math.random()*500+100));
+  const max=Math.max(...vals);
+  document.getElementById('salesChart').innerHTML=vals.map((v,i)=>`
+    <div class="bar-wrap">
+      <div class="bar-val">₱${v}</div>
+      <div class="bar ${i===6?'highlight':''}" style="height:${Math.round(v/max*80)+10}px"></div>
+      <div class="bar-day">${days[i]}</div>
+    </div>`).join('');
 }
 
 function orderCard(o,i=0){
-  const sm={pending:{l:'🆕 New Order',c:'s-new'},accepted:{l:'✅ Accepted',c:'s-acc'},ready:{l:'📦 Ready',c:'s-rdy'},rider_assigned:{l:'🛵 Rider Assigned',c:'s-acc'},picked_up:{l:'Transit',c:'s-done'},delivered:{l:'🎉 Done',c:'s-done'},rejected:{l:'❌ Rejected',c:'s-rej'}};
+  const sm={pending:{l:'🆕 New Order',c:'s-new'},accepted:{l:'✅ Accepted',c:'s-acc'},ready:{l:'📦 Ready',c:'s-rdy'},picked_up:{l:'🛵 Picked Up',c:'s-done'},delivered:{l:'🎉 Delivered',c:'s-done'},rejected:{l:'❌ Rejected',c:'s-rej'}};
   const st=sm[o.status]||sm.pending;
+  const payIcon={'cod':'💵','gcash':'📱','maya':'💜'}[o.paymentMethod]||'💵';
   let actions='';
-  if(o.status==='pending') actions=`<div class="order-actions"><button class="btn-accept" onclick="acceptOrder('${o._id||o.id}',this)">✅ Accept</button><button class="btn-reject" onclick="rejectOrder('${o._id||o.id}',this)">✕ Reject</button></div>`;
-  else if(o.status==='accepted') actions=`<div class="order-actions"><button class="btn-ready" onclick="markReady('${o._id||o.id}',this)">📦 Mark Ready</button></div>`;
-  else if(o.status==='ready') actions=`<div class="order-actions"><button class="btn-ai-dispatch" onclick="triggerAiDispatch('${o._id||o.id}')">🤖 AI Dispatch Nearest Rider</button></div>`;
-  else if(['rider_assigned','picked_up'].includes(o.status)) actions=`<div class="order-actions"><button class="btn-chat" onclick="openChatModal('${o._id||o.id}','${o.riderName||'Rider'}')">💬 Chat with Rider</button></div>`;
+  if(o.status==='pending')actions=`<div class="order-actions">
+    <button class="btn-accept" onclick="acceptOrder('${o._id||o.id}',this)">✅ Accept</button>
+    <button class="btn-reject" onclick="rejectOrder('${o._id||o.id}',this)">✕ Reject</button>
+  </div>`;
+  else if(o.status==='accepted')actions=`<div class="order-actions"><button class="btn-ready" onclick="markReady('${o._id||o.id}',this)">📦 Mark Ready for Pickup</button></div>`;
+  else if(o.status==='ready')actions=`<div class="order-actions"><button class="btn-accept btn-off">⏳ Waiting for Rider…</button></div>`;
   else actions=`<div class="order-actions"><button class="btn-accept btn-off">${st.l}</button></div>`;
-
   return`<div class="order-card" style="animation-delay:${i*60}ms">
-    <div class="order-hdr"><div><div class="order-id">${o.id||o._id}</div></div><div class="o-status ${st.c}">${st.l}</div></div>
+    <div class="order-hdr">
+      <div><div class="order-id">${o.id||o._id}</div><div class="order-time">${o.date||''}</div></div>
+      <div class="o-status ${st.c}">${st.l}</div>
+    </div>
     <div class="order-customer">👤 ${o.customerName||'Customer'}</div>
     <div class="order-addr">📍 ${o.customerAddress||'—'}</div>
-    <div class="order-items-list">${(o.items||[]).map(it=>`${emo(it.name)} ${it.name} ×${it.qty}`).join('<br>')}</div>
+    <div class="order-items-list">${(o.items||[]).map(it=>`${emo(it.name||'')} ${it.name} ×${it.qty} — ₱${((it.price||0)*it.qty).toLocaleString()}`).join('<br>')}</div>
+    <div class="order-pay">${payIcon} Payment: ${(o.paymentMethod||'cod').toUpperCase()}</div>
     <div class="order-total">Total: ₱${(o.total||0).toLocaleString()}</div>
     ${actions}
   </div>`;
 }
 
 function renderNewOrders(){
-  const newO=allOrders.filter(o=>o.status==='pending'); const el=document.getElementById('new-orders-wrap');
-  el.innerHTML=newO.length?newO.map((o,i)=>orderCard(o,i)).join(''):`<div class="empty-state"><div class="ei">📭</div><p>No new orders yet</p></div>`;
+  const newO=allOrders.filter(o=>o.status==='pending');
+  const el=document.getElementById('new-orders-wrap');
+  el.innerHTML=newO.length?newO.map((o,i)=>orderCard(o,i)).join(''):`<div class="empty-state"><div class="ei">📭</div><p>No new orders</p></div>`;
 }
+
 function filterOrders(f,el){
-  currentOrderFilter=f; document.querySelectorAll('#page-orders .ftab').forEach(t=>t.classList.remove('active'));el.classList.add('active'); renderAllOrders();
+  currentOrderFilter=f;
+  document.querySelectorAll('#page-orders .ftab').forEach(t=>t.classList.remove('active'));el.classList.add('active');
+  renderAllOrders();
 }
 function renderAllOrders(){
   const filtered=currentOrderFilter==='all'?allOrders:allOrders.filter(o=>o.status===currentOrderFilter);
@@ -609,177 +765,298 @@ function renderAllOrders(){
 }
 
 async function acceptOrder(id,btn){
+  btn.classList.add('btn-off');btn.textContent='Accepting…';
   try{await fetch(`${API}/orders/${id}/status`,{method:'PATCH',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({status:'accepted'})});}catch(e){}
-  loadDashboard(); renderAllOrders(); toast('Order accepted! 🟢');
+  const o=allOrders.find(x=>x.id===id||x._id===id);if(o)o.status='accepted';
+  updateStats();renderNewOrders();renderAllOrders();
+  addNotif('Order accepted! Customer notified ✅','📦');toast('Order accepted! Customer notified ✅');
 }
 async function rejectOrder(id,btn){
+  btn.classList.add('btn-off');btn.textContent='Rejecting…';
   try{await fetch(`${API}/orders/${id}/status`,{method:'PATCH',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({status:'rejected'})});}catch(e){}
-  loadDashboard(); renderAllOrders(); toast('Order rejected.');
+  allOrders=allOrders.filter(o=>o.id!==id&&o._id!==id);
+  updateStats();renderNewOrders();renderAllOrders();toast('Order rejected.');
 }
 async function markReady(id,btn){
+  btn.classList.add('btn-off');btn.textContent='Updating…';
   try{await fetch(`${API}/orders/${id}/status`,{method:'PATCH',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({status:'ready'})});}catch(e){}
-  loadDashboard(); renderAllOrders(); toast('Order is now ready for pickup!');
+  const o=allOrders.find(x=>x.id===id||x._id===id);if(o)o.status='ready';
+  updateStats();renderNewOrders();renderAllOrders();
+  addNotif('Order marked ready! Notifying riders 🛵','📦');toast('Order ready! Rider will be notified 🛵');
 }
 
-async function triggerAiDispatch(orderId) {
-  document.getElementById('ai-scanning-view').style.display = 'block';
-  document.getElementById('ai-success-view').style.display = 'none';
-  document.getElementById('aiDispatchModal').classList.add('open');
-  try {
-    const res = await fetch(`${API}/orders/${orderId}/ai-dispatch`, {method: 'POST', headers: {'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json'}});
-    const data = await res.json();
-    if (!res.ok || data.error) { document.getElementById('aiDispatchModal').classList.remove('open'); toast(`⚠️ AI Search Error: ${data.error}`); return; }
-    document.getElementById('ai-scanning-view').style.display = 'none';
-    document.getElementById('ai-success-view').style.display = 'block';
-    document.getElementById('ai-success-details').innerHTML = `
-      <div>🛵 <strong>Rider Name:</strong> ${data.ai_response.pangalan}</div>
-      <div>🔢 <strong>Plate Number:</strong> ${data.ai_response.plaka}</div>
-      <div>📍 <strong>Calculated Distance:</strong> ${data.ai_response.distansya_km} KM</div>
-    `;
-  } catch (err) { document.getElementById('aiDispatchModal').classList.remove('open'); toast("❌ Connection timeout with AI Node cluster."); }
+// ── PRODUCTS ──
+function previewProductImg(input){
+  if(input.files&&input.files.length){
+    const previews=Array.from(input.files).slice(0,5).map(f=>{
+      return new Promise(res=>{
+        const reader=new FileReader();
+        reader.onload=e=>res(e.target.result);
+        reader.readAsDataURL(f);
+      });
+    });
+    Promise.all(previews).then(imgs=>{
+      document.getElementById('p-img-preview').innerHTML=imgs.map(src=>`<img src="${src}" style="max-width:70px;max-height:70px;border-radius:8px;margin:4px;object-fit:cover"/>`).join('');
+    });
+  }
 }
 
-function closeAiModalAndRefresh(){ document.getElementById('aiDispatchModal').classList.remove('open'); loadDashboard(); renderAllOrders(); }
-
-// ── RIDER MESSAGING CHANNEL ──
-function openChatModal(orderId, riderName){
-  chatCurrentOrderId = orderId;
-  document.getElementById('chat-order-id').value = orderId;
-  document.getElementById('chat-order-info').textContent = `Order Ref: ${orderId} · Driver: ${riderName}`;
-  document.getElementById('chatModal').classList.add('open');
-  loadChat(orderId);
-  if(chatPollInterval) clearInterval(chatPollInterval);
-  chatPollInterval = setInterval(() => loadChat(orderId), 5000);
-}
-function closeChatModal(){ document.getElementById('chatModal').classList.remove('open'); if(chatPollInterval){clearInterval(chatPollInterval); chatPollInterval=null;} }
-async function loadChat(orderId){
+async function uploadProductImage(productId){
+  const input=document.getElementById('p-img-input');
+  if(!input.files||!input.files.length)return;
+  const fd=new FormData();
+  Array.from(input.files).slice(0,5).forEach(f=>fd.append('images',f));
   try{
-    const r=await fetch(`${API}/messages/${orderId}?channel=merchant`, {headers:{'Authorization':'Bearer '+token}});
-    const m=await r.json();
-    const thread = document.getElementById('chat-thread');
-    if(!m.length){ thread.innerHTML = `<div style="text-align:center; font-size:12px; color:var(--muted)">No messages yet</div>`; return; }
-    thread.innerHTML = m.map(msg => `<div class="chat-msg ${msg.senderRole==='merchant'?'mine':'theirs'}">${msg.text}</div>`).join('');
-    thread.scrollTop = thread.scrollHeight;
+    await fetch(`${API}/products/${productId}/image`,{method:'POST',headers:{'Authorization':'Bearer '+token},body:fd});
   }catch(e){}
-}
-async function sendChatMessage(){
-  const input = document.getElementById('chat-input'); const text = input.value.trim(); if(!text || !chatCurrentOrderId) return; input.value='';
-  try{await fetch(`${API}/messages/${chatCurrentOrderId}`, {method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+token}, body:JSON.stringify({text, channel:'merchant'})});}catch(e){}
-  loadChat(chatCurrentOrderId);
+  input.value='';
 }
 
-// ── PRODUCTS OPERATIONS (WITH COMPATIBLE CLOUDINARY FILE PIPELINES) ──
+async function saveProduct(){
+  const name=document.getElementById('p-name').value.trim();
+  const price=parseFloat(document.getElementById('p-price').value);
+  const cat=document.getElementById('p-cat').value;
+  const stock=parseInt(document.getElementById('p-stock').value)||0;
+  const desc=document.getElementById('p-desc').value.trim();
+  const deliveryFeePercent=parseFloat(document.getElementById('p-delivery-pct').value)||15;
+  if(!name||!price||!cat){toast('Please fill in name, price and category');return;}
+  const product={name,price,category:cat,description:desc,stock,deliveryFeePercent,merchantId:currentMerchant.id||currentMerchant._id,merchantName:currentMerchant.storeName||currentMerchant.name,isAvailable:stock>0};
+  if(editingProductId){
+    try{await fetch(`${API}/products/${editingProductId}`,{method:'PUT',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify(product)});}catch(e){}
+    await uploadProductImage(editingProductId);
+    const idx=myProducts.findIndex(p=>(p._id||p.id)===editingProductId);
+    if(idx>-1)myProducts[idx]={...myProducts[idx],...product};
+    toast(`"${name}" updated! ✅`);cancelEdit();
+  }else{
+    let newId=null;
+    try{
+      const r=await fetch(`${API}/products`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify(product)});
+      const d=await r.json();
+      newId=d._id||d.id;
+    }catch(e){}
+    if(newId)await uploadProductImage(newId);
+    myProducts.unshift({...product,_id:newId,id:newId||('p_'+Date.now())});
+    toast(`"${name}" posted to Customer App! 🎉`);
+  }
+  ['p-name','p-price','p-desc','p-stock'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('p-cat').value='';
+  document.getElementById('p-img-preview').innerHTML='📸 Tap to upload product image';
+  renderMyProducts();
+  loadMyProducts();
+}
+
+function editProduct(id){
+  const p=myProducts.find(x=>(x._id||x.id)===id);
+  if(!p)return;
+  editingProductId=id;
+  document.getElementById('p-name').value=p.name||'';
+  document.getElementById('p-price').value=p.price||'';
+  document.getElementById('p-cat').value=p.category||'';
+  document.getElementById('p-stock').value=p.stock||0;
+  document.getElementById('p-desc').value=p.description||'';
+  document.getElementById('addFormTitle').textContent='✏️ Edit Product';
+  document.getElementById('saveProductBtn').textContent='💾 Save Changes';
+  document.getElementById('cancelEditBtn').style.display='block';
+  showPage('add',document.querySelectorAll('.nav-item')[2]);
+}
+
+function cancelEdit(){
+  editingProductId=null;
+  document.getElementById('addFormTitle').textContent='➕ Post a Product';
+  document.getElementById('saveProductBtn').textContent='📤 Post Product';
+  document.getElementById('cancelEditBtn').style.display='none';
+  ['p-name','p-price','p-desc','p-stock'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('p-cat').value='';
+}
+
 async function loadMyProducts(){
   try{
     const r=await fetch(`${API}/products?merchantId=${currentMerchant.id||currentMerchant._id}`,{headers:{'Authorization':'Bearer '+token}});
-    const d=await r.json(); myProducts=Array.isArray(d)?d:(d.products||[]);
+    const d=await r.json();
+    myProducts=Array.isArray(d)?d:(d.products||[]);
   }catch{myProducts=[];}
   renderMyProducts();
 }
-function renderMyProducts(){
+
+function filterProducts(f,el){
+  currentProdFilter=f;
+  document.querySelectorAll('#page-products .ftab').forEach(t=>t.classList.remove('active'));el.classList.add('active');
+  renderMyProducts();
+}
+
+function searchProducts(q){
+  renderMyProducts(q);
+}
+
+function renderMyProducts(search=''){
+  let prods=myProducts;
+  if(search)prods=prods.filter(p=>p.name.toLowerCase().includes(search.toLowerCase()));
+  if(currentProdFilter==='available')prods=prods.filter(p=>p.stock>5&&p.isAvailable!==false);
+  else if(currentProdFilter==='low')prods=prods.filter(p=>p.stock>0&&p.stock<=5);
+  else if(currentProdFilter==='out')prods=prods.filter(p=>p.stock===0||p.isAvailable===false);
   const el=document.getElementById('prod-list');
-  el.innerHTML=myProducts.length?myProducts.map(p=> {
-    const id = p._id || p.id;
-    return `<div class="prod-item">
-    <div class="prod-item-top">
-      <div class="prod-img">${p.image ? `<img src="${p.image}"/>` : emo(p.name)}</div>
-      <div class="prod-info">
-        <div class="prod-name">${p.name}</div>
-        <div class="prod-price">₱${p.price}</div>
-        <div class="stock-badge stock-ok">Stock: ${p.stock||0}</div>
+  if(!prods.length){el.innerHTML=`<div class="empty-state"><div class="ei">🛍️</div><p>No products found</p></div>`;return;}
+  el.innerHTML=prods.map((p,i)=>{
+    const id=p._id||p.id;
+    const stockCls=p.stock===0?'stock-out':p.stock<=5?'stock-low':'stock-ok';
+    const stockLabel=p.stock===0?'❌ Out of Stock':p.stock<=5?`⚠️ Low Stock (${p.stock})`:`✅ In Stock (${p.stock})`;
+    return`<div class="prod-item" style="animation-delay:${i*50}ms">
+      <div class="prod-item-top">
+        <div class="prod-img">${p.image?`<img src="${p.image}" onerror="this.style.display='none'"/>`:emo(p.name)}</div>
+        <div class="prod-info">
+          <div class="prod-name">${p.name}</div>
+          <div class="prod-price">₱${Number(p.price).toLocaleString()}</div>
+          <div class="prod-cat">${p.category||''}</div>
+          <div class="stock-badge ${stockCls}">${stockLabel}</div>
+        </div>
       </div>
-    </div>
-    <div class="prod-actions">
-      <button class="prod-btn btn-toggle-stock" onclick="openStockModal('${id}','${p.name.replace(/'/g,"\\'")}',${p.stock||0})">📦 Adjust Stock</button>
-      <button class="prod-btn btn-del-prod" onclick="deleteProduct('${id}')">🗑️ Delete</button>
-    </div>
-  </div>`}).join(''):`<div class="empty-state"><div class="ei">🛍️</div><p>No products posted yet</p></div>`;
+      <div class="prod-actions">
+        <button class="prod-btn btn-edit-prod" onclick="editProduct('${id}')">✏️ Edit</button>
+        <button class="prod-btn btn-toggle-stock" onclick="openStockModal('${id}','${p.name}',${p.stock||0})">📦 Stock</button>
+        <button class="prod-btn btn-del-prod" onclick="deleteProduct('${id}',this)">🗑️</button>
+      </div>
+    </div>`;
+  }).join('');
 }
 
 function openStockModal(id,name,stock){
-  document.getElementById('stock-product-id').value=id; document.getElementById('stock-product-name').textContent=`📦 ${name}`; document.getElementById('stock-input').value=stock;
+  document.getElementById('stock-product-id').value=id;
+  document.getElementById('stock-product-name').textContent=`📦 ${name}`;
+  document.getElementById('stock-input').value=stock;
   document.getElementById('stockModal').classList.add('open');
 }
 function closeStockModal(){document.getElementById('stockModal').classList.remove('open');}
 async function saveStock(){
-  const id=document.getElementById('stock-product-id').value; const stock=parseInt(document.getElementById('stock-input').value)||0;
+  const id=document.getElementById('stock-product-id').value;
+  const stock=parseInt(document.getElementById('stock-input').value)||0;
   try{await fetch(`${API}/products/${id}/stock`,{method:'PUT',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({stock})});}catch(e){}
-  closeStockModal(); loadMyProducts(); toast('Stock adjusted successfully!');
+  const p=myProducts.find(x=>(x._id||x.id)===id);
+  if(p){p.stock=stock;p.isAvailable=stock>0;}
+  closeStockModal();renderMyProducts();toast(`Stock updated to ${stock} ✅`);
 }
-async function deleteProduct(id){
+
+async function deleteProduct(id,btn){
+  btn.textContent='…';
   try{await fetch(`${API}/products/${id}`,{method:'DELETE',headers:{'Authorization':'Bearer '+token}});}catch(e){}
-  loadMyProducts(); toast('Product completely removed.');
+  myProducts=myProducts.filter(p=>(p._id||p.id)!==id);
+  renderMyProducts();toast('Product removed.');
 }
 
-// ── 📸 FULL PREVIEW AND MULTIPART CLOUDINARY FILE SAVE PIPELINE ──
-async function saveProduct(){
-  const name=document.getElementById('p-name').value.trim(); 
-  const price=parseFloat(document.getElementById('p-price').value); 
-  const cat=document.getElementById('p-cat').value; 
-  const stock=parseInt(document.getElementById('p-stock').value)||0; 
-  const desc=document.getElementById('p-desc').value.trim();
-  const fileInput = document.getElementById('p-img-file');
-
-  if(!name||!price||!cat){toast('Please fill in name, price, and category!'); return;}
-  
-  const btn = document.getElementById('saveProductBtn');
-  btn.disabled = true; btn.textContent = 'Uploading data payload...';
-
-  try {
-    // Phase 1: Post the core attributes to initialize record schema
-    const productData = {name, price, category:cat, description:desc, stock, merchantId:currentMerchant.id||currentMerchant._id, merchantName:currentMerchant.storeName, isAvailable:stock>0};
-    const response = await fetch(`${API}/products`, {method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+token}, body:JSON.stringify(productData)});
-    const resPayload = await response.json();
-    const targetProductId = resPayload._id || resPayload.id;
-
-    // Phase 2: If file buffer stream is ready, push via native Node.js multipart router config
-    if (targetProductId && fileInput.files && fileInput.files[0]) {
-      const formPayload = new FormData();
-      formPayload.append('images', fileInput.files[0]);
-
-      await fetch(`${API}/products/${targetProductId}/image`, {
-        method: 'POST',
-        headers: {'Authorization': 'Bearer ' + token},
-        body: formPayload
-      });
-    }
-
-    toast('Product posted with image successfully! 🛒');
-    
-    // Reset Form Elements
-    ['p-name','p-price','p-desc','p-stock'].forEach(id=>document.getElementById(id).value='');
-    fileInput.value = '';
-    document.getElementById('p-upload-text').textContent = "Tap to take photo or upload";
-    document.getElementById('p-preview-container').innerHTML = '';
-    
-    showPage('products', document.querySelectorAll('.nav-item')[3]);
-    loadMyProducts();
-
-  } catch(e) {
-    toast('Error connecting to Node Cloudinary server module.');
-  } finally {
-    btn.disabled = false; btn.textContent = '📤 Post Product';
-  }
-}
-
-function searchProducts(q){
-  const prods = myProducts.filter(p=>p.name.toLowerCase().includes(q.toLowerCase()));
-  const el=document.getElementById('prod-list');
-  el.innerHTML=prods.map(p=>`<div class="prod-item"><div class="prod-item-top"><div class="prod-img">${p.image?`<img src="${p.image}"/>`:emo(p.name)}</div><div class="prod-info"><div class="prod-name">${p.name}</div><div class="prod-price">₱${p.price}</div></div></div></div>`).join('');
-}
-
-async function loadEarnings(){
+// ── BALANCE & PAYOUT ──
+async function loadBalance(){
   try{
     const res=await fetch(API+'/merchants/balance',{headers:{'Authorization':'Bearer '+token}});
     const d=await res.json();
-    document.getElementById('merchant-balance-card').innerHTML=`<div style="background:var(--gd); border-radius:14px; padding:16px; color:#fff; text-align:center;">₱${(d.availableBalance||0).toLocaleString()}<br><span style="font-size:11px; opacity:0.8;">Available for Payout</span></div>`;
+    const pending=d.pendingBalance||0,available=d.availableBalance||0,paid=d.totalPaidOut||0;
+    const el=document.getElementById('merchant-balance-card');
+    if(!el)return;
+    el.innerHTML=`<div style="background:linear-gradient(135deg,var(--gd),var(--gm));border-radius:20px;margin:0 0 16px;padding:24px 20px;color:#fff">
+      <div style="font-size:12px;opacity:.8;margin-bottom:12px">💰 Merchant Wallet</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
+        <div style="background:rgba(255,255,255,.15);border-radius:12px;padding:14px;text-align:center">
+          <div style="font-size:22px;font-weight:900">₱${available.toLocaleString()}</div>
+          <div style="font-size:11px;opacity:.8;margin-top:4px">✅ Available</div>
+        </div>
+        <div style="background:rgba(255,255,255,.15);border-radius:12px;padding:14px;text-align:center">
+          <div style="font-size:22px;font-weight:900">₱${pending.toLocaleString()}</div>
+          <div style="font-size:11px;opacity:.8;margin-top:4px">⏳ Pending</div>
+        </div>
+      </div>
+      <div style="background:rgba(255,255,255,.1);border-radius:10px;padding:10px 14px;display:flex;justify-content:space-between;margin-bottom:12px">
+        <span style="font-size:13px;opacity:.8">Total Paid Out</span>
+        <span style="font-size:14px;font-weight:800">₱${paid.toLocaleString()}</span>
+      </div>
+      ${available>0?`<button onclick="requestPayout()" style="width:100%;padding:12px;background:#fff;color:var(--gd);border:none;border-radius:12px;font-size:14px;font-weight:800;cursor:pointer">🏦 Request Payout</button>`:'<div style="text-align:center;opacity:.7;font-size:13px">Walang available balance pa</div>'}
+    </div>
+    <div style="font-size:15px;font-weight:800;color:var(--gd);margin-bottom:10px">📋 Payout History</div>
+    <div id="payout-history-list"><div class="spinner"></div></div>`;
+    loadPayoutHistory();
   }catch(e){}
-  const done=allOrders.filter(o=>o.status==='delivered'); const total=done.reduce((s,o)=>s+(o.total||0),0);
+}
+async function requestPayout(){
+  try{
+    const r=await fetch(API+'/merchants/payout',{method:'POST',headers:{'Authorization':'Bearer '+token}});
+    const d=await r.json();
+    if(d.success){toast('Payout request submitted! 🏦');loadBalance();}
+    else toast(d.error||'Cannot request payout');
+  }catch(e){toast('Error');}
+}
+async function loadPayoutHistory(){
+  try{
+    const r=await fetch(API+'/merchants/payouts',{headers:{'Authorization':'Bearer '+token}});
+    const list=await r.json();
+    const el=document.getElementById('payout-history-list');if(!el)return;
+    el.innerHTML=list.length?list.map(p=>`<div style="background:#fff;border-radius:12px;box-shadow:var(--sh);padding:12px 14px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">
+      <div><div style="font-size:15px;font-weight:800;color:var(--gm)">₱${(p.amount||0).toLocaleString()}</div>
+      <div style="font-size:11px;color:var(--muted)">${p.requestedAt?new Date(p.requestedAt).toLocaleDateString():''}</div></div>
+      <span style="font-size:11px;font-weight:800;padding:3px 10px;border-radius:20px;background:${p.status==='paid'?'#d1fae5':'#fef3c7'};color:${p.status==='paid'?'#065f46':'#92400e'}">${p.status==='paid'?'✅ Paid':'⏳ Pending'}</span>
+    </div>`).join(''):'<div style="text-align:center;padding:16px;color:var(--muted);font-size:13px">Walang payout requests pa</div>';
+  }catch(e){}
+}
+// ── EARNINGS ──
+function loadEarnings(){loadBalance();
+  const done=allOrders.filter(o=>o.status==='delivered');
+  const total=done.reduce((s,o)=>s+o.total,0);
   document.getElementById('earn-total').textContent='₱'+total.toLocaleString();
   document.getElementById('earn-today').textContent='₱'+total.toLocaleString();
+  document.getElementById('earn-week').textContent='₱'+total.toLocaleString();
   document.getElementById('earn-cnt').textContent=done.length;
+  // Top products
+  const prodSales={};
+  done.forEach(o=>(o.items||[]).forEach(it=>{if(!prodSales[it.name])prodSales[it.name]={name:it.name,qty:0,rev:0};prodSales[it.name].qty+=it.qty;prodSales[it.name].rev+=it.price*it.qty;}));
+  const top=Object.values(prodSales).sort((a,b)=>b.rev-a.rev).slice(0,5);
+  document.getElementById('top-products-list').innerHTML=top.length?top.map((p,i)=>`<div class="prod-item">
+    <div class="prod-item-top">
+      <div class="prod-img">${emo(p.name)}</div>
+      <div class="prod-info"><div class="prod-name">${p.name}</div><div class="prod-price">₱${p.rev.toLocaleString()}</div><div class="prod-cat">${p.qty} units sold</div></div>
+      <div style="font-size:20px;font-weight:800;color:var(--muted)">#${i+1}</div>
+    </div></div>`).join(''):`<div class="empty-state"><div class="ei">📊</div><p>No sales data yet</p></div>`;
   document.getElementById('completed-orders-wrap').innerHTML=done.length?done.map((o,i)=>orderCard(o,i)).join(''):`<div class="empty-state"><div class="ei">📊</div><p>No completed orders yet</p></div>`;
 }
+
+// ── PROFILE ──
+function openEditProfile(){
+  document.getElementById('ep-name').value=currentMerchant.name||'';
+  document.getElementById('ep-phone').value=currentMerchant.phone||'';
+  document.getElementById('ep-store').value=currentMerchant.storeName||'';
+  document.getElementById('ep-addr').value=currentMerchant.address||'';
+  document.getElementById('ep-desc').value=currentMerchant.description||'';
+  document.getElementById('editProfileModal').classList.add('open');
+}
+function closeEditProfile(){document.getElementById('editProfileModal').classList.remove('open');}
+async function saveProfile(){
+  const name=document.getElementById('ep-name').value.trim();
+  const phone=document.getElementById('ep-phone').value.trim();
+  const storeName=document.getElementById('ep-store').value.trim();
+  const address=document.getElementById('ep-addr').value.trim();
+  const description=document.getElementById('ep-desc').value.trim();
+  currentMerchant={...currentMerchant,name,phone,storeName,address,description};
+  saveSession();updateStoreUI();
+  try{await fetch(`${API}/merchants/me`,{method:'PUT',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({name,phone,storeName,address,description})});}catch(e){}
+  closeEditProfile();toast('Profile updated!');
+}
+
+function handleLogo(e){
+  const f=e.target.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=ev=>{const img=document.getElementById('storeAvatarImg');img.src=ev.target.result;img.style.display='block';document.getElementById('storeAvatarEmoji').style.display='none';toast('Store logo updated!');};
+  r.readAsDataURL(f);
+}
+
+// ── NOTIFICATIONS ──
+function addNotif(text,emoji){
+  notifications.unshift({text,emoji,time:'Just now',unread:true});
+  renderNotifs();
+}
+function renderNotifs(){
+  const el=document.getElementById('notifList');
+  if(!notifications.length){el.innerHTML=`<div class="notif-item"><div style="padding:20px;color:var(--muted);text-align:center;width:100%">No notifications yet</div></div>`;return;}
+  el.innerHTML=notifications.map(n=>`<div class="notif-item ${n.unread?'unread':''}">
+    <span style="font-size:20px">${n.emoji}</span>
+    <div><div class="ni-text">${n.text}</div><div class="ni-time">${n.time}</div></div></div>`).join('');
+}
+function openNotif(){document.getElementById('notifPanel').classList.add('open');notifications.forEach(n=>n.unread=false);renderNotifs();}
+function closeNotif(){document.getElementById('notifPanel').classList.remove('open');}
 
 function toast(msg){const t=document.getElementById('toastEl');document.getElementById('toastMsg').textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2800);}
 
