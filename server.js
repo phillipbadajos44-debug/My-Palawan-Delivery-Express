@@ -225,8 +225,19 @@ app.get('/api/locations/regions', (req, res) => {
 app.get('/api/locations/provinces/:regionCode', (req, res) => {
   try { res.json(getProvincesByRegion(req.params.regionCode)); } catch (e) { res.status(500).json({ error: e.message }); }
 });
+// Manual patch: the ph-address package omits Highly Urbanized Cities (HUCs)
+// that are independent of any province. Add known HUCs here as needed.
+const HUC_PATCHES = {
+  '1705300000': [{ name: 'Puerto Princesa City', psgcCode: '1731500000', provinceCode: '1705300000' }] // Palawan
+};
+
 app.get('/api/locations/municipalities/:provinceCode', (req, res) => {
-  try { res.json(getMunicipalitiesByProvince(req.params.provinceCode)); } catch (e) { res.status(500).json({ error: e.message }); }
+  try {
+    let munis = getMunicipalitiesByProvince(req.params.provinceCode).slice();
+    if (HUC_PATCHES[req.params.provinceCode]) munis = munis.concat(HUC_PATCHES[req.params.provinceCode]);
+    munis.sort((a, b) => a.name.localeCompare(b.name));
+    res.json(munis);
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 app.get('/api/locations/barangays/:municipalityCode', (req, res) => {
   try { res.json(getBarangaysByMunicipality(req.params.municipalityCode)); } catch (e) { res.status(500).json({ error: e.message }); }
