@@ -356,6 +356,13 @@ app.post('/api/orders', auth(['customer']), async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+app.get('/api/orders', auth(['customer']), async (req, res) => {
+  try {
+    const orders = await Order.find({ customerId: req.user.id }).sort('-createdAt');
+    res.json(orders);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 app.listen(PORT, () => {
   console.log(`\n🚀 Production Server configured for Render running at http://localhost:${PORT}`);
 });
