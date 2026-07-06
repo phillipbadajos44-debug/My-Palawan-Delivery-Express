@@ -333,33 +333,3 @@ app.post('/api/orders', auth(['customer']), async (req, res) => {
 app.listen(PORT, () => {
   console.log(`\n🚀 Production Server configured for Render running at http://localhost:${PORT}`);
 });
-
-// =================================================================
-// 🚨 EMERGENCY PATCH: MERCHANT DATA FETCHING PIPELINES (GET ROUTES)
-// =================================================================
-
-// 1. Fetch all orders for a merchant or fallback to complete catalog
-app.get('/api/orders', async (req, res) => {
-  try {
-    // If frontend sends a merchantId query parameter, filter by it; otherwise get all
-    const filter = req.query.merchantId ? { merchantId: req.query.merchantId } : {};
-    const orders = await Order.find(filter).sort({ createdAt: -1 });
-    res.json(orders);
-  } catch (e) {
-    res.status(500).json({ success: false, error: e.message });
-  }
-});
-
-// 2. Fetch specific merchant account balance data metadata safely
-app.get('/api/merchants/balance', async (req, res) => {
-  try {
-    // Return standard fallback wallet objects to prevent front-end crashes
-    res.json({
-      availableBalance: 1500,
-      pendingBalance: 450,
-      totalPaidOut: 0
-    });
-  } catch (e) {
-    res.status(500).json({ success: false, error: e.message });
-  }
-});
