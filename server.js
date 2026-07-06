@@ -37,7 +37,8 @@ function uploadToCloudinary(buffer, folder) {
 async function geocodeAddress(address) {
   if (!address || !address.trim()) return null;
   try {
-    const query = encodeURIComponent(address + ', Palawan, Philippines');
+    const cleaned = address.replace(/\bCity\b/gi, '').replace(/,\s*Palawan\b/gi, '').replace(/\s{2,}/g, ' ').trim();
+    const query = encodeURIComponent(cleaned + ', Palawan, Philippines');
     const url = `https://nominatim.openstreetmap.org/search?q=${query}&format=json&limit=1`;
     const res = await fetch(url, { headers: { 'User-Agent': 'PalawanDeliveryExpress/1.0' } });
     const data = await res.json();
