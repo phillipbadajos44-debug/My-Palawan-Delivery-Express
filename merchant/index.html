@@ -166,6 +166,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
 .modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:400;align-items:flex-end;}
 .modal-bg.open{display:flex;}
 .modal-sheet{background:#fff;border-radius:24px 24px 0 0;padding:22px 18px 36px;width:100%;max-height:90vh;overflow-y:auto;}
+.modal-close-x{position:absolute;top:14px;right:14px;width:32px;height:32px;border-radius:50%;background:#f3f4f6;border:none;font-size:16px;color:#374151;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.chat-box{border:1px solid #e5e7eb;border-radius:14px;margin:14px 0;overflow:hidden;}
+.chat-thread{max-height:220px;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:8px;background:#f9fafb;}
+.chat-msg{max-width:78%;padding:8px 12px;border-radius:14px;font-size:13px;line-height:1.4;}
+.chat-msg.mine{align-self:flex-end;background:#059669;color:#fff;border-bottom-right-radius:4px;}
+.chat-msg.theirs{align-self:flex-start;background:#fff;border:1px solid #e5e7eb;border-bottom-left-radius:4px;}
+.chat-input-row{display:flex;gap:6px;padding:8px;background:#fff;border-top:1px solid #e5e7eb;}
+.chat-input-row input{flex:1;border:1px solid #e5e7eb;border-radius:20px;padding:8px 14px;font-size:13px;}
+.chat-input-row button{background:#059669;color:#fff;border:none;border-radius:20px;padding:8px 16px;font-size:13px;font-weight:700;cursor:pointer;}
+.btn-chat{flex:1;padding:12px;background:#f3f4f6;color:#374151;border:none;border-radius:12px;font-size:13px;font-weight:700;cursor:pointer;}
 .modal-handle{width:40px;height:4px;background:#e5e7eb;border-radius:4px;margin:0 auto 18px;}
 .modal-title{font-size:18px;font-weight:800;margin-bottom:18px;}
 .modal-btn{width:100%;padding:14px;background:linear-gradient(135deg,var(--gd),var(--gm));color:#fff;border:none;border-radius:14px;font-size:15px;font-weight:800;cursor:pointer;margin-top:8px;}
@@ -397,6 +407,29 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
   <!-- EARNINGS -->
   <div id="page-earnings" class="page">
     <div class="section-title">💰 Earnings</div>
+    <div style="padding:0 18px 16px">
+      <div style="background:linear-gradient(135deg,#1e3a5f,#2563eb);border-radius:20px;padding:22px 18px;color:#fff">
+        <div style="font-size:11px;opacity:.8;margin-bottom:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px">💰 Merchant Wallet</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+          <div style="background:rgba(255,255,255,.15);border-radius:12px;padding:14px;text-align:center">
+            <div style="font-size:22px;font-weight:900" id="bal-available">₱0</div>
+            <div style="font-size:11px;opacity:.8;margin-top:4px">✅ Available</div>
+          </div>
+          <div style="background:rgba(255,255,255,.15);border-radius:12px;padding:14px;text-align:center">
+            <div style="font-size:22px;font-weight:900" id="bal-pending">₱0</div>
+            <div style="font-size:11px;opacity:.8;margin-top:4px">⏳ Pending</div>
+          </div>
+        </div>
+        <div style="background:rgba(255,255,255,.1);border-radius:10px;padding:10px 14px;display:flex;justify-content:space-between;margin-bottom:12px">
+          <span style="font-size:13px;opacity:.8">Total Paid Out</span>
+          <span style="font-size:14px;font-weight:800" id="bal-paid">₱0</span>
+        </div>
+        <button id="payout-btn" onclick="requestPayout()" style="display:none;width:100%;padding:12px;background:#fff;color:#1e3a5f;border:none;border-radius:12px;font-size:14px;font-weight:800;cursor:pointer">🏦 Request Payout</button>
+        <div id="payout-btn-empty" style="text-align:center;opacity:.65;font-size:13px;padding:4px">Walang available balance pa</div>
+      </div>
+      <div style="font-size:14px;font-weight:800;color:#1e3a5f;margin:14px 0 8px">📋 Payout History</div>
+      <div id="payout-history-list"><div style="text-align:center;padding:12px;color:#6b7280;font-size:13px">Loading...</div></div>
+    </div>
     <div class="earn-card">
       <div class="earn-label">Total Earnings</div>
       <div class="earn-total" id="earn-total">₱0</div>
@@ -473,6 +506,24 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
     <div class="field"><label>New Stock Count</label><input id="stock-input" type="number" min="0" placeholder="0"/></div>
     <input type="hidden" id="stock-product-id"/>
     <button class="modal-btn" onclick="saveStock()">Update Stock</button>
+  </div>
+</div>
+
+<!-- RIDER CHAT MODAL -->
+<div class="modal-bg" id="chatModal">
+  <div class="modal-sheet" style="position:relative">
+    <button class="modal-close-x" onclick="closeChatModal()">✕</button>
+    <div class="modal-handle"></div>
+    <div class="modal-title">🛵 Chat with Rider</div>
+    <div id="chat-order-info" style="font-size:13px;color:var(--muted);margin-bottom:10px"></div>
+    <div class="chat-box">
+      <div class="chat-thread" id="chat-thread"></div>
+      <div class="chat-input-row">
+        <input type="text" id="chat-input" placeholder="Type a message..." onkeypress="if(event.key==='Enter')sendChatMessage()"/>
+        <button onclick="sendChatMessage()">Send</button>
+      </div>
+    </div>
+    <input type="hidden" id="chat-order-id"/>
   </div>
 </div>
 
@@ -723,7 +774,7 @@ function renderSalesChart(){
 }
 
 function orderCard(o,i=0){
-  const sm={pending:{l:'🆕 New Order',c:'s-new'},accepted:{l:'✅ Accepted',c:'s-acc'},ready:{l:'📦 Ready',c:'s-rdy'},picked_up:{l:'🛵 Picked Up',c:'s-done'},delivered:{l:'🎉 Delivered',c:'s-done'},rejected:{l:'❌ Rejected',c:'s-rej'}};
+  const sm={pending:{l:'🆕 New Order',c:'s-new'},accepted:{l:'✅ Accepted',c:'s-acc'},ready:{l:'📦 Ready',c:'s-rdy'},rider_assigned:{l:'🏪 Rider Heading to You',c:'s-rdy'},picked_up:{l:'🛵 Picked Up',c:'s-done'},delivered:{l:'🎉 Delivered',c:'s-done'},rejected:{l:'❌ Rejected',c:'s-rej'}};
   const st=sm[o.status]||sm.pending;
   const payIcon={'cod':'💵','gcash':'📱','maya':'💜'}[o.paymentMethod]||'💵';
   let actions='';
@@ -733,6 +784,7 @@ function orderCard(o,i=0){
   </div>`;
   else if(o.status==='accepted')actions=`<div class="order-actions"><button class="btn-ready" onclick="markReady('${o._id||o.id}',this)">📦 Mark Ready for Pickup</button></div>`;
   else if(o.status==='ready')actions=`<div class="order-actions"><button class="btn-accept btn-off">⏳ Waiting for Rider…</button></div>`;
+  else if(o.status==='rider_assigned'||o.status==='picked_up')actions=`<div class="order-actions"><button class="btn-chat" onclick="openChatModal('${o._id||o.id}','${(o.riderName||'Rider').replace(/'/g,"\\'")}')">💬 Chat with Rider</button></div>`;
   else actions=`<div class="order-actions"><button class="btn-accept btn-off">${st.l}</button></div>`;
   return`<div class="order-card" style="animation-delay:${i*60}ms">
     <div class="order-hdr">
@@ -783,6 +835,51 @@ async function markReady(id,btn){
   const o=allOrders.find(x=>x.id===id||x._id===id);if(o)o.status='ready';
   updateStats();renderNewOrders();renderAllOrders();
   addNotif('Order marked ready! Notifying riders 🛵','📦');toast('Order ready! Rider will be notified 🛵');
+}
+
+// ── RIDER CHAT ──
+let chatCurrentOrderId=null;
+let chatPollInterval=null;
+
+function openChatModal(orderId,riderName){
+  chatCurrentOrderId=orderId;
+  document.getElementById('chat-order-id').value=orderId;
+  document.getElementById('chat-order-info').textContent=`Order ${orderId} · Rider: ${riderName}`;
+  document.getElementById('chatModal').classList.add('open');
+  loadChat(orderId);
+  if(chatPollInterval)clearInterval(chatPollInterval);
+  chatPollInterval=setInterval(()=>loadChat(orderId),5000);
+}
+
+function closeChatModal(){
+  document.getElementById('chatModal').classList.remove('open');
+  if(chatPollInterval){clearInterval(chatPollInterval);chatPollInterval=null;}
+}
+
+async function loadChat(orderId){
+  try{
+    const r=await fetch(`${API}/messages/${orderId}?channel=merchant`,{headers:{'Authorization':'Bearer '+token}});
+    const messages=await r.json();
+    renderChat(Array.isArray(messages)?messages:[]);
+  }catch(e){}
+}
+
+function renderChat(messages){
+  const el=document.getElementById('chat-thread');
+  if(!messages.length){el.innerHTML=`<div style="text-align:center;color:var(--muted);font-size:12px;padding:8px">No messages yet</div>`;return;}
+  el.innerHTML=messages.map(m=>`<div class="chat-msg ${m.senderRole==='merchant'?'mine':'theirs'}">${m.text}</div>`).join('');
+  el.scrollTop=el.scrollHeight;
+}
+
+async function sendChatMessage(){
+  const input=document.getElementById('chat-input');
+  const text=input.value.trim();
+  if(!text||!chatCurrentOrderId)return;
+  input.value='';
+  try{
+    await fetch(`${API}/messages/${chatCurrentOrderId}`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({text,channel:'merchant'})});
+  }catch(e){}
+  loadChat(chatCurrentOrderId);
 }
 
 // ── PRODUCTS ──
