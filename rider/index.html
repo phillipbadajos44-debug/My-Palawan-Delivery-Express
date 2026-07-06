@@ -445,8 +445,8 @@ async function loadRiderState(){
       const card=document.getElementById('statusCard');
       if(isOnline){
         tgl.classList.add('on');lbl.textContent='Online';
-        card.innerHTML=`<div class="sc-emoji">🟢</div><div class="sc-status">You're Online!</div><div class="sc-sub">Watching for ready orders…</div>`;
-        loadAvailable();
+        card.innerHTML=`<div class="sc-emoji">🟢</div><div class="sc-status">You're Online!</div><div class="sc-sub">Orders near you will be assigned automatically…</div>`;
+        startLocationTracking();
       }else{
         tgl.classList.remove('on');lbl.textContent='Offline';
         card.innerHTML=`<div class="sc-emoji">💤</div><div class="sc-status">You're Offline</div><div class="sc-sub">Toggle online to receive deliveries</div>`;
@@ -460,6 +460,11 @@ async function loadRiderState(){
     completedDeliveries=list;
     totalEarned=list.reduce((s,o)=>s+(o.deliveryFee||50),0);
   }catch(e){}
+  activeDeliveries=await fetchActiveDeliveries();
+  updateStats();updateBadges();loadHistory();renderActive();
+}
+
+async function fetchActiveDeliveries(){
   try{
     const [ra,rp]=await Promise.all([
       fetch(`${API}/orders?status=rider_assigned`,{headers:{'Authorization':'Bearer '+token}}),
@@ -468,9 +473,23 @@ async function loadRiderState(){
     const da=await ra.json();const dp=await rp.json();
     const listA=Array.isArray(da)?da:(da.orders||[]);
     const listP=Array.isArray(dp)?dp:(dp.orders||[]);
-    activeDeliveries=[...listA,...listP];
-  }catch(e){}
-  updateStats();updateBadges();loadHistory();renderActive();
+    return [...listA,...listP];
+  }catch(e){return activeDeliveries;}
+}
+
+async function pollActiveDeliveries(){
+  const fresh=await fetchActiveDeliveries();
+  const oldIds=new Set(activeDeliveries.map(o=>o._id||o.id));
+  const newlyAssigned=fresh.filter(o=>o.status==='rider_assigned'&&!oldIds.has(o._id||o.id));
+  activeDeliveries=fresh;
+  renderActive();updateBadges();updateStats();
+  if(newlyAssigned.length===1){
+    const o=newlyAssigned[0];
+    toast(`New delivery assigned! Pickup at ${o.merchantName||'merchant'} 🏪`);
+    openMaps(o.merchantAddress||'');
+  }else if(newlyAssigned.length>1){
+    toast(`${newlyAssigned.length} new deliveries assigned! Check your Active tab 🛵`);
+  }
 }
 function enterApp(){
   document.getElementById('authScreen').style.display='none';
@@ -506,6 +525,24 @@ function showPage(page,btn){
   if(btn)btn.classList.add('active');
 }
 
+let riderWatchId=null;
+
+function startLocationTracking(){
+  if(!navigator.geolocation)return;
+  if(riderWatchId!==null)return;
+  riderWatchId=navigator.geolocation.watchPosition(
+    pos=>{updateRiderLocation(pos.coords.latitude,pos.coords.longitude);},
+    err=>{console.log('Geolocation error:',err.message);},
+    {enableHighAccuracy:true,maximumAge:10000,timeout:15000}
+  );
+}
+function stopLocationTracking(){
+  if(riderWatchId!==null){navigator.geolocation.clearWatch(riderWatchId);riderWatchId=null;}
+}
+async function updateRiderLocation(lat,lng){
+  try{await fetch(`${API}/riders/location`,{method:'PUT',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({lat,lng})});}catch(e){}
+}
+
 function toggleOnline(){
   isOnline=!isOnline;
   const tgl=document.getElementById('onlineToggle');
@@ -513,15 +550,17 @@ function toggleOnline(){
   const card=document.getElementById('statusCard');
   if(isOnline){
     tgl.classList.add('on');lbl.textContent='Online';
-    card.innerHTML=`<div class="sc-emoji">🟢</div><div class="sc-status">You're Online!</div><div class="sc-sub">Watching for ready orders…</div>`;
-    toast('You are now online! Watching for deliveries…');
-    loadAvailable();
+    card.innerHTML=`<div class="sc-emoji">🟢</div><div class="sc-status">You're Online!</div><div class="sc-sub">Orders near you will be assigned automatically…</div>`;
+    toast('You are now online! Orders near you will be assigned automatically 🛵');
+    startLocationTracking();
+    renderAvailable();
     try{fetch(`${API}/riders/toggle-online`,{method:'PUT',headers:{'Authorization':'Bearer '+token}});}catch(e){}
   }else{
     tgl.classList.remove('on');lbl.textContent='Offline';
     card.innerHTML=`<div class="sc-emoji">💤</div><div class="sc-status">You're Offline</div><div class="sc-sub">Toggle online to receive deliveries</div>`;
-    document.getElementById('available-wrap').innerHTML=`<div class="empty-state"><div class="ei">🛵</div><p>Go online to see available deliveries</p></div>`;
     document.getElementById('availBadge').style.display='none';
+    stopLocationTracking();
+    renderAvailable();
     toast('You are now offline.');
   }
 }
@@ -540,18 +579,11 @@ function getSample(){return[{id:'ORD-001',merchantName:"Susie's Store",merchantA
 
 function renderAvailable(){
   const el=document.getElementById('available-wrap');
-  if(!availableOrders.length){el.innerHTML=`<div class="empty-state"><div class="ei">🕐</div><p>No orders ready yet.<br/>We'll notify you when one arrives!</p></div>`;return;}
-  el.innerHTML=availableOrders.map((o,i)=>`<div class="delivery-card" style="animation-delay:${i*60}ms">
-    <div class="del-hdr"><div><div class="del-id">${o.id||o._id}</div><div style="font-size:11px;color:var(--muted)">${o.date||''}</div></div><div class="del-badge b-ready">📦 Ready to Pick Up</div></div>
-    <div class="del-merchant">🏪 ${o.merchantName||'Merchant'}</div>
-    <div class="del-items">${(o.items||[]).map(it=>`${emo(it.name)} ${it.name} ×${it.qty}`).join('<br>')}</div>
-    <div class="del-address">📍 Deliver to: <strong>${o.customerName}</strong><br>${o.customerAddress||'Address on file'}<br>📱 ${o.customerPhone||'—'}</div>
-    <div class="del-fee">Delivery Fee: ₱50 &nbsp;·&nbsp; Order: ₱${(o.total||0).toLocaleString()}</div>
-    <div class="del-actions">
-      <button class="btn-pickup" onclick="acceptDelivery('${o._id||o.id}',this)">🛵 Accept</button>
-      <button class="btn-nav" onclick="openMaps('${o.merchantAddress||''}')">🗺️ Map</button>
-    </div>
-  </div>`).join('');
+  if(!isOnline){
+    el.innerHTML=`<div class="empty-state"><div class="ei">🛵</div><p>Go online to receive automatically-assigned deliveries</p></div>`;
+    return;
+  }
+  el.innerHTML=`<div class="empty-state"><div class="ei">📡</div><p>You're online!<br/>Nearby orders will be automatically assigned to you — check your <strong>Active</strong> tab.</p></div>`;
 }
 
 async function acceptDelivery(id,btn){
@@ -772,7 +804,7 @@ function openMaps(address){
 function toast(msg){const t=document.getElementById('toastEl');document.getElementById('toastMsg').textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2800);}
 
 checkSession();
-setInterval(()=>{if(isOnline)loadAvailable();},8000);
+setInterval(()=>{if(isOnline)pollActiveDeliveries();},8000);
 </script>
 </body>
 </html>

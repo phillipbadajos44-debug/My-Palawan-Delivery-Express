@@ -33,6 +33,32 @@ function uploadToCloudinary(buffer, folder) {
   });
 }
 
+// ── GEOCODING (OpenStreetMap Nominatim - free, rate limited to ~1 req/sec) ──
+async function geocodeAddress(address) {
+  if (!address || !address.trim()) return null;
+  try {
+    const query = encodeURIComponent(address + ', Palawan, Philippines');
+    const url = `https://nominatim.openstreetmap.org/search?q=${query}&format=json&limit=1`;
+    const res = await fetch(url, { headers: { 'User-Agent': 'PalawanDeliveryExpress/1.0' } });
+    const data = await res.json();
+    if (data && data.length) return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+    return null;
+  } catch (e) {
+    console.error('Geocoding error:', e.message);
+    return null;
+  }
+}
+
+// ── HAVERSINE DISTANCE (in kilometers) ──
+function haversineDistance(lat1, lng1, lat2, lng2) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
 const app = express();
 
 app.use('/merchant', express.static(path.join(__dirname, 'merchant')));
@@ -87,6 +113,7 @@ const CustomerSchema = new mongoose.Schema({
 const MerchantSchema = new mongoose.Schema({
   name: String, phone: String, email: { type: String, unique: true },
   password: String, storeName: String, businessType: String, address: String,
+  lat: Number, lng: Number,
   productCategory: String, description: String, dtiNumber: String,
   permitNumber: String, mayorPermit: String, tin: String,
   documents: { govId: String, businessPermit: String, storeFront: String },
@@ -127,6 +154,7 @@ const ProductSchema = new mongoose.Schema({
 const OrderSchema = new mongoose.Schema({
   customerId: String, customerName: String, customerPhone: String,
   customerAddress: String, merchantId: String, merchantName: String, merchantAddress: String, merchantPhone: String,
+  merchantLat: Number, merchantLng: Number,
   riderId: String, riderName: String,
   items: [{ id: String, name: String, qty: Number, price: Number }],
   total: Number, deliveryFee: { type: Number, default: 50 },
@@ -208,6 +236,82 @@ const auth = (roles = []) => (req, res, next) => {
 async function createNotification(userId, userRole, title, message, type, orderId = null) {
   try { await Notification.create({ userId, userRole, title, message, type, orderId }); } catch (e) {}
 }
+
+// ============================================================
+// AUTO-ASSIGNMENT ENGINE (nearest available rider)
+// ============================================================
+const MAX_ACTIVE_ORDERS_PER_RIDER = 5;
+
+async function getMerchantLocation(merchantId, merchantAddress) {
+  const merchant = await Merchant.findById(merchantId);
+  if (merchant && merchant.lat != null && merchant.lng != null) {
+    return { lat: merchant.lat, lng: merchant.lng };
+  }
+  const geo = await geocodeAddress(merchantAddress);
+  if (geo && merchant) {
+    merchant.lat = geo.lat; merchant.lng = geo.lng;
+    await merchant.save();
+  }
+  return geo;
+}
+
+async function tryAssignNearestRider(orderId) {
+  try {
+    const order = await Order.findById(orderId);
+    if (!order || order.status !== 'ready') return false;
+
+    let merchantLoc = null;
+    if (order.merchantLat != null && order.merchantLng != null) {
+      merchantLoc = { lat: order.merchantLat, lng: order.merchantLng };
+    } else {
+      merchantLoc = await getMerchantLocation(order.merchantId, order.merchantAddress);
+      if (merchantLoc) {
+        order.merchantLat = merchantLoc.lat;
+        order.merchantLng = merchantLoc.lng;
+        await order.save();
+      }
+    }
+    if (!merchantLoc) return false;
+
+    const onlineRiders = await Rider.find({ isOnline: true, status: 'approved', 'currentLocation.lat': { $ne: null } });
+    if (!onlineRiders.length) return false;
+
+    let best = null, bestDist = Infinity;
+    for (const rider of onlineRiders) {
+      if (!rider.currentLocation || rider.currentLocation.lat == null) continue;
+      const activeCount = await Order.countDocuments({ riderId: rider._id.toString(), status: { $in: ['rider_assigned', 'picked_up'] } });
+      if (activeCount >= MAX_ACTIVE_ORDERS_PER_RIDER) continue;
+      const dist = haversineDistance(merchantLoc.lat, merchantLoc.lng, rider.currentLocation.lat, rider.currentLocation.lng);
+      if (dist < bestDist) { bestDist = dist; best = rider; }
+    }
+    if (!best) return false;
+
+    order.status = 'rider_assigned';
+    order.riderId = best._id.toString();
+    order.riderName = best.name;
+    order.statusHistory.push({ status: 'rider_assigned', time: new Date(), note: `Auto-assigned to nearest rider (${bestDist.toFixed(1)}km away)` });
+    await order.save();
+
+    await createNotification(best._id.toString(), 'rider', '🛵 New Delivery Assigned!', `You've been assigned an order from ${order.merchantName}, ${bestDist.toFixed(1)}km away.`, 'order', order._id);
+    await createNotification(order.customerId, 'customer', '🛵 Rider Assigned!', `${best.name} is heading to the merchant to pick up your order.`, 'order', order._id);
+
+    return true;
+  } catch (e) {
+    console.error('Auto-assign error:', e.message);
+    return false;
+  }
+}
+
+async function runAssignmentSweep() {
+  try {
+    const readyOrders = await Order.find({ status: 'ready' });
+    for (const o of readyOrders) {
+      await tryAssignNearestRider(o._id.toString());
+    }
+  } catch (e) {}
+}
+
+setInterval(runAssignmentSweep, 20000);
 
 // ============================================================
 // ROUTES
@@ -960,7 +1064,7 @@ app.patch('/api/orders/:id/status', auth(['merchant', 'rider', 'admin']), async 
       delivered: { title: '🎉 Order Delivered!', msg: 'Your order has been delivered successfully.' }
     };
     if (messages[status]) await createNotification(order.customerId, 'customer', messages[status].title, messages[status].msg, 'order', order._id);
-    if (status === 'ready') await createNotification('all_riders', 'rider', '📦 New Delivery Available!', `Order ready for pickup at ${order.merchantName}`, 'order', order._id);
+    if (status === 'ready') tryAssignNearestRider(order._id.toString());
 
     res.json(order);
   } catch (e) { res.status(500).json({ error: e.message }); }
