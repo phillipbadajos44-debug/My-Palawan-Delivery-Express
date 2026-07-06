@@ -477,7 +477,7 @@ async function pollActiveDeliveries(){
   if(newlyAssigned.length===1){
     const o=newlyAssigned[0];
     toast(`New delivery assigned! Pickup at ${o.merchantName||'merchant'} 🏪`);
-    openMaps(o.merchantAddress||'');
+    openOrderActionModal(o._id||o.id);
   }else if(newlyAssigned.length>1){
     toast(`${newlyAssigned.length} new deliveries assigned! Check your Active tab 🛵`);
   }
