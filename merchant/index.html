@@ -72,6 +72,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
 .stat-card.gold::before{background:var(--gold);}
 .stat-card.red::before{background:var(--red);}
 .stat-val{font-size:26px;font-weight:900;color:var(--gm);}
+.stat-card.green .stat-val{color:var(--green);}
+.stat-card.gold .stat-val{color:var(--gold);}
+.stat-card.red .stat-val{color:var(--red);}
 .stat-label{font-size:12px;color:var(--muted);font-weight:600;margin-top:4px;}
 .stat-icon{font-size:24px;margin-bottom:6px;}
 /* FILTER TABS */
@@ -93,13 +96,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
 .order-pay{font-size:12px;color:var(--muted);margin-bottom:8px;}
 .order-total{font-size:17px;font-weight:900;color:var(--gm);margin-bottom:12px;}
 .order-actions{display:flex;gap:8px;flex-wrap:wrap;}
-.btn-accept{flex:1;min-width:80px;padding:11px;background:var(--gm);color:#fff;border:none;border-radius:12px;font-size:13px;font-weight:700;cursor:pointer;}
+.btn-accept{flex:1;min-width:80px;padding:11px;background:var(--gm);color:#fff;border:none;border-radius:12px;font-size:13px;font-weight:700;cursor:pointer;transition:background .15s;}
+.btn-accept:hover{background:var(--gd);}
 .btn-ready{flex:1;min-width:80px;padding:11px;background:#8b5cf6;color:#fff;border:none;border-radius:12px;font-size:13px;font-weight:700;cursor:pointer;}
 .btn-ai-dispatch{width:100%;padding:12px;background:linear-gradient(135deg, #10b981, #059669);color:#fff;border:none;border-radius:12px;font-size:13px;font-weight:800;cursor:pointer;margin-top:6px;display:flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 4px 12px rgba(5,150,105,0.2);}
 .btn-reject{flex:1;min-width:80px;padding:11px;background:#fee2e2;color:#991b1b;border:none;border-radius:12px;font-size:13px;font-weight:700;cursor:pointer;}
 .btn-off{background:var(--muted)!important;pointer-events:none;}
 
-/* ─── 🤖 MODERN AI RADAR SCANNER ANIMATION ─── */
+/* 🤖 MODERN AI RADAR SCANNER ANIMATION */
 .radar-box {width:120px;height:120px;border-radius:50%;border:2px solid rgba(37,99,235,0.2);margin:24px auto;position:relative;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle, rgba(37,99,235,0.05) 0%, transparent 70%);}
 .radar-box::after {content:'';position:absolute;inset:0;border-radius:50%;border:2px solid var(--gm);animation:radarPulse 1.8s cubic-bezier(0.1, 0.8, 0.3, 1) infinite;}
 .radar-sweep {position:absolute;inset:0;border-radius:50%;background:conic-gradient(from 0deg, transparent 50%, rgba(37,99,235,0.4) 100%);animation:radarSweep 1.5s linear infinite;}
@@ -108,10 +112,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
 @keyframes radarSweep {to {transform:rotate(360deg);}}
 @keyframes bounce {from {transform:translateY(0);}to {transform:translateY(-6px);}}
 
-/* CONTROLS & PROFILE */
+/* PRODUCT FORM */
 .add-form{background:var(--card);border-radius:20px;margin:0 18px 20px;box-shadow:var(--sh);padding:20px;}
 .add-form h3{font-size:15px;font-weight:800;margin-bottom:14px;color:var(--gd);}
 .submit-btn{width:100%;padding:14px;background:linear-gradient(135deg,var(--gd),var(--gm));color:#fff;border:none;border-radius:14px;font-size:15px;font-weight:800;cursor:pointer;margin-top:4px;}
+/* PRODUCT LIST */
 .prod-list{padding:0 18px 16px;}
 .prod-item{background:var(--card);border-radius:14px;box-shadow:var(--sh);padding:14px;margin-bottom:12px;animation:fadeUp .3s ease both;}
 .prod-item-top{display:flex;align-items:center;gap:12px;}
@@ -130,6 +135,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
 .stock-ok{background:#d1fae5;color:#065f46;}
 .stock-low{background:#fef3c7;color:#92400e;}
 .stock-out{background:#fee2e2;color:var(--red);}
+/* SALES CHART */
 .sales-card{background:var(--card);border-radius:20px;margin:0 18px 16px;box-shadow:var(--sh);padding:20px;}
 .sales-card h3{font-size:15px;font-weight:800;color:var(--gd);margin-bottom:16px;}
 .chart-bars{display:flex;align-items:flex-end;gap:6px;height:100px;}
@@ -138,6 +144,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
 .bar.highlight{background:var(--gm);}
 .bar-val{font-size:9px;color:var(--muted);font-weight:700;}
 .bar-day{font-size:9px;color:var(--muted);}
+/* EARN CARD */
 .earn-card{background:linear-gradient(135deg,var(--gd),var(--gm));border-radius:20px;margin:0 18px 16px;padding:24px 20px;color:#fff;}
 .earn-total{font-size:34px;font-weight:900;letter-spacing:-1px;}
 .earn-label{font-size:12px;opacity:.8;margin-top:4px;}
@@ -145,6 +152,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
 .earn-item{background:rgba(255,255,255,.15);border-radius:12px;padding:10px;text-align:center;}
 .earn-val{font-size:17px;font-weight:800;}
 .earn-lbl{font-size:10px;opacity:.8;margin-top:2px;}
+/* PROFILE */
 .profile-hero{background:linear-gradient(135deg,var(--gd),var(--gm));padding:28px 18px 44px;text-align:center;}
 .store-avatar{width:80px;height:80px;border-radius:20px;background:rgba(255,255,255,.2);border:3px solid rgba(255,255,255,.4);display:flex;align-items:center;justify-content:center;font-size:36px;margin:0 auto 12px;overflow:hidden;cursor:pointer;}
 .store-avatar img{width:100%;height:100%;object-fit:cover;}
@@ -164,7 +172,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
 .mi-icon{font-size:20px;width:36px;text-align:center;}
 .mi-label{font-size:14px;font-weight:600;flex:1;}
 .mi-arr{color:var(--muted);}
-/* MODAL */
+/* MODALS */
 .modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:400;align-items:flex-end;}
 .modal-bg.open{display:flex;}
 .modal-sheet{background:#fff;border-radius:24px 24px 0 0;padding:22px 18px 36px;width:100%;max-height:90vh;overflow-y:auto;}
@@ -181,7 +189,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
 .modal-handle{width:40px;height:4px;background:#e5e7eb;border-radius:4px;margin:0 auto 18px;}
 .modal-title{font-size:18px;font-weight:800;margin-bottom:18px;}
 .modal-btn{width:100%;padding:14px;background:linear-gradient(135deg,var(--gd),var(--gm));color:#fff;border:none;border-radius:14px;font-size:15px;font-weight:800;cursor:pointer;margin-top:8px;}
-/* NOTIF */
+/* NOTIF PANEL */
 .side-panel{display:none;position:fixed;top:0;right:0;bottom:0;width:min(340px,100vw);background:#fff;z-index:350;box-shadow:-4px 0 32px rgba(0,0,0,.15);overflow-y:auto;}
 .side-panel.open{display:block;}
 .sp-header{background:linear-gradient(135deg,var(--gd),var(--gm));padding:20px 18px;color:#fff;display:flex;align-items:center;justify-content:space-between;}
@@ -190,8 +198,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
 .notif-item{padding:14px 18px;border-bottom:1px solid var(--bg);display:flex;gap:10px;cursor:pointer;}
 .notif-item.unread{background:var(--bg);}
 .ni-text{font-size:13px;font-weight:600;}
-.ni-sub{font-size:12px;color:var(--muted);margin-top:2px;}
-.ni-time{font-size:11px;color:var(--muted);margin-top:2px;}
 /* NAV */
 .bottom-nav{position:fixed;bottom:0;left:0;right:0;height:var(--nav);background:#fff;border-top:1px solid #e5e7eb;display:flex;align-items:center;justify-content:space-around;z-index:150;box-shadow:0 -4px 20px rgba(37,99,235,.08);}
 .nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:6px 0;cursor:pointer;position:relative;color:var(--muted);border:none;background:none;font-family:inherit;}
@@ -206,11 +212,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
 .empty-state .ei{font-size:48px;margin-bottom:10px;}
 .spinner{width:36px;height:36px;border:3px solid var(--gl);border-top-color:var(--gm);border-radius:50%;animation:spin .7s linear infinite;margin:40px auto;display:block;}
 @keyframes spin{to{transform:rotate(360deg);}}
-.avatar-input{display:none;}
 </style>
 </head>
 <body>
 
+<!-- MAIN CONTEXT -->
 <div class="auth-screen" id="authScreen">
   <div class="auth-hero">
     <div class="auth-hero-icon">🏪</div>
@@ -248,31 +254,22 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
         <select id="a-btype"><option value="">Select type</option>
           <option>Sari-Sari Store</option><option>Grocery Store</option><option>Restaurant / Food Stall</option>
           <option>Meat Shop</option><option>Fish Market</option><option>Bakery</option>
-          <option>Pharmacy / Drug Store</option><option>General Merchandise</option><option>Other</option>
         </select>
       </div>
       <div class="field"><label>Store Address *</label><input id="a-addr" type="text" placeholder="Street, Barangay, City"/></div>
       <div class="field"><label>Main Product Category *</label>
         <select id="a-pcat"><option value="">Select category</option>
-          <option>Canned Goods</option><option>Rice & Grains</option><option>Meat & Poultry</option>
-          <option>Fish & Seafood</option><option>Vegetables & Fruits</option><option>Dairy & Eggs</option>
-          <option>Beverages</option><option>Bread & Bakery</option><option>Household Items</option>
-          <option>Health & Beauty</option><option>Mixed / General</option>
+          <option>Canned Goods</option><option>Rice & Grains</option><option>Vegetables & Fruits</option>
         </select>
       </div>
-      <div class="field"><label>Store Description</label><textarea id="a-desc" placeholder="Tell us about your store…"></textarea></div>
-      <div class="sec-div">📋 Business Documents</div>
-      <div class="field"><label>DTI / SEC Registration No. *</label><input id="a-dti" type="text" placeholder="DTI-2024-12345"/></div>
+      <div class="field"><label>DTI Registration No. *</label><input id="a-dti" type="text" placeholder="DTI-2024-12345"/></div>
       <div class="field"><label>Business Permit No. *</label><input id="a-permit" type="text" placeholder="BP-2024-00123"/></div>
-      <div class="field-row">
-        <div class="field"><label>Mayor's Permit</label><input id="a-mayor" type="text" placeholder="MP-2024-00456"/></div>
-        <div class="field"><label>TIN</label><input id="a-tin" type="text" placeholder="123-456-789"/></div>
-      </div>
       <button class="auth-btn" onclick="doApply()">📤 Submit Application</button>
     </div>
   </div>
 </div>
 
+<!-- REVIEW SCREEN -->
 <div class="pending-screen" id="pendingScreen">
   <div class="pending-icon">⏳</div>
   <div class="pending-title">Application Submitted!</div>
@@ -281,6 +278,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
   <div class="logout-link" onclick="logout()">Log out</div>
 </div>
 
+<!-- LIVE APPLICATION MODULE -->
 <div class="app" id="mainApp">
   <div class="header">
     <div class="header-top">
@@ -296,13 +294,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
     </div>
   </div>
 
+  <!-- DASHBOARD PANEL -->
   <div id="page-dashboard" class="page active">
     <div class="section-title">📊 Dashboard</div>
     <div class="stats-grid">
-      <div class="stat-card" style="animation-delay:0ms"><div class="stat-icon">📦</div><div class="stat-val" id="s-total">0</div><div class="stat-label">Total Orders</div></div>
-      <div class="stat-card red" style="animation-delay:60ms"><div class="stat-icon">⏳</div><div class="stat-val" id="s-pend">0</div><div class="stat-label">Pending</div></div>
-      <div class="stat-card green" style="animation-delay:120ms"><div class="stat-icon">✅</div><div class="stat-val" id="s-acc">0</div><div class="stat-label">Accepted</div></div>
-      <div class="stat-card gold" style="animation-delay:180ms"><div class="stat-icon">💰</div><div class="stat-val" id="s-rev">₱0</div><div class="stat-label">Revenue</div></div>
+      <div class="stat-card"><div class="stat-icon">📦</div><div class="stat-val" id="s-total">0</div><div class="stat-label">Total Orders</div></div>
+      <div class="stat-card red"><div class="stat-icon">⏳</div><div class="stat-val" id="s-pend">0</div><div class="stat-label">Pending</div></div>
+      <div class="stat-card green"><div class="stat-icon">✅</div><div class="stat-val" id="s-acc">0</div><div class="stat-label">Accepted</div></div>
+      <div class="stat-card gold"><div class="stat-icon">💰</div><div class="stat-val" id="s-rev">₱0</div><div class="stat-label">Revenue</div></div>
     </div>
     <div class="sales-card">
       <h3>📈 This Week's Sales</h3>
@@ -314,6 +313,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
     </div>
   </div>
 
+  <!-- ACTIVE ORDERS CONTAINER -->
   <div id="page-orders" class="page">
     <div class="section-title">📦 All Orders</div>
     <div class="filter-tabs">
@@ -327,6 +327,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
     <div class="orders-wrap" id="all-orders-wrap"><div class="spinner"></div></div>
   </div>
 
+  <!-- DATA SUBMIT FORM -->
   <div id="page-add" class="page">
     <div class="section-title" id="addFormTitle">➕ Post a Product</div>
     <div class="add-form">
@@ -339,25 +340,18 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
       <div class="field"><label>Category *</label>
         <select id="p-cat"><option value="">Select category</option>
           <option>Canned Goods</option><option>Rice & Grains</option><option>Meat & Poultry</option>
-          <option>Fish & Seafood</option><option>Vegetables</option><option>Fruits</option>
-          <option>Dairy & Eggs</option><option>Beverages</option><option>Bread & Bakery</option>
-          <option>Noodles & Pasta</option><option>Condiments</option><option>Household</option>
-          <option>Snacks</option><option>Cooking Oil</option><option>Baby Products</option><option>Health & Beauty</option>
+          <option>Fish & Seafood</option><option>Vegetables</option><option>Fruits</option><option>Dairy & Eggs</option>
         </select>
       </div>
-      <div class="field"><label>Description</label><textarea id="p-desc" placeholder="Brief description of your product…"></textarea></div>
-      <div class="field"><label>Delivery Fee (% of item price) *</label>
-        <select id="p-delivery-pct">
-          <option value="8">5–10% — Mamahaling produkto o malapit lang ang delivery</option>
-          <option value="15" selected>10–20% — Karaniwan sa maraming local delivery</option>
-          <option value="25">20%+ — Malayo ang biyahe / maliit ang halaga / mahirap ang ruta</option>
-        </select>
+      <div class="field"><label>Description</label><textarea id="p-desc" placeholder="Brief description..."></textarea></div>
+      <div class="field"><label>Delivery Fee (%) *</label>
+        <select id="p-delivery-pct"><option value="15" selected>15% Standard</option></select>
       </div>
       <button class="submit-btn" onclick="saveProduct()" id="saveProductBtn">📤 Post Product</button>
-      <button class="submit-btn" onclick="cancelEdit()" id="cancelEditBtn" style="display:none;background:#f3f4f6;color:var(--text);margin-top:8px">✕ Cancel Edit</button>
     </div>
   </div>
 
+  <!-- STORE PRODUCTS GRID -->
   <div id="page-products" class="page">
     <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 18px 10px">
       <div class="section-title" style="padding:0">🛍️ My Products</div>
@@ -372,6 +366,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
     <div class="prod-list" id="prod-list"><div class="spinner"></div></div>
   </div>
 
+  <!-- STATS BREAKDOWN -->
   <div id="page-earnings" class="page">
     <div class="section-title">💰 Earnings</div>
     <div style="padding:0 18px 16px" id="merchant-balance-card"></div>
@@ -384,12 +379,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
         <div class="earn-item"><div class="earn-val" id="earn-cnt">0</div><div class="earn-lbl">Orders</div></div>
       </div>
     </div>
-    <div class="section-title" style="padding-top:4px">📊 Top Products</div>
-    <div class="prod-list" id="top-products-list"></div>
     <div class="section-title" style="padding-top:4px">✅ Completed Orders</div>
     <div class="orders-wrap" id="completed-orders-wrap"></div>
   </div>
 
+  <!-- USER SETTINGS -->
   <div id="page-profile" class="page">
     <div class="profile-hero">
       <div class="store-avatar"><span id="storeAvatarEmoji">🏪</span></div>
@@ -402,68 +396,35 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
       <div class="pf"><div class="pf-icon">✉️</div><div class="pf-info"><div class="pf-label">Email</div><div class="pf-value" id="pf-email">—</div></div></div>
       <div class="pf"><div class="pf-icon">📍</div><div class="pf-info"><div class="pf-label">Store Address</div><div class="pf-value" id="pf-addr">—</div></div></div>
     </div>
-    <div style="padding:18px">
-      <button style="width:100%;padding:14px;background:#fee2e2;color:#991b1b;border:none;border-radius:14px;font-size:15px;font-weight:700;cursor:pointer" onclick="logout()">DLog Out</button>
-    </div>
+    <div style="padding:18px"><button style="width:100%;padding:14px;background:#fee2e2;color:#991b1b;border:none;border-radius:14px;font-size:15px;font-weight:700;cursor:pointer" onclick="logout()">🚪 Log Out</button></div>
   </div>
 
   <nav class="bottom-nav">
     <button class="nav-item active" onclick="showPage('dashboard',this)"><div class="nav-icon">📊</div><span class="nav-label">Dashboard</span><span class="n-badge" id="pendBadge"></span></button>
     <button class="nav-item" onclick="showPage('orders',this);renderAllOrders()"><div class="nav-icon">📦</div><span class="nav-label">Orders</span></button>
-    <button class="nav-item" onclick="showPage('add',this)"><div class="nav-icon">➕</div><span class="nav-label">Add Product</span></button>
+    <button class="nav-item" onclick="showPage('add',this)"><div class="nav-icon">➕</div><span class="nav-label">Add</span></button>
     <button class="nav-item" onclick="showPage('products',this);loadMyProducts()"><div class="nav-icon">🛍️</div><span class="nav-label">Products</span></button>
     <button class="nav-item" onclick="showPage('earnings',this);loadEarnings()"><div class="nav-icon">💰</div><span class="nav-label">Earnings</span></button>
     <button class="nav-item" onclick="showPage('profile',this)"><div class="nav-icon">👤</div><span class="nav-label">Profile</span></button>
   </nav>
 </div>
 
+<!-- RADAR SCANNER MODULE -->
 <div class="modal-bg" id="aiDispatchModal">
   <div class="modal-sheet" style="text-align:center; padding: 32px 20px;">
     <div class="modal-handle"></div>
     <div class="modal-title" style="color:var(--gd); font-weight:900;">🤖 PDE Intelligent Dispatch</div>
-    
     <div id="ai-scanning-view">
-      <div class="radar-box">
-        <div class="radar-sweep"></div>
-        <div class="radar-center">📦</div>
-      </div>
-      <div style="font-size:15px; font-weight:700; color:var(--gm); margin-top:16px;" id="ai-status-text">Tinatawagan ang PDE-AI Cluster...</div>
-      <div style="font-size:12px; color:var(--muted); margin-top:6px; max-width:280px; margin-inline:auto;">Kinakalkula ang distansya ng lahat ng online riders sa Palawan gamit ang Geolocation Radar.</div>
+      <div class="radar-box"><div class="radar-sweep"></div><div class="radar-center">📦</div></div>
+      <div style="font-size:15px; font-weight:700; color:var(--gm); margin-top:16px;" id="ai-status-text">Scanning for available riders...</div>
     </div>
-
     <div id="ai-success-view" style="display:none; animation: fadeUp 0.4s ease both;">
       <div style="font-size:54px; margin-bottom:12px;">🎉</div>
-      <div style="font-size:18px; font-weight:800; color:var(--green);">Rider Matched successfully!</div>
-      <div style="background:var(--bg); border-radius:14px; padding:16px; margin:18px 0; text-align:left; border:1px solid var(--gl);">
-        <div style="font-size:14px; margin-bottom:6px;">🛵 <strong>Rider:</strong> <span id="ai-rider-name">...</span></div>
-        <div style="font-size:14px; margin-bottom:6px;">📱 <strong>Phone:</strong> <span id="ai-rider-phone">...</span></div>
-        <div style="font-size:14px; margin-bottom:6px;">🔢 <strong>Vehicle:</strong> <span id="ai-rider-vehicle">...</span></div>
-        <div style="font-size:14px;">📍 <strong>AI Calculated Distance:</strong> <span id="ai-rider-dist" style="color:var(--gm); font-weight:800;">...</span></div>
-      </div>
+      <div style="font-size:18px; font-weight:800; color:var(--green);">Rider Assigned Successfully!</div>
+      <div style="background:var(--bg); border-radius:14px; padding:16px; margin:18px 0; text-align:left;" id="ai-success-details"></div>
       <button class="modal-btn" style="background:var(--green);" onclick="closeAiModalAndRefresh()">Sige, I-close</button>
     </div>
   </div>
-</div>
-
-<div class="modal-bg" id="chatModal">
-  <div class="modal-sheet" style="position:relative">
-    <button class="modal-close-x" onclick="closeChatModal()">✕</button>
-    <div class="modal-handle"></div>
-    <div class="modal-title">🛵 Chat with Rider</div>
-    <div id="chat-order-info" style="font-size:13px;color:var(--muted);margin-bottom:10px"/>
-    <div class="chat-box">
-      <div class="chat-thread" id="chat-thread"></div>
-      <div class="chat-input-row">
-        <input type="text" id="chat-input" placeholder="Type a message..." onkeypress="if(event.key==='Enter')sendChatMessage()"/>
-        <button onclick="sendChatMessage()">Send</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="side-panel" id="notifPanel">
-  <div class="sp-header"><h3>🔔 Notifications</h3><span class="sp-close" onclick="closeNotif()">✕</span></div>
-  <div id="notifList" style="padding:8px 0"></div>
 </div>
 
 <div class="toast" id="toastEl">✅ <span id="toastMsg"></span></div>
@@ -471,14 +432,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
 <script>
 const API_URL = "https://my-palawan-delivery-express.onrender.com";
 const API = API_URL + '/api';
-const EM={rice:'🍚',vegetable:'🥦',fish:'🐟',isda:'🐟',meat:'🥩',chicken:'🍗',egg:'🥚',milk:'🥛',oil:'🫙',bread:'🍞',coffee:'☕',noodle:'🍜',canned:'🥫',chips:'🍿',beef:'🥩',pork:'🥩',bangus:'🐟',shrimp:'🦐',mango:'🥭'};
+const EM={rice:'🍚',vegetable:'🥦',fish:'🐟',meat:'🥩',chicken:'🍗',egg:'🥚',milk:'🥛',oil:'🫙',bread:'🍞',coffee:'☕',noodle:'🍜',canned:'🥫'};
 function emo(n){if(!n)return'📦';const l=n.toLowerCase();for(const[k,e]of Object.entries(EM))if(l.includes(k))return e;return'📦';}
 
 let token=null,currentMerchant=null;
 let allOrders=[],myProducts=[];
 let currentOrderFilter='all',currentProdFilter='all';
 let isStoreOpen=false;
-let editingProductId=null;
 let notifications=[];
 
 function checkSession(){
@@ -503,7 +463,6 @@ async function doLogin(){
     const r=await fetch(`${API}/merchants/login`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password:pw})});
     const d=await r.json();
     if(d.success&&d.token){token=d.token;currentMerchant=d.user;saveSession();enterApp();return;}
-    if(d.status==='pending'){showErr('login-err','Your application is still pending approval.');return;}
     showErr('login-err',d.error||'Invalid credentials.');
   }catch(e){showErr('login-err','Cannot connect to server.');}
 }
@@ -519,20 +478,12 @@ async function doApply() {
   const pcat = document.getElementById('a-pcat').value;
   const dti = document.getElementById('a-dti').value.trim();
   const permit = document.getElementById('a-permit').value.trim();
-
-  if (!name || !phone || !email || !pw || !storeName || !btype || !addr || !pcat || !dti || !permit) {
-    showErr('apply-err', 'Please fill in all required (*) fields.'); return;
-  }
+  if (!name || !phone || !email || !pw || !storeName || !btype || !addr || !pcat || !dti || !permit) { showErr('apply-err', 'Please fill in all fields.'); return; }
   try {
-    const res = await fetch(`${API}/merchants/apply`, {
-      method: "POST", headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({name, phone, email, password: pw, storeName, businessType: btype, address: addr, productCategory: pcat, dtiNumber: dti, permitNumber: permit})
-    });
+    const res = await fetch(`${API}/merchants/apply`, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({name, phone, email, password: pw, storeName, businessType: btype, address: addr, productCategory: pcat, dtiNumber: dti, permitNumber: permit})});
     const data = await res.json();
-    if (!res.ok || !data.success) { showErr('apply-err', data.error || 'Error submitting application.'); return; }
-    document.getElementById('apply-ok').classList.add('show');
-    setTimeout(() => showPending(), 2000);
-  } catch (err) { showErr('apply-err', 'Cannot connect to server.'); }
+    if (data.success) { document.getElementById('apply-ok').classList.add('show'); setTimeout(() => showPending(), 2000); } else { showErr('apply-err', data.error); }
+  } catch (err) { showErr('apply-err', 'Connection error.'); }
 }
 
 function saveSession(){localStorage.setItem('pde_merch_token',token||'');localStorage.setItem('pde_merch_user',JSON.stringify(currentMerchant));}
@@ -541,13 +492,9 @@ function enterApp(){
   document.getElementById('authScreen').style.display='none';
   document.getElementById('pendingScreen').classList.remove('active');
   document.getElementById('mainApp').classList.add('active');
-  updateStoreUI();loadDashboard();loadMyProducts();setInterval(loadDashboard,9000);
+  updateStoreUI(); loadDashboard(); loadMyProducts(); setInterval(loadDashboard,8000);
 }
-function logout(){
-  token=null;currentMerchant=null;
-  localStorage.removeItem('pde_merch_token');localStorage.removeItem('pde_merch_user');
-  window.location.reload();
-}
+function logout(){ token=null; currentMerchant=null; localStorage.clear(); window.location.reload(); }
 
 function updateStoreUI(){
   if(!currentMerchant)return;
@@ -561,16 +508,12 @@ function updateStoreUI(){
   isStoreOpen=currentMerchant.isOpen||false;
   updateStoreToggle();
 }
-
 function toggleStore(){
-  isStoreOpen=!isStoreOpen;
-  currentMerchant.isOpen=isStoreOpen;
-  saveSession();updateStoreToggle();
-  toast(isStoreOpen?'Store is now OPEN 🟢':'Store is now CLOSED 🔴');
+  isStoreOpen=!isStoreOpen; currentMerchant.isOpen=isStoreOpen; saveSession(); updateStoreToggle();
   try{fetch(`${API}/merchants/toggle-store`,{method:'PUT',headers:{'Authorization':'Bearer '+token}});}catch(e){}
 }
 function updateStoreToggle(){
-  const t=document.getElementById('storeToggle');const l=document.getElementById('storeStatusLabel');
+  const t=document.getElementById('storeToggle'); const l=document.getElementById('storeStatusLabel');
   if(isStoreOpen){t.classList.add('on');l.textContent='Open';} else {t.classList.remove('on');l.textContent='Closed';}
 }
 
@@ -584,27 +527,24 @@ function showPage(page,btn){
 async function loadDashboard(){
   try{
     const r=await fetch(`${API}/orders`,{headers:{'Authorization':'Bearer '+token}});
-    const d=await r.json(); allOrders=Array.isArray(d)?d:(d.orders||getSample());
-  }catch{allOrders=getSample();}
-  updateStats();renderNewOrders();renderSalesChart();
+    const d=await r.json(); allOrders=Array.isArray(d)?d:(d.orders||[]);
+  }catch{allOrders=[];}
+  updateStats(); renderNewOrders(); renderSalesChart();
 }
-
-function getSample(){return[];}
 
 function updateStats(){
   const pend=allOrders.filter(o=>o.status==='pending').length;
-  const acc=allOrders.filter(o=>['accepted','ready','rider_assigned'].includes(o.status)).length;
-  const rev=allOrders.filter(o=>o.status==='delivered').reduce((s,o)=>s+o.total,0);
+  const acc=allOrders.filter(o=>['accepted','ready','rider_assigned','picked_up'].includes(o.status)).length;
+  const rev=allOrders.filter(o=>o.status==='delivered').reduce((s,o)=>s+(o.total||0),0);
   document.getElementById('s-total').textContent=allOrders.length;
   document.getElementById('s-pend').textContent=pend; document.getElementById('s-acc').textContent=acc;
   document.getElementById('s-rev').textContent='₱'+rev.toLocaleString();
-  const pb=document.getElementById('pendBadge');
-  if(pend>0){pb.style.display='flex';pb.textContent=pend;}else pb.style.display='none';
+  const pb=document.getElementById('pendBadge'); if(pend>0){pb.style.display='flex';pb.textContent=pend;}else pb.style.display='none';
 }
 
 function renderSalesChart(){
-  document.getElementById('salesChart').innerHTML=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map((d,i)=>`
-    <div class="bar-wrap"><div class="bar-val">₱0</div><div class="bar ${i===6?'highlight':''}" style="height:15px"></div><div class="bar-day">${d}</div></div>`).join('');
+  document.getElementById('salesChart').innerHTML=['M','T','W','T','F','S','S'].map(d=>`
+    <div class="bar-wrap"><div class="bar-val">₱0</div><div class="bar" style="height:15px"></div><div class="bar-day">${d}</div></div>`).join('');
 }
 
 function orderCard(o,i=0){
@@ -613,9 +553,7 @@ function orderCard(o,i=0){
   let actions='';
   if(o.status==='pending') actions=`<div class="order-actions"><button class="btn-accept" onclick="acceptOrder('${o._id||o.id}',this)">✅ Accept</button><button class="btn-reject" onclick="rejectOrder('${o._id||o.id}',this)">✕ Reject</button></div>`;
   else if(o.status==='accepted') actions=`<div class="order-actions"><button class="btn-ready" onclick="markReady('${o._id||o.id}',this)">📦 Mark Ready</button></div>`;
-  // FLOW UPDATE: Kapag ready, lalabas ang Modern Intelligent Dispatch button
   else if(o.status==='ready') actions=`<div class="order-actions"><button class="btn-ai-dispatch" onclick="triggerAiDispatch('${o._id||o.id}')">🤖 AI Dispatch Nearest Rider</button></div>`;
-  else if(['rider_assigned','picked_up'].includes(o.status)) actions=`<div class="order-actions"><button class="btn-chat" onclick="openChatModal('${o._id||o.id}','${o.riderName||'Rider'}')">💬 Chat with Rider (${o.riderName||'Rider'})</button></div>`;
   else actions=`<div class="order-actions"><button class="btn-accept btn-off">${st.l}</button></div>`;
 
   return`<div class="order-card" style="animation-delay:${i*60}ms">
@@ -641,72 +579,38 @@ function renderAllOrders(){
 }
 
 async function acceptOrder(id,btn){
-  btn.classList.add('btn-off'); btn.textContent='Accepting…';
   try{await fetch(`${API}/orders/${id}/status`,{method:'PATCH',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({status:'accepted'})});}catch(e){}
   loadDashboard(); renderAllOrders(); toast('Order accepted!');
 }
+async function rejectOrder(id,btn){
+  try{await fetch(`${API}/orders/${id}/status`,{method:'PATCH',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({status:'rejected'})});}catch(e){}
+  loadDashboard(); renderAllOrders(); toast('Order rejected.');
+}
 async function markReady(id,btn){
-  btn.classList.add('btn-off'); btn.textContent='Updating…';
   try{await fetch(`${API}/orders/${id}/status`,{method:'PATCH',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({status:'ready'})});}catch(e){}
-  loadDashboard(); renderAllOrders(); toast('Order is ready! Press AI dispatch to find a rider.');
+  loadDashboard(); renderAllOrders(); toast('Order marked ready!');
 }
 
-// ─── 🤖 OPERATIONAL INTELLIGENT AI DISPATCH LOGIC FLOW ───
 async function triggerAiDispatch(orderId) {
-  // 1. Buksan ang Modern Radar Modal at simulan ang scanning state animation
   document.getElementById('ai-scanning-view').style.display = 'block';
   document.getElementById('ai-success-view').style.display = 'none';
-  document.getElementById('ai-status-text').textContent = "Inilulunsad ang Geolocation Sweep...";
   document.getElementById('aiDispatchModal').classList.add('open');
-
-  setTimeout(() => { document.getElementById('ai-status-text').textContent = "Scanning for available riders in Palawan..."; }, 1200);
-
   try {
-    // 2. Padalhan ng request ang Node.js production link na nakakonekta sa Python cluster
-    const res = await fetch(`${API}/orders/${orderId}/ai-dispatch`, {
-      method: 'POST',
-      headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' }
-    });
+    const res = await fetch(`${API}/orders/${orderId}/ai-dispatch`, {method: 'POST', headers: {'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json'}});
     const data = await res.json();
-
-    if (!res.ok || data.error) {
-      document.getElementById('aiDispatchModal').classList.remove('open');
-      toast(`⚠️ AI Cluster Error: ${data.error || 'Walang online rider sa ngayon.'}`);
-      return;
-    }
-
-    // 3. Kapag matagumpay na nakahanap ang Haversine Formula, ipakita ang magandang success card
+    if (!res.ok || data.error) { document.getElementById('aiDispatchModal').classList.remove('open'); toast(`⚠️ AI Error: ${data.error}`); return; }
     document.getElementById('ai-scanning-view').style.display = 'none';
     document.getElementById('ai-success-view').style.display = 'block';
-    
-    document.getElementById('ai-rider-name').textContent = data.rider.pangalan;
-    document.getElementById('ai-rider-phone').textContent = "Signal Active 📱";
-    document.getElementById('ai-rider-vehicle').textContent = "PDE Standard Vehicle 🏍️";
-    document.getElementById('ai-rider-dist').textContent = data.rider.distansya;
-
-    addNotif(`AI Dispatch Success: ${data.rider.pangalan} is heading to you!`, '🤖');
-
-  } catch (err) {
-    document.getElementById('aiDispatchModal').classList.remove('open');
-    toast("❌ Paumanhin, hindi makakonekta sa cloud AI server.");
-  }
+    document.getElementById('ai-success-details').innerHTML = `
+      <div>🛵 <strong>Rider Name:</strong> ${data.ai_response.pangalan}</div>
+      <div>🔢 <strong>Vehicle Plate:</strong> ${data.ai_response.plaka}</div>
+      <div>📍 <strong>Distance:</strong> ${data.ai_response.distansya_km} KM</div>
+    `;
+  } catch (err) { document.getElementById('aiDispatchModal').classList.remove('open'); toast("❌ AI Server Timeout."); }
 }
 
-function closeAiModalAndRefresh() {
-  document.getElementById('aiDispatchModal').classList.remove('open');
-  loadDashboard();
-  renderAllOrders();
-}
+function closeAiModalAndRefresh(){ document.getElementById('aiDispatchModal').classList.remove('open'); loadDashboard(); renderAllOrders(); }
 
-// ─── CHAT MODAL FUNCTIONS ───
-async function openChatModal(orderId, riderName){
-  document.getElementById('chat-order-id').value = orderId;
-  document.getElementById('chatModal').classList.add('open');
-  document.getElementById('chat-thread').innerHTML = `<div style="text-align:center;font-size:12px;color:var(--muted)">Connected with ${riderName}</div>`;
-}
-function closeChatModal(){ document.getElementById('chatModal').classList.remove('open'); }
-
-// ─── BACKWARD COMPATIBLE PRODUCT MANIPULATION ───
 async function loadMyProducts(){
   try{
     const r=await fetch(`${API}/products?merchantId=${currentMerchant.id||currentMerchant._id}`,{headers:{'Authorization':'Bearer '+token}});
@@ -717,28 +621,31 @@ async function loadMyProducts(){
 function renderMyProducts(){
   const el=document.getElementById('prod-list');
   el.innerHTML=myProducts.length?myProducts.map(p=>`<div class="prod-item">
-    <div class="prod-item-top"><div class="prod-img">${emo(p.name)}</div><div class="prod-info"><div class="prod-name">${p.name}</div><div class="prod-price">₱${p.price}</div></div></div>
+    <div class="prod-item-top"><div class="prod-img">${emo(p.name)}</div><div class="prod-info"><div class="prod-name">${p.name}</div><div class="prod-price">₱${p.price}</div><div class="stock-badge stock-ok">In Stock (${p.stock||0})</div></div></div>
   </div>`).join(''):`<div class="empty-state"><div class="ei">🛍️</div><p>No products found</p></div>`;
 }
+function searchProducts(q){ let prods=myProducts.filter(p=>p.name.toLowerCase().includes(q.toLowerCase())); }
+
 async function saveProduct(){
-  const name=document.getElementById('p-name').value.trim(); const price=parseFloat(document.getElementById('p-price').value); const cat=document.getElementById('p-cat').value;
-  if(!name||!price||!cat){toast('Please fill required fields.');return;}
+  const name=document.getElementById('p-name').value.trim(); const price=parseFloat(document.getElementById('p-price').value); const cat=document.getElementById('p-cat').value; const stock=parseInt(document.getElementById('p-stock').value)||0; const desc=document.getElementById('p-desc').value.trim();
+  if(!name||!price||!cat){toast('Please fill in required fields');return;}
   try{
-    await fetch(`${API}/products`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({name,price,category:cat,merchantId:currentMerchant.id||currentMerchant._id,merchantName:currentMerchant.storeName,stock:50,isAvailable:true})});
+    await fetch(`${API}/products`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({name,price,category:cat,description:desc,stock,merchantId:currentMerchant.id||currentMerchant._id,merchantName:currentMerchant.storeName,isAvailable:true})});
     toast('Product added successfully!'); showPage('products', document.querySelectorAll('.nav-item')[3]); loadMyProducts();
-  }catch(e){toast('Failed to save.');}
+  }catch(e){toast('Failed to post product.');}
+}
+
+function filterProducts(f,el){
+  document.querySelectorAll('#page-products .ftab').forEach(t=>t.classList.remove('active'));el.classList.add('active');
 }
 
 async function loadEarnings(){
-  document.getElementById('merchant-balance-card').innerHTML=`<div style="background:var(--gd);border-radius:14px;padding:16px;color:#fff;text-align:center;">₱0.00<br><span style="font-size:12px;opacity:0.8;">Available balance</span></div>`;
-  document.getElementById('completed-orders-wrap').innerHTML=`<div class="empty-state"><div class="ei">📊</div><p>No completed orders yet</p></div>`;
+  const done=allOrders.filter(o=>o.status==='delivered'); const total=done.reduce((s,o)=>s+o.total,0);
+  document.getElementById('earn-total').textContent='₱'+total.toLocaleString();
+  document.getElementById('completed-orders-wrap').innerHTML=done.length?done.map((o,i)=>orderCard(o,i)).join(''):`<div class="empty-state"><div class="ei">📊</div><p>No completed orders yet</p></div>`;
 }
 
-function addNotif(text,emoji){ notifications.unshift({text,emoji,time:'Just now'}); renderNotifs(); }
-function renderNotifs(){
-  document.getElementById('notifList').innerHTML=notifications.map(n=>`<div class="notif-item"><span style="font-size:20px">${n.emoji}</span><div><div class="ni-text">${n.text}</div></div></div>`).join('');
-}
-function openNotif(){ document.getElementById('notifPanel').classList.add('open'); renderNotifs(); }
+function openNotif(){ document.getElementById('notifPanel').classList.add('open'); }
 function closeNotif(){ document.getElementById('notifPanel').classList.remove('open'); }
 function toast(msg){const t=document.getElementById('toastEl');document.getElementById('toastMsg').textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2800);}
 
