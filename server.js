@@ -617,6 +617,13 @@ app.put('/api/riders/toggle-online', auth(['rider']), async (req, res) => {
     res.json({ isOnline: r.isOnline });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
+app.put('/api/riders/set-online', auth(['rider']), async (req, res) => {
+  try {
+    const { isOnline } = req.body;
+    const r = await Rider.findByIdAndUpdate(req.user.id, { isOnline: !!isOnline }, { new: true });
+    res.json({ isOnline: r.isOnline });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
 
 // Proof of delivery upload
 app.post('/api/riders/proof-of-delivery/:orderId', auth(['rider']), (req, res) => {

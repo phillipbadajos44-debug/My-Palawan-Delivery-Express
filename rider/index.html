@@ -218,8 +218,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
         <div><div class="brand-name">Rider Dashboard</div><div class="brand-sub" id="riderSubName">Palawan Delivery Express</div></div>
       </div>
       <div class="online-toggle">
-        <span class="toggle-lbl" id="onlineLbl">Offline</span>
-        <div class="toggle" id="onlineToggle" onclick="toggleOnline()"></div>
+        <span class="toggle-lbl" id="onlineLbl">🟢 Online</span>
       </div>
     </div>
   </div>
@@ -436,22 +435,14 @@ function saveSession(){localStorage.setItem('pde_rider_token',token||'');localSt
 function showPending(){document.getElementById('authScreen').style.display='none';document.getElementById('pendingScreen').classList.add('active');}
 async function loadRiderState(){
   try{
-    const r=await fetch(`${API}/riders/me`,{headers:{'Authorization':'Bearer '+token}});
-    const d=await r.json();
-    if(d&&!d.error){
-      isOnline=!!d.isOnline;
-      const tgl=document.getElementById('onlineToggle');
-      const lbl=document.getElementById('onlineLbl');
-      const card=document.getElementById('statusCard');
-      if(isOnline){
-        tgl.classList.add('on');lbl.textContent='Online';
-        card.innerHTML=`<div class="sc-emoji">🟢</div><div class="sc-status">You're Online!</div><div class="sc-sub">Orders near you will be assigned automatically…</div>`;
-        startLocationTracking();
-      }else{
-        tgl.classList.remove('on');lbl.textContent='Offline';
-        card.innerHTML=`<div class="sc-emoji">💤</div><div class="sc-status">You're Offline</div><div class="sc-sub">Toggle online to receive deliveries</div>`;
-      }
-    }
+    await fetch(`${API}/riders/set-online`,{method:'PUT',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({isOnline:true})});
+    isOnline=true;
+    const lbl=document.getElementById('onlineLbl');
+    const card=document.getElementById('statusCard');
+    if(lbl)lbl.textContent='Online';
+    if(card)card.innerHTML=`<div class="sc-emoji">🟢</div><div class="sc-status">You're Online!</div><div class="sc-sub">Orders near you will be assigned automatically…</div>`;
+    startLocationTracking();
+    renderAvailable();
   }catch(e){}
   try{
     const r2=await fetch(`${API}/orders?status=delivered`,{headers:{'Authorization':'Bearer '+token}});
@@ -499,6 +490,8 @@ function enterApp(){
   loadRiderState();
 }
 function logout(){
+  try{fetch(`${API}/riders/set-online`,{method:'PUT',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({isOnline:false})});}catch(e){}
+  stopLocationTracking();
   token=null;currentRider=null;
   localStorage.removeItem('pde_rider_token');localStorage.removeItem('pde_rider_user');
   document.getElementById('mainApp').classList.remove('active');
