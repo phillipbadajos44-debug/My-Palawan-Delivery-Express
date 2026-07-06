@@ -618,6 +618,19 @@ app.put('/api/riders/toggle-online', auth(['rider']), async (req, res) => {
     res.json({ isOnline: r.isOnline });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
+app.get('/api/debug/riders-status', async (req, res) => {
+  try {
+    const riders = await Rider.find({}).select('name isOnline status currentLocation');
+    res.json(riders);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+app.get('/api/debug/ready-orders', async (req, res) => {
+  try {
+    const orders = await Order.find({ status: { $in: ['ready', 'rider_assigned'] } }).select('merchantName merchantAddress merchantLat merchantLng status riderName');
+    res.json(orders);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 app.put('/api/riders/set-online', auth(['rider']), async (req, res) => {
   try {
     const { isOnline } = req.body;
