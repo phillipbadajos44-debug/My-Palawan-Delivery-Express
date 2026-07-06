@@ -2,7 +2,6 @@ import os
 import math
 from flask import Flask, jsonify, request
 from pymongo import MongoClient
-from bson import ObjectId
 from dotenv import load_dotenv
 
 # I-load ang mga environment variables (.env)
@@ -10,17 +9,15 @@ load_dotenv()
 
 app = Flask(__name__)
 
-# Kumonekta sa MongoDB gamit ang iyong MONGODB_URI galing sa environment variables
+# Kumonekta sa MongoDB Atlas
 MONGODB_URI = os.getenv("MONGODB_URI")
 client = MongoClient(MONGODB_URI)
-db = client["delivery_db"]  # Gagamitin ang iyong kasalukuyang database name
+db = client["delivery_db"]
 
 # ─── 🤖 AI GEOLOCATION CORE: HAVERSINE FORMULA ────────────────────────────
-# Kinukuha nito ang distansya (in kilometers) sa pagitan ng dalawang GPS points sa mundo.
 def kalkulahin_distansya(lat1, lon1, lat2, lon2):
     R = 6371.0  # Radius ng mundo sa kilometro
     
-    # I-convert ang degrees papuntang radians
     dlat = math.radians(lat2 - lat1)
     dlon = math.radians(lon2 - lon1)
     
@@ -33,7 +30,7 @@ def kalkulahin_distansya(lat1, lon1, lat2, lon2):
 def home():
     return jsonify({
         "status": "online",
-        "message": "Palawan Delivery Express AI Dispatch Engine is live."
+        "message": "Palawan Delivery Express AI Dispatch Engine is live and fixed."
     }), 200
 
 # ─── 🛵 AI DISPATCH ENDPOINT ──────────────────────────────────────────────
@@ -42,7 +39,6 @@ def predict():
     try:
         data = request.get_json() or {}
         
-        # Siguraduhing ipinasa ng Node.js ang lokasyon ng merchant
         if 'merchant_lat' not in data or 'merchant_lon' not in data:
             return jsonify({
                 "status": "error",
@@ -53,12 +49,11 @@ def predict():
         merchant_lon = float(data['merchant_lon'])
         order_id = data.get('order_id', 'Unknown Order')
 
-        # 1. Kumuha ng mga rider sa MongoDB na ONLINE at AVAILABLE (bakante)
-        # Ang query na ito ay titingin sa iyong 'riders' collection sa Atlas
+        # Kumuha ng mga rider na approved, active, at online
         mga_rider = list(db.riders.find({
-            "status": "approved",  # Siguraduhing aprubado ng admin ang account
+            "status": "approved",
             "isActive": True,
-            "isOnline": True       # Dapat naka-duty o online ang rider sa app nya
+            "isOnline": True
         }))
         
         if not mga_rider:
@@ -68,25 +63,22 @@ def predict():
             }), 404
             
         pinakamalapit_na_rider = None
-        pinakamababang_distansya = float('inf') # Magsisimula sa pinakamalaking numero
+        pinakamababang_distansya = float('inf')
 
-        # 2. AI Loop: I-scan ang lokasyon ng bawat online rider
+        # AI Loop upang hanapin ang pinakamalapit na lokasyon
         for rider in mga_rider:
-            # Babasahin ang 'currentLocation' field na galing sa schema ng server.js mo
             loc = rider.get('currentLocation')
             if loc and 'lat' in loc and 'lng' in loc:
                 rider_lat = float(loc['lat'])
-                rider_lon = float(loc['lng']) # 'lng' ang gamit sa server.js schema mo
+                rider_lon = float(loc['lng'])
                 
-                # Kalkulahin ang real-time distance gamit ang Haversine function sa itaas
-                distansya = kalkulahin_distansya(merchant_lat, merchant_lon, r_lat=rider_lat, r_lon=rider_lon)
+                # SAKTO NA ANG POSITIONAL ARGUMENTS DITO:
+                distansya = kalkulahin_distansya(merchant_lat, merchant_lon, rider_lat, rider_lon)
                 
-                # Kung mas malapit ang rider na ito kaysa sa naunang nakita, sya ang piliin
                 if distansya < pinakamababang_distansya:
                     pinakamababang_distansya = distansya
                     pinakamalapit_na_rider = rider
 
-        # 3. Ibalik ang resulta kung may nahanap na rider
         if pinakamalapit_na_rider:
             return jsonify({
                 "status": "success",
@@ -102,7 +94,7 @@ def predict():
         else:
             return jsonify({
                 "status": "error",
-                "message": "May mga online riders pero walang valid o updated na currentLocation GPS coordinates sa database."
+                "message": "May mga online riders pero walang valid na currentLocation GPS coordinates sa database."
             }), 404
 
     except Exception as e:
