@@ -272,28 +272,44 @@ async function tryAssignNearestRider(orderId) {
         await order.save();
       }
     }
-    if (!merchantLoc) return false;
 
-    const onlineRiders = await Rider.find({ isOnline: true, status: 'approved', 'currentLocation.lat': { $ne: null } });
+    const onlineRiders = await Rider.find({ isOnline: true, status: 'approved' });
     if (!onlineRiders.length) return false;
 
-    let best = null, bestDist = Infinity;
+    const candidates = [];
     for (const rider of onlineRiders) {
-      if (!rider.currentLocation || rider.currentLocation.lat == null) continue;
       const activeCount = await Order.countDocuments({ riderId: rider._id.toString(), status: { $in: ['rider_assigned', 'picked_up'] } });
       if (activeCount >= MAX_ACTIVE_ORDERS_PER_RIDER) continue;
-      const dist = haversineDistance(merchantLoc.lat, merchantLoc.lng, rider.currentLocation.lat, rider.currentLocation.lng);
-      if (dist < bestDist) { bestDist = dist; best = rider; }
+      candidates.push({ rider, activeCount });
     }
-    if (!best) return false;
+    if (!candidates.length) return false;
+
+    let best = null, bestDist = null;
+    if (merchantLoc) {
+      let closestDist = Infinity;
+      for (const c of candidates) {
+        if (!c.rider.currentLocation || c.rider.currentLocation.lat == null) continue;
+        const dist = haversineDistance(merchantLoc.lat, merchantLoc.lng, c.rider.currentLocation.lat, c.rider.currentLocation.lng);
+        if (dist < closestDist) { closestDist = dist; best = c.rider; }
+      }
+      if (best) bestDist = closestDist;
+    }
+    // Fallback: if merchant address couldn't be geocoded, or no rider has a known location,
+    // assign to the rider with the fewest current active orders instead of leaving the order stuck.
+    if (!best) {
+      candidates.sort((a, b) => a.activeCount - b.activeCount);
+      best = candidates[0].rider;
+    }
 
     order.status = 'rider_assigned';
     order.riderId = best._id.toString();
     order.riderName = best.name;
-    order.statusHistory.push({ status: 'rider_assigned', time: new Date(), note: `Auto-assigned to nearest rider (${bestDist.toFixed(1)}km away)` });
+    const note = bestDist != null ? `Auto-assigned to nearest rider (${bestDist.toFixed(1)}km away)` : 'Auto-assigned to available rider (merchant location unavailable)';
+    order.statusHistory.push({ status: 'rider_assigned', time: new Date(), note });
     await order.save();
 
-    await createNotification(best._id.toString(), 'rider', '🛵 New Delivery Assigned!', `You've been assigned an order from ${order.merchantName}, ${bestDist.toFixed(1)}km away.`, 'order', order._id);
+    const distMsg = bestDist != null ? `, ${bestDist.toFixed(1)}km away` : '';
+    await createNotification(best._id.toString(), 'rider', '🛵 New Delivery Assigned!', `You've been assigned an order from ${order.merchantName}${distMsg}.`, 'order', order._id);
     await createNotification(order.customerId, 'customer', '🛵 Rider Assigned!', `${best.name} is heading to the merchant to pick up your order.`, 'order', order._id);
 
     return true;
