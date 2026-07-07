@@ -182,6 +182,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
 .spinner{width:36px;height:36px;border:3px solid var(--gl);border-top-color:var(--gm);border-radius:50%;animation:spin .7s linear infinite;margin:40px auto;display:block;}
 @keyframes spin{to{transform:rotate(360deg);}}
 </style>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
 <body>
 
@@ -263,20 +265,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
 
   <!-- HOME -->
   <div id="page-home" class="page active">
-    <div class="status-card" id="statusCard">
-      <div class="sc-emoji">💤</div>
-      <div class="sc-status">You're Offline</div>
-      <div class="sc-sub">Toggle online to receive deliveries</div>
-    </div>
-    <div class="stats-grid">
-      <div class="stat-card"><div class="stat-icon">🛵</div><div class="stat-val" id="s-total">0</div><div class="stat-label">Total Deliveries</div></div>
-      <div class="stat-card"><div class="stat-icon">🚀</div><div class="stat-val" id="s-active">0</div><div class="stat-label">Active Now</div></div>
-      <div class="stat-card"><div class="stat-icon">💰</div><div class="stat-val" id="s-earned">₱0</div><div class="stat-label">Earned Today</div></div>
-      <div class="stat-card"><div class="stat-icon">⭐</div><div class="stat-val" id="s-rating">4.9</div><div class="stat-label">My Rating</div></div>
-    </div>
-    <div class="section-title" style="padding-top:0">📦 Available Pickups</div>
-    <div class="orders-wrap" id="available-wrap">
-      <div class="empty-state"><div class="ei">🛵</div><p>Go online to see available deliveries</p></div>
+    <div id="rider-map" style="width:100%;height:calc(100vh - 180px);"></div>
+    <div id="offerBubble" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;border-radius:20px;padding:20px 24px;box-shadow:0 12px 40px rgba(0,0,0,.25);z-index:1000;text-align:center;min-width:240px;">
+      <div style="font-size:40px;">📦</div>
+      <div style="font-size:17px;font-weight:700;margin-top:4px;">New Order!</div>
+      <div id="ob-merchant" style="font-size:14px;color:#6b7280;margin-top:2px;">—</div>
+      <div id="ob-timer" style="font-size:13px;color:#dc2626;font-weight:600;margin-top:6px;">15s</div>
+      <div style="display:flex;gap:10px;margin-top:14px;">
+        <button onclick="declineOffer()" style="flex:1;padding:10px;border-radius:12px;border:1.5px solid #e5e7eb;background:#fff;font-weight:600;color:#6b7280;">Decline</button>
+        <button onclick="acceptOffer()" style="flex:1;padding:10px;border-radius:12px;border:none;background:#16a34a;color:#fff;font-weight:700;">Accept</button>
+      </div>
     </div>
   </div>
 
@@ -307,6 +305,22 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
 
   <!-- REMITTANCE -->
   <div id="page-remit" class="page">
+    <div class="status-card" id="statusCard">
+      <div class="sc-emoji">💤</div>
+      <div class="sc-status">You're Offline</div>
+      <div class="sc-sub">Toggle online to receive deliveries</div>
+    </div>
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-icon">🛵</div><div class="stat-val" id="s-total">0</div><div class="stat-label">Total Deliveries</div></div>
+      <div class="stat-card"><div class="stat-icon">🚀</div><div class="stat-val" id="s-active">0</div><div class="stat-label">Active Now</div></div>
+      <div class="stat-card"><div class="stat-icon">💰</div><div class="stat-val" id="s-earned">₱0</div><div class="stat-label">Earned Today</div></div>
+      <div class="stat-card"><div class="stat-icon">⭐</div><div class="stat-val" id="s-rating">4.9</div><div class="stat-label">My Rating</div></div>
+    </div>
+    <div class="section-title" style="padding-top:0">📦 Available Pickups</div>
+    <div class="orders-wrap" id="available-wrap">
+      <div class="empty-state"><div class="ei">🛵</div><p>Go online to see available deliveries</p></div>
+    </div>
+  
     <div class="section-title">💸 Remittance</div>
     <div class="earn-card">
       <div class="earn-label">Amount to Remit</div>
@@ -726,6 +740,7 @@ async function loadRiderState(){
     if(card)card.innerHTML=`<div class="sc-emoji">🟢</div><div class="sc-status">You're Online!</div><div class="sc-sub">Orders near you will be assigned automatically…</div>`;
     startLocationTracking();
     renderAvailable();
+    loadHomeMap();
   }catch(e){}
   try{
     const r2=await fetch(`${API}/orders?status=delivered`,{headers:{'Authorization':'Bearer '+token}});
@@ -1081,8 +1096,82 @@ function openMaps(address){
 
 function toast(msg){const t=document.getElementById('toastEl');document.getElementById('toastMsg').textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2800);}
 
+let riderMap=null, riderMapMarkers=null, currentOfferId=null, offerCountdownInterval=null;
+
+async function loadHomeMap(){
+  try{
+    if(!riderMap){
+      riderMap=L.map('rider-map').setView([9.7392,118.7353],12);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap contributors'}).addTo(riderMap);
+      riderMapMarkers=L.layerGroup().addTo(riderMap);
+    }
+    riderMapMarkers.clearLayers();
+    const r=await fetch(`${API}/riders/merchants-map`,{headers:{'Authorization':'Bearer '+token}});
+    const merchants=await r.json();
+    (Array.isArray(merchants)?merchants:[]).forEach(m=>{
+      L.circleMarker([m.lat,m.lng],{radius:9,color:'#2563eb',fillColor:'#2563eb',fillOpacity:0.85,weight:2}).addTo(riderMapMarkers).bindPopup(`🏪 <b>${m.storeName||m.name||'Merchant'}</b>`);
+    });
+  }catch(e){console.error('Rider map error:',e.message);}
+}
+
+async function pollOffer(){
+  try{
+    const r=await fetch(`${API}/riders/current-offer`,{headers:{'Authorization':'Bearer '+token}});
+    const d=await r.json();
+    if(d.offer && d.offer.orderId!==currentOfferId){
+      showOfferBubble(d.offer);
+    }else if(!d.offer && currentOfferId){
+      hideOfferBubble();
+    }
+  }catch(e){}
+}
+
+function showOfferBubble(offer){
+  currentOfferId=offer.orderId;
+  document.getElementById('ob-merchant').textContent='Pickup at '+(offer.merchantName||'merchant');
+  document.getElementById('offerBubble').style.display='block';
+  if(offerCountdownInterval)clearInterval(offerCountdownInterval);
+  offerCountdownInterval=setInterval(()=>{
+    const secsLeft=Math.max(0,Math.round((new Date(offer.expiresAt)-new Date())/1000));
+    document.getElementById('ob-timer').textContent=secsLeft+'s';
+    if(secsLeft<=0)hideOfferBubble();
+  },500);
+}
+
+function hideOfferBubble(){
+  currentOfferId=null;
+  document.getElementById('offerBubble').style.display='none';
+  if(offerCountdownInterval){clearInterval(offerCountdownInterval);offerCountdownInterval=null;}
+}
+
+async function acceptOffer(){
+  if(!currentOfferId)return;
+  const id=currentOfferId;
+  try{
+    const r=await fetch(`${API}/riders/orders/${id}/accept`,{method:'PUT',headers:{'Authorization':'Bearer '+token}});
+    const d=await r.json();
+    hideOfferBubble();
+    if(d.success){
+      toast('Order accepted! Head to the merchant now 🏪');
+      activeDeliveries=await fetchActiveDeliveries();
+      renderActive();updateBadges();updateStats();
+      openOrderActionModal(id);
+    }else{
+      toast(d.error||'Order no longer available');
+    }
+  }catch(e){hideOfferBubble();}
+}
+
+async function declineOffer(){
+  if(!currentOfferId)return;
+  const id=currentOfferId;
+  try{await fetch(`${API}/riders/orders/${id}/decline`,{method:'PUT',headers:{'Authorization':'Bearer '+token}});}catch(e){}
+  hideOfferBubble();
+}
+
 checkSession();
 setInterval(()=>{if(isOnline)pollActiveDeliveries();},8000);
+setInterval(()=>{if(isOnline)pollOffer();},3000);
 </script>
 </body>
 </html>
