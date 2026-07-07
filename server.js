@@ -165,6 +165,7 @@ const OrderSchema = new mongoose.Schema({
   statusHistory: [{ status: String, time: Date, note: String }],
   proofOfPickup: String, proofOfDelivery: String, rating: Number, review: String,
   estimatedDelivery: Date, deliveredAt: Date,
+  offeredRiderId: String, offerExpiresAt: Date, excludedRiderIds: { type: [String], default: [] },
   date: { type: Date, default: Date.now }
 });
 
@@ -261,6 +262,10 @@ async function tryAssignNearestRider(orderId) {
     const order = await Order.findById(orderId);
     if (!order || order.status !== 'ready') return false;
 
+    if (order.offeredRiderId && order.offerExpiresAt && order.offerExpiresAt > new Date()) {
+      return false;
+    }
+
     let merchantLoc = null;
     if (order.merchantLat != null && order.merchantLng != null) {
       merchantLoc = { lat: order.merchantLat, lng: order.merchantLng };
@@ -269,11 +274,11 @@ async function tryAssignNearestRider(orderId) {
       if (merchantLoc) {
         order.merchantLat = merchantLoc.lat;
         order.merchantLng = merchantLoc.lng;
-        await order.save();
       }
     }
 
-    const onlineRiders = await Rider.find({ isOnline: true, status: 'approved' });
+    const excluded = order.excludedRiderIds || [];
+    const onlineRiders = await Rider.find({ isOnline: true, status: 'approved', _id: { $nin: excluded } });
     if (!onlineRiders.length) return false;
 
     const candidates = [];
@@ -294,33 +299,40 @@ async function tryAssignNearestRider(orderId) {
       }
       if (best) bestDist = closestDist;
     }
-    // Fallback: if merchant address couldn't be geocoded, or no rider has a known location,
-    // assign to the rider with the fewest current active orders instead of leaving the order stuck.
     if (!best) {
       candidates.sort((a, b) => a.activeCount - b.activeCount);
       best = candidates[0].rider;
     }
 
-    order.status = 'rider_assigned';
-    order.riderId = best._id.toString();
-    order.riderName = best.name;
-    const note = bestDist != null ? `Auto-assigned to nearest rider (${bestDist.toFixed(1)}km away)` : 'Auto-assigned to available rider (merchant location unavailable)';
-    order.statusHistory.push({ status: 'rider_assigned', time: new Date(), note });
+    order.offeredRiderId = best._id.toString();
+    order.offerExpiresAt = new Date(Date.now() + 15000);
     await order.save();
 
     const distMsg = bestDist != null ? `, ${bestDist.toFixed(1)}km away` : '';
-    await createNotification(best._id.toString(), 'rider', '🛵 New Delivery Assigned!', `You've been assigned an order from ${order.merchantName}${distMsg}.`, 'order', order._id);
-    await createNotification(order.customerId, 'customer', '🛵 Rider Assigned!', `${best.name} is heading to the merchant to pick up your order.`, 'order', order._id);
+    await createNotification(best._id.toString(), 'rider', '🛵 New Delivery Offer!', `An order from ${order.merchantName}${distMsg} is waiting for you to accept.`, 'order', order._id);
 
     return true;
   } catch (e) {
-    console.error('Auto-assign error:', e.message);
+    console.error('Auto-offer error:', e.message);
     return false;
   }
 }
 
+async function expireStaleOffers() {
+  try {
+    const stale = await Order.find({ status: 'ready', offeredRiderId: { $ne: null }, offerExpiresAt: { $lte: new Date() } });
+    for (const o of stale) {
+      o.excludedRiderIds = [...(o.excludedRiderIds || []), o.offeredRiderId];
+      o.offeredRiderId = null;
+      o.offerExpiresAt = null;
+      await o.save();
+    }
+  } catch (e) {}
+}
+
 async function runAssignmentSweep() {
   try {
+    await expireStaleOffers();
     const readyOrders = await Order.find({ status: 'ready' });
     for (const o of readyOrders) {
       await tryAssignNearestRider(o._id.toString());
@@ -328,7 +340,7 @@ async function runAssignmentSweep() {
   } catch (e) {}
 }
 
-setInterval(runAssignmentSweep, 20000);
+setInterval(runAssignmentSweep, 5000);
 
 // ============================================================
 // ROUTES
@@ -636,6 +648,67 @@ app.put('/api/riders/set-online', auth(['rider']), async (req, res) => {
     const { isOnline } = req.body;
     const r = await Rider.findByIdAndUpdate(req.user.id, { isOnline: !!isOnline }, { new: true });
     res.json({ isOnline: r.isOnline });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Get current delivery offer for this rider (if any, not expired)
+app.get('/api/riders/current-offer', auth(['rider']), async (req, res) => {
+  try {
+    const order = await Order.findOne({
+      offeredRiderId: req.user.id,
+      status: 'ready',
+      offerExpiresAt: { $gt: new Date() }
+    });
+    if (!order) return res.json({ offer: null });
+    res.json({
+      offer: {
+        orderId: order._id,
+        merchantName: order.merchantName,
+        merchantAddress: order.merchantAddress,
+        merchantLat: order.merchantLat,
+        merchantLng: order.merchantLng,
+        total: order.total,
+        deliveryFee: order.deliveryFee,
+        expiresAt: order.offerExpiresAt
+      }
+    });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Accept a delivery offer
+app.put('/api/riders/orders/:id/accept', auth(['rider']), async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id);
+    if (!order) return res.status(404).json({ error: 'Order not found' });
+    if (order.offeredRiderId !== req.user.id) return res.status(403).json({ error: 'This offer is not yours' });
+    if (!order.offerExpiresAt || order.offerExpiresAt <= new Date()) return res.status(410).json({ error: 'Offer expired' });
+
+    const rider = await Rider.findById(req.user.id);
+    order.status = 'rider_assigned';
+    order.riderId = req.user.id;
+    order.riderName = rider.name;
+    order.offeredRiderId = null;
+    order.offerExpiresAt = null;
+    order.statusHistory.push({ status: 'rider_assigned', time: new Date(), note: 'Accepted by rider' });
+    await order.save();
+
+    await createNotification(order.customerId, 'customer', '🛵 Rider Assigned!', `${rider.name} is heading to the merchant to pick up your order.`, 'order', order._id);
+    res.json({ success: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Decline a delivery offer
+app.put('/api/riders/orders/:id/decline', auth(['rider']), async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id);
+    if (!order) return res.status(404).json({ error: 'Order not found' });
+    if (order.offeredRiderId !== req.user.id) return res.status(403).json({ error: 'This offer is not yours' });
+
+    order.excludedRiderIds = [...(order.excludedRiderIds || []), req.user.id];
+    order.offeredRiderId = null;
+    order.offerExpiresAt = null;
+    await order.save();
+    res.json({ success: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
