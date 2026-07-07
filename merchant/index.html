@@ -31,6 +31,39 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
 .auth-success{background:#d1fae5;color:#065f46;padding:12px 14px;border-radius:12px;font-size:13px;font-weight:600;margin-bottom:14px;display:none;}
 .auth-success.show{display:block;}
 .pw-wrap{position:relative;}
+
+/* SPLASH */
+.splash-screen{position:fixed;inset:0;background:linear-gradient(135deg,var(--gd),var(--gm));display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:1000;animation:splashFade 2.2s ease forwards;}
+.splash-logo{font-size:88px;animation:splashPop .7s cubic-bezier(.34,1.56,.64,1);}
+.splash-name{color:#fff;font-size:20px;font-weight:800;margin-top:16px;letter-spacing:.5px;opacity:0;animation:splashTextIn .6s ease .4s forwards;}
+@keyframes splashPop{0%{transform:scale(0.3);opacity:0;}100%{transform:scale(1);opacity:1;}}
+@keyframes splashTextIn{to{opacity:1;}}
+@keyframes splashFade{0%{opacity:1;}80%{opacity:1;}100%{opacity:0;visibility:hidden;}}
+
+/* WELCOME / LOGIN / WIZARD-INTRO SCREENS */
+.welcome-screen{min-height:100vh;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 28px;text-align:center;position:relative;}
+.welcome-logo{font-size:72px;margin-bottom:18px;}
+.welcome-title{font-size:24px;font-weight:900;color:var(--text);letter-spacing:-.5px;line-height:1.3;}
+.welcome-sub{font-size:14px;color:var(--muted);margin-top:10px;margin-bottom:32px;max-width:320px;}
+.welcome-btns{width:100%;max-width:340px;display:flex;flex-direction:column;gap:12px;}
+.welcome-btn{width:100%;padding:16px;border-radius:16px;font-size:15px;font-weight:800;cursor:pointer;border:none;}
+.welcome-btn.primary{background:linear-gradient(135deg,var(--gd),var(--gm));color:#fff;}
+.welcome-btn.secondary{background:#fff;color:var(--gd);border:2px solid var(--gl);}
+.welcome-btn.text{background:transparent;color:var(--muted);font-weight:700;}
+.back-arrow{position:absolute;top:24px;left:20px;font-size:22px;cursor:pointer;color:var(--text);width:40px;height:40px;display:flex;align-items:center;justify-content:center;}
+.welcome-screen .field,.wizard-screen .field{width:100%;max-width:340px;text-align:left;}
+.welcome-screen .auth-btn,.welcome-screen .auth-error{width:100%;max-width:340px;}
+
+/* WIZARD */
+.wizard-screen{min-height:100vh;background:var(--bg);padding:70px 24px 40px;}
+.wizard-top{position:fixed;top:0;left:0;right:0;background:var(--bg);padding:20px 24px 12px;z-index:10;}
+.wizard-progress{height:6px;background:#e5e7eb;border-radius:6px;overflow:hidden;margin-top:16px;}
+.wizard-progress-bar{height:100%;background:linear-gradient(90deg,var(--gd),var(--gm));border-radius:6px;transition:width .3s ease;width:12.5%;}
+.wizard-step-title{font-size:22px;font-weight:900;color:var(--text);margin-bottom:6px;}
+.wizard-step-sub{font-size:13px;color:var(--muted);margin-bottom:24px;}
+.wizard-next-btn{width:100%;padding:16px;background:linear-gradient(135deg,var(--gd),var(--gm));color:#fff;border:none;border-radius:16px;font-size:16px;font-weight:800;cursor:pointer;margin-top:12px;}
+.wizard-next-btn:disabled{opacity:.5;cursor:not-allowed;}
+.required-mark{color:#ef4444;}
 .pw-wrap input{padding-right:44px;}
 .pw-eye{position:absolute;right:14px;top:50%;transform:translateY(-50%);font-size:18px;cursor:pointer;color:var(--muted);}
 .sec-div{font-size:12px;font-weight:800;color:var(--gm);text-transform:uppercase;letter-spacing:.6px;margin:16px 0 10px;padding-bottom:6px;border-bottom:2px solid var(--gl);}
@@ -210,84 +243,56 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
 <body>
 
 <!-- AUTH -->
-<div class="auth-screen" id="authScreen">
-  <div class="auth-hero">
-    <div class="auth-hero-icon">🏪</div>
-    <h1>Merchant Portal</h1>
-    <p>Palawan Delivery Express</p>
+<!-- SPLASH -->
+<div class="splash-screen" id="splashScreen">
+  <div class="splash-logo">🏪</div>
+  <div class="splash-name">Merchant Portal — Palawan Delivery Express</div>
+</div>
+
+<!-- WELCOME -->
+<div class="welcome-screen" id="welcomeScreen" style="display:none">
+  <div class="welcome-logo">🏪</div>
+  <h1 class="welcome-title">Merchant Portal</h1>
+  <p class="welcome-sub">Grow your business with Palawan Delivery Express.</p>
+  <div class="welcome-btns">
+    <button class="welcome-btn primary" onclick="goScreen('loginScreen')">Log In</button>
+    <button class="welcome-btn secondary" onclick="goScreen('signupIntroScreen')">Apply as Merchant</button>
   </div>
-  <div class="auth-body">
-    <div class="auth-tabs">
-      <div class="auth-tab active" onclick="switchTab('login')">Log In</div>
-      <div class="auth-tab" onclick="switchTab('apply')">Apply as Merchant</div>
-    </div>
-    <!-- LOGIN -->
-    <div class="auth-form active" id="form-login">
-      <div class="auth-error" id="login-err"></div>
-      <div class="field"><label>Email</label><input id="l-email" type="email" placeholder="store@email.com"/></div>
-      <div class="field"><label>Password</label>
-        <div class="pw-wrap"><input id="l-pw" type="password" placeholder="Your password"/><span class="pw-eye" onclick="togglePw('l-pw',this)">👁️</span></div>
-      </div>
-      <button class="auth-btn" onclick="doLogin()">Log In</button>
-    </div>
-    <!-- APPLY -->
-    <div class="auth-form" id="form-apply">
-      <div class="auth-error" id="apply-err"></div>
-      <div class="auth-success" id="apply-ok">✅ Application submitted! Waiting for Admin approval.</div>
-      <div class="sec-div">👤 Personal Information</div>
-      <div class="field"><label>Full Name *</label><input id="a-name" type="text" placeholder="Juan dela Cruz"/></div>
-      <div class="field-row">
-        <div class="field"><label>Phone *</label><input id="a-phone" type="tel" placeholder="09171234567"/></div>
-        <div class="field"><label>Email *</label><input id="a-email" type="email" placeholder="juan@email.com"/></div>
-      </div>
-      <div class="field"><label>Password *</label>
-        <div class="pw-wrap"><input id="a-pw" type="password" placeholder="Min 6 characters"/><span class="pw-eye" onclick="togglePw('a-pw',this)">👁️</span></div>
-      </div>
-      <div class="sec-div">🏪 Business Information</div>
-      <div class="field"><label>Store / Business Name *</label><input id="a-store" type="text" placeholder="e.g. Juan's Sari-Sari Store"/></div>
-      <div class="field"><label>Business Type *</label>
-        <select id="a-btype"><option value="">Select type</option>
-          <option>Sari-Sari Store</option><option>Grocery Store</option><option>Restaurant / Food Stall</option>
-          <option>Meat Shop</option><option>Fish Market</option><option>Bakery</option>
-          <option>Pharmacy / Drug Store</option><option>General Merchandise</option><option>Other</option>
-        </select>
-      </div>
-      <div class="field"><label>Store Address *</label><input id="a-addr" type="text" placeholder="Street, Barangay, City"/></div>
-      <div class="field"><label>Main Product Category *</label>
-        <select id="a-pcat"><option value="">Select category</option>
-          <option>Canned Goods</option><option>Rice & Grains</option><option>Meat & Poultry</option>
-          <option>Fish & Seafood</option><option>Vegetables & Fruits</option><option>Dairy & Eggs</option>
-          <option>Beverages</option><option>Bread & Bakery</option><option>Household Items</option>
-          <option>Health & Beauty</option><option>Mixed / General</option>
-        </select>
-      </div>
-      <div class="field"><label>Store Description</label><textarea id="a-desc" placeholder="Tell us about your store…"></textarea></div>
-      <div class="sec-div">📋 Business Documents</div>
-      <div class="field"><label>DTI / SEC Registration No. *</label><input id="a-dti" type="text" placeholder="DTI-2024-12345"/></div>
-      <div class="field"><label>Business Permit No. *</label><input id="a-permit" type="text" placeholder="BP-2024-00123"/></div>
-      <div class="field-row">
-        <div class="field"><label>Mayor's Permit</label><input id="a-mayor" type="text" placeholder="MP-2024-00456"/></div>
-        <div class="field"><label>TIN</label><input id="a-tin" type="text" placeholder="123-456-789"/></div>
-      </div>
-      <div class="sec-div">📸 Upload Documents</div>
-      <div class="field"><label>Government-Issued ID *</label>
-        <div class="upload-box"><input type="file" accept="image/*" onchange="previewFile(this,'prev-id')"/>
-          <div>🪪</div><div style="font-size:13px;color:var(--muted);font-weight:600">Tap to upload Gov ID</div>
-          <div class="upload-preview" id="prev-id"></div></div>
-      </div>
-      <div class="field"><label>Business Permit Photo</label>
-        <div class="upload-box"><input type="file" accept="image/*" onchange="previewFile(this,'prev-permit')"/>
-          <div>📄</div><div style="font-size:13px;color:var(--muted);font-weight:600">Tap to upload Permit</div>
-          <div class="upload-preview" id="prev-permit"></div></div>
-      </div>
-      <div class="field"><label>Store Front Photo</label>
-        <div class="upload-box"><input type="file" accept="image/*" onchange="previewFile(this,'prev-store')"/>
-          <div>🏪</div><div style="font-size:13px;color:var(--muted);font-weight:600">Tap to upload Store Photo</div>
-          <div class="upload-preview" id="prev-store"></div></div>
-      </div>
-      <button class="auth-btn" onclick="doApply()">📤 Submit Application</button>
-    </div>
+</div>
+
+<!-- LOGIN -->
+<div class="welcome-screen" id="loginScreen" style="display:none">
+  <div class="back-arrow" onclick="goScreen('welcomeScreen')">←</div>
+  <div class="welcome-logo" style="font-size:44px">🏪</div>
+  <h1 class="welcome-title" style="font-size:20px">Log In</h1>
+  <div class="auth-error" id="login-err"></div>
+  <div class="field"><label>Email</label><input id="l-email" type="email" placeholder="store@email.com"/></div>
+  <div class="field"><label>Password</label>
+    <div class="pw-wrap"><input id="l-pw" type="password" placeholder="Your password"/><span class="pw-eye" onclick="togglePw('l-pw',this)">👁️</span></div>
   </div>
+  <button class="auth-btn" onclick="doLogin()">Log In</button>
+</div>
+
+<!-- APPLY INTRO -->
+<div class="welcome-screen" id="signupIntroScreen" style="display:none">
+  <div class="back-arrow" onclick="goScreen('welcomeScreen')">←</div>
+  <div class="welcome-logo">🏪</div>
+  <h1 class="welcome-title">Apply as a Merchant</h1>
+  <p class="welcome-sub">Let's get your store set up. This will take about 5 minutes.</p>
+  <div class="welcome-btns">
+    <button class="welcome-btn primary" onclick="startWizard()">Get Started</button>
+  </div>
+</div>
+
+<!-- WIZARD -->
+<div class="wizard-screen" id="wizardScreen" style="display:none">
+  <div class="wizard-top">
+    <div class="back-arrow" onclick="wizardBack()">←</div>
+    <div class="wizard-progress"><div class="wizard-progress-bar" id="wizardProgressBar"></div></div>
+  </div>
+  <div class="auth-error" id="apply-err"></div>
+  <div class="auth-success" id="apply-ok">✅ Application submitted! Waiting for Admin approval.</div>
+  <div id="wizardStepsContainer"></div>
 </div>
 
 <!-- PENDING -->
@@ -553,9 +558,24 @@ let salesData=[0,0,0,0,0,0,0];
 function checkSession(){
   const t=localStorage.getItem('pde_merch_token');
   const u=localStorage.getItem('pde_merch_user');
-  if(t&&u){token=t;currentMerchant=JSON.parse(u);
+  if(t&&u){
+    token=t;currentMerchant=JSON.parse(u);
+    document.getElementById('splashScreen').style.display='none';
     if(currentMerchant.status==='pending')showPending();
-    else enterApp();}
+    else enterApp();
+    return;
+  }
+  setTimeout(()=>{
+    document.getElementById('splashScreen').style.display='none';
+    goScreen('welcomeScreen');
+  },2200);
+}
+
+function goScreen(id){
+  ['welcomeScreen','loginScreen','signupIntroScreen'].forEach(s=>{
+    document.getElementById(s).style.display=s===id?'flex':'none';
+  });
+  document.getElementById('wizardScreen').style.display=id==='wizardScreen'?'block':'none';
 }
 
 function switchTab(tab){
@@ -609,79 +629,286 @@ async function doLogin(){
     showErr('login-err','Cannot connect to server.');
   }
 }
-async function doApply() {
-  const name = document.getElementById('a-name').value.trim();
-  const phone = document.getElementById('a-phone').value.trim();
-  const email = document.getElementById('a-email').value.trim();
-  const pw = document.getElementById('a-pw').value;
-  const storeName = document.getElementById('a-store').value.trim();
-  const btype = document.getElementById('a-btype').value;
-  const addr = document.getElementById('a-addr').value.trim();
-  const pcat = document.getElementById('a-pcat').value;
-  const dti = document.getElementById('a-dti').value.trim();
-  const permit = document.getElementById('a-permit').value.trim();
-  const mayor = document.getElementById('a-mayor').value.trim();
-  const tin = document.getElementById('a-tin').value.trim();
-  const desc = document.getElementById('a-desc').value.trim();
+let wizardStep=1;
+const wizardTotalSteps=8;
+let wizardData={};
+let wizardFiles={};
 
-  if (!name || !phone || !email || !pw || !storeName || !btype || !addr || !pcat || !dti || !permit) {
-    showErr('apply-err', 'Please fill in all required (*) fields.');
+function startWizard(){
+  wizardStep=1;wizardData={};wizardFiles={};
+  goScreen('wizardScreen');
+  renderWizardStep(1);
+}
+
+function updateWizardProgress(){
+  document.getElementById('wizardProgressBar').style.width=(wizardStep/wizardTotalSteps*100)+'%';
+}
+
+function renderWizardStep(n){
+  wizardStep=n;
+  updateWizardProgress();
+  document.getElementById('apply-err').classList.remove('show');
+  const el=document.getElementById('wizardStepsContainer');
+  let html='';
+  if(n===1){
+    html=`<div class="wizard-step-title">Tell us about yourself</div>
+    <div class="wizard-step-sub">Your personal contact details.</div>
+    <div class="field"><label>Full Name <span class="required-mark">*</span></label><input id="wz-name" type="text" placeholder="Juan dela Cruz" value="${wizardData.name||''}"/></div>
+    <div class="field"><label>Phone <span class="required-mark">*</span></label><input id="wz-phone" type="tel" placeholder="09171234567" value="${wizardData.phone||''}"/></div>
+    <div class="field"><label>Email <span class="required-mark">*</span></label><input id="wz-email" type="email" placeholder="juan@email.com" value="${wizardData.email||''}"/></div>
+    <button class="wizard-next-btn" onclick="wizardNext()">Next</button>`;
+  } else if(n===2){
+    html=`<div class="wizard-step-title">Create a password</div>
+    <div class="wizard-step-sub">At least 6 characters.</div>
+    <div class="field"><label>Password <span class="required-mark">*</span></label><div class="pw-wrap"><input id="wz-pw" type="password" placeholder="Min 6 characters"/><span class="pw-eye" onclick="togglePw('wz-pw',this)">👁️</span></div></div>
+    <div class="field"><label>Confirm Password <span class="required-mark">*</span></label><div class="pw-wrap"><input id="wz-pw2" type="password" placeholder="Repeat password"/><span class="pw-eye" onclick="togglePw('wz-pw2',this)">👁️</span></div></div>
+    <button class="wizard-next-btn" onclick="wizardNext()">Next</button>`;
+  } else if(n===3){
+    html=`<div class="wizard-step-title">Your business</div>
+    <div class="wizard-step-sub">Basic store information.</div>
+    <div class="field"><label>Store / Business Name <span class="required-mark">*</span></label><input id="wz-store" type="text" placeholder="e.g. Juan's Sari-Sari Store" value="${wizardData.storeName||''}"/></div>
+    <div class="field"><label>Business Type <span class="required-mark">*</span></label>
+      <select id="wz-btype"><option value="">Select type</option>
+        <option>Sari-Sari Store</option><option>Grocery Store</option><option>Restaurant / Food Stall</option>
+        <option>Meat Shop</option><option>Fish Market</option><option>Bakery</option>
+        <option>Pharmacy / Drug Store</option><option>General Merchandise</option><option>Other</option>
+      </select>
+    </div>
+    <button class="wizard-next-btn" onclick="wizardNext()">Next</button>`;
+  } else if(n===4){
+    html=`<div class="wizard-step-title">Where is your store?</div>
+    <div class="wizard-step-sub">This helps us find riders near you.</div>
+    <div class="field"><label>Region <span class="required-mark">*</span></label><select id="wz-region" onchange="onRegionChange()"><option value="">Loading…</option></select></div>
+    <div class="field"><label>Province <span class="required-mark">*</span></label><select id="wz-province" onchange="onProvinceChange()" disabled><option value="">Select region first</option></select></div>
+    <div class="field"><label>City / Municipality <span class="required-mark">*</span></label><select id="wz-municipality" onchange="onMunicipalityChange()" disabled><option value="">Select province first</option></select></div>
+    <div class="field"><label>Barangay <span class="required-mark">*</span></label><select id="wz-barangay" disabled><option value="">Select city/municipality first</option></select></div>
+    <div class="field"><label>Street / Building / Lot Number <span class="required-mark">*</span></label><input id="wz-street" type="text" placeholder="123 Rizal St."/></div>
+    <div class="field"><label>Additional Information (optional)</label><input id="wz-addinfo" type="text" placeholder="Landmark, unit number, etc."/></div>
+    <button class="wizard-next-btn" onclick="wizardNext()">Next</button>`;
+  } else if(n===5){
+    html=`<div class="wizard-step-title">What do you sell?</div>
+    <div class="wizard-step-sub">Your main product category.</div>
+    <div class="field"><label>Main Product Category <span class="required-mark">*</span></label>
+      <select id="wz-pcat"><option value="">Select category</option>
+        <option>Canned Goods</option><option>Rice & Grains</option><option>Meat & Poultry</option>
+        <option>Fish & Seafood</option><option>Vegetables & Fruits</option><option>Dairy & Eggs</option>
+        <option>Beverages</option><option>Bread & Bakery</option><option>Household Items</option>
+        <option>Health & Beauty</option><option>Mixed / General</option>
+      </select>
+    </div>
+    <div class="field"><label>Store Description (optional)</label><textarea id="wz-desc" placeholder="Tell us about your store…"></textarea></div>
+    <button class="wizard-next-btn" onclick="wizardNext()">Next</button>`;
+  } else if(n===6){
+    html=`<div class="wizard-step-title">Business documents</div>
+    <div class="wizard-step-sub">Your registration details.</div>
+    <div class="field"><label>DTI / SEC Registration No. <span class="required-mark">*</span></label><input id="wz-dti" type="text" placeholder="DTI-2024-12345" value="${wizardData.dtiNumber||''}"/></div>
+    <div class="field"><label>Business Permit No. <span class="required-mark">*</span></label><input id="wz-permit" type="text" placeholder="BP-2024-00123" value="${wizardData.permitNumber||''}"/></div>
+    <div class="field"><label>Mayor's Permit (optional)</label><input id="wz-mayor" type="text" placeholder="MP-2024-00456" value="${wizardData.mayorPermit||''}"/></div>
+    <div class="field"><label>TIN (optional)</label><input id="wz-tin" type="text" placeholder="123-456-789" value="${wizardData.tin||''}"/></div>
+    <button class="wizard-next-btn" onclick="wizardNext()">Next</button>`;
+  } else if(n===7){
+    html=`<div class="wizard-step-title">Upload documents</div>
+    <div class="wizard-step-sub">Photos of your requirements.</div>
+    <div class="field"><label>Government-Issued ID <span class="required-mark">*</span></label>
+      <div class="upload-box"><input type="file" accept="image/*" onchange="handleWizardFile(this,'govId','prev-id')"/>
+        <div>🪪</div><div style="font-size:13px;color:var(--muted);font-weight:600">Tap to upload Gov ID</div>
+        <div class="upload-preview" id="prev-id"></div></div>
+    </div>
+    <div class="field"><label>Business Permit Photo (optional)</label>
+      <div class="upload-box"><input type="file" accept="image/*" onchange="handleWizardFile(this,'businessPermitPhoto','prev-permit')"/>
+        <div>📄</div><div style="font-size:13px;color:var(--muted);font-weight:600">Tap to upload Permit</div>
+        <div class="upload-preview" id="prev-permit"></div></div>
+    </div>
+    <div class="field"><label>Store Front Photo (optional)</label>
+      <div class="upload-box"><input type="file" accept="image/*" onchange="handleWizardFile(this,'storeFrontPhoto','prev-store')"/>
+        <div>🏪</div><div style="font-size:13px;color:var(--muted);font-weight:600">Tap to upload Store Photo</div>
+        <div class="upload-preview" id="prev-store"></div></div>
+    </div>
+    <button class="wizard-next-btn" id="wz-step7-btn" onclick="wizardNext()" disabled>Next</button>`;
+  } else if(n===8){
+    html=`<div class="wizard-step-title">Almost done!</div>
+    <div class="wizard-step-sub">Review your information, then submit your application for Admin approval.</div>
+    <button class="wizard-next-btn" onclick="wizardNext()">📤 Submit Application</button>`;
+  }
+  el.innerHTML=html;
+  if(n===4)initAddressStep();
+}
+
+function wizardBack(){
+  if(wizardStep===1){goScreen('signupIntroScreen');return;}
+  renderWizardStep(wizardStep-1);
+}
+
+function wizardNext(){
+  document.getElementById('apply-err').classList.remove('show');
+  if(wizardStep===1){
+    const name=document.getElementById('wz-name').value.trim();
+    const phone=document.getElementById('wz-phone').value.trim();
+    const email=document.getElementById('wz-email').value.trim();
+    if(!name||!phone||!email){showErr('apply-err','Please fill in all required fields.');return;}
+    wizardData.name=name;wizardData.phone=phone;wizardData.email=email;
+  } else if(wizardStep===2){
+    const pw=document.getElementById('wz-pw').value;
+    const pw2=document.getElementById('wz-pw2').value;
+    if(!pw||!pw2){showErr('apply-err','Please fill in both password fields.');return;}
+    if(pw!==pw2){showErr('apply-err','Passwords do not match.');return;}
+    if(pw.length<6){showErr('apply-err','Password must be at least 6 characters.');return;}
+    wizardData.password=pw;
+  } else if(wizardStep===3){
+    const storeName=document.getElementById('wz-store').value.trim();
+    const btype=document.getElementById('wz-btype').value;
+    if(!storeName||!btype){showErr('apply-err','Please fill in all required fields.');return;}
+    wizardData.storeName=storeName;wizardData.businessType=btype;
+  } else if(wizardStep===4){
+    const region=document.getElementById('wz-region');
+    const province=document.getElementById('wz-province');
+    const municipality=document.getElementById('wz-municipality');
+    const barangay=document.getElementById('wz-barangay');
+    const street=document.getElementById('wz-street').value.trim();
+    if(!region.value||!province.value||!municipality.value||!barangay.value||!street){showErr('apply-err','Please complete all required address fields.');return;}
+    wizardData.region=region.options[region.selectedIndex].text;
+    wizardData.province=province.options[province.selectedIndex].text;
+    wizardData.municipality=municipality.options[municipality.selectedIndex].text;
+    wizardData.barangay=barangay.options[barangay.selectedIndex].text;
+    wizardData.street=street;
+    wizardData.additionalInfo=document.getElementById('wz-addinfo').value.trim();
+    wizardData.address=`${street}, ${wizardData.barangay}, ${wizardData.municipality}, ${wizardData.province}`;
+  } else if(wizardStep===5){
+    const pcat=document.getElementById('wz-pcat').value;
+    if(!pcat){showErr('apply-err','Please select a product category.');return;}
+    wizardData.productCategory=pcat;
+    wizardData.description=document.getElementById('wz-desc').value.trim();
+  } else if(wizardStep===6){
+    const dti=document.getElementById('wz-dti').value.trim();
+    const permit=document.getElementById('wz-permit').value.trim();
+    if(!dti||!permit){showErr('apply-err','Please fill in the required document numbers.');return;}
+    wizardData.dtiNumber=dti;wizardData.permitNumber=permit;
+    wizardData.mayorPermit=document.getElementById('wz-mayor').value.trim();
+    wizardData.tin=document.getElementById('wz-tin').value.trim();
+  } else if(wizardStep===7){
+    if(!wizardFiles.govId){showErr('apply-err','Please upload your Government-Issued ID.');return;}
+  } else if(wizardStep===8){
+    submitWizardApply();
     return;
   }
+  renderWizardStep(wizardStep+1);
+}
 
-  if (pw.length < 6) {
-    showErr('apply-err', 'Password must be at least 6 characters.');
-    return;
+function handleWizardFile(input,key,previewId){
+  if(input.files&&input.files[0]){
+    wizardFiles[key]=input.files[0];
+    document.getElementById(previewId).textContent='✅ '+input.files[0].name;
+    if(key==='govId'){
+      const btn=document.getElementById('wz-step7-btn');
+      if(btn)btn.disabled=false;
+    }
   }
+}
 
-try {
-  const res = await fetch(`${API_URL}/api/merchants/apply`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      name,
-      phone,
-      email,
-      password: pw,
-      storeName,
-      businessType: btype,
-      address: addr,
-      productCategory: pcat,
-      description: desc,
-      dtiNumber: dti,
-      permitNumber: permit,
-      mayorPermit: mayor,
-      tin
-    })
-  });
-    const data = await res.json();
+async function initAddressStep(){
+  const regionSel=document.getElementById('wz-region');
+  regionSel.innerHTML='<option value="">Loading…</option>';
+  try{
+    const r=await fetch(`${API}/locations/regions`);
+    const regions=await r.json();
+    regionSel.innerHTML='<option value="">Select Region</option>'+regions.map(rg=>`<option value="${rg.psgcCode}">${rg.name}</option>`).join('');
+  }catch(e){regionSel.innerHTML='<option value="">Failed to load</option>';}
+}
 
-    if (!res.ok || !data.success) {
-    showErr('apply-err', data.error || data.message || JSON.stringify(data));
+async function onRegionChange(){
+  const regionCode=document.getElementById('wz-region').value;
+  const provinceSel=document.getElementById('wz-province');
+  const munSel=document.getElementById('wz-municipality');
+  const brgySel=document.getElementById('wz-barangay');
+  provinceSel.innerHTML='<option value="">Loading…</option>';provinceSel.disabled=true;
+  munSel.innerHTML='<option value="">Select province first</option>';munSel.disabled=true;
+  brgySel.innerHTML='<option value="">Select city/municipality first</option>';brgySel.disabled=true;
+  if(!regionCode)return;
+  try{
+    const r=await fetch(`${API}/locations/provinces/${regionCode}`);
+    const provinces=await r.json();
+    provinceSel.innerHTML='<option value="">Select Province</option>'+provinces.map(p=>`<option value="${p.psgcCode}">${p.name}</option>`).join('');
+    provinceSel.disabled=false;
+  }catch(e){provinceSel.innerHTML='<option value="">Failed to load</option>';}
+}
+
+async function onProvinceChange(){
+  const provinceCode=document.getElementById('wz-province').value;
+  const munSel=document.getElementById('wz-municipality');
+  const brgySel=document.getElementById('wz-barangay');
+  munSel.innerHTML='<option value="">Loading…</option>';munSel.disabled=true;
+  brgySel.innerHTML='<option value="">Select city/municipality first</option>';brgySel.disabled=true;
+  if(!provinceCode)return;
+  try{
+    const r=await fetch(`${API}/locations/municipalities/${provinceCode}`);
+    const munis=await r.json();
+    munSel.innerHTML='<option value="">Select City/Municipality</option>'+munis.map(m=>`<option value="${m.psgcCode}">${m.name}</option>`).join('');
+    munSel.disabled=false;
+  }catch(e){munSel.innerHTML='<option value="">Failed to load</option>';}
+}
+
+async function onMunicipalityChange(){
+  const munCode=document.getElementById('wz-municipality').value;
+  const brgySel=document.getElementById('wz-barangay');
+  brgySel.innerHTML='<option value="">Loading…</option>';brgySel.disabled=true;
+  if(!munCode)return;
+  try{
+    const r=await fetch(`${API}/locations/barangays/${munCode}`);
+    const brgys=await r.json();
+    brgySel.innerHTML='<option value="">Select Barangay</option>'+brgys.map(b=>`<option value="${b.psgcCode}">${b.name}</option>`).join('');
+    brgySel.disabled=false;
+  }catch(e){brgySel.innerHTML='<option value="">Failed to load</option>';}
+}
+
+async function submitWizardApply(){
+  const btn=document.querySelector('.wizard-next-btn');
+  if(btn){btn.disabled=true;btn.textContent='Submitting…';}
+  const formData=new FormData();
+  formData.append('name',wizardData.name);
+  formData.append('phone',wizardData.phone);
+  formData.append('email',wizardData.email);
+  formData.append('password',wizardData.password);
+  formData.append('storeName',wizardData.storeName);
+  formData.append('businessType',wizardData.businessType);
+  formData.append('address',wizardData.address);
+  formData.append('productCategory',wizardData.productCategory);
+  formData.append('description',wizardData.description||'');
+  formData.append('dtiNumber',wizardData.dtiNumber);
+  formData.append('permitNumber',wizardData.permitNumber);
+  formData.append('mayorPermit',wizardData.mayorPermit||'');
+  formData.append('tin',wizardData.tin||'');
+  if(wizardFiles.govId)formData.append('govId',wizardFiles.govId);
+  if(wizardFiles.businessPermitPhoto)formData.append('businessPermitPhoto',wizardFiles.businessPermitPhoto);
+  if(wizardFiles.storeFrontPhoto)formData.append('storeFrontPhoto',wizardFiles.storeFrontPhoto);
+
+  try{
+    const res=await fetch(`${API_URL}/api/merchants/apply`,{method:'POST',body:formData});
+    const data=await res.json();
+    if(!res.ok||!data.success){
+      showErr('apply-err',data.error||data.message||'Something went wrong.');
+      if(btn){btn.disabled=false;btn.textContent='📤 Submit Application';}
       return;
     }
-
     document.getElementById('apply-ok').classList.add('show');
-
-    setTimeout(() => {
-      showPending();
-    }, 2000);
-
-  } catch (err) {
-    showErr('apply-err', 'Cannot connect to server.');
+    setTimeout(()=>{showPending();},2000);
+  }catch(err){
+    showErr('apply-err','Cannot connect to server.');
+    if(btn){btn.disabled=false;btn.textContent='📤 Submit Application';}
   }
 }
 function saveSession(){localStorage.setItem('pde_merch_token',token||'');localStorage.setItem('pde_merch_user',JSON.stringify(currentMerchant));}
 
 function showPending(){
-  document.getElementById('authScreen').style.display='none';
+  ['splashScreen','welcomeScreen','loginScreen','signupIntroScreen','wizardScreen'].forEach(id=>{
+    const e=document.getElementById(id);if(e)e.style.display='none';
+  });
   document.getElementById('pendingScreen').classList.add('active');
 }
 
 function enterApp(){
-  document.getElementById('authScreen').style.display='none';
+  ['splashScreen','welcomeScreen','loginScreen','signupIntroScreen','wizardScreen'].forEach(id=>{
+    const e=document.getElementById(id);if(e)e.style.display='none';
+  });
   document.getElementById('pendingScreen').classList.remove('active');
   document.getElementById('mainApp').classList.add('active');
   updateStoreUI();loadDashboard();loadMyProducts();
@@ -693,7 +920,7 @@ function logout(){
   localStorage.removeItem('pde_merch_token');localStorage.removeItem('pde_merch_user');
   document.getElementById('mainApp').classList.remove('active');
   document.getElementById('pendingScreen').classList.remove('active');
-  document.getElementById('authScreen').style.display='flex';
+  goScreen('welcomeScreen');
 }
 
 function updateStoreUI(){

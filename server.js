@@ -131,8 +131,8 @@ const MerchantSchema = new mongoose.Schema({
 const RiderSchema = new mongoose.Schema({
   name: String, phone: String, email: { type: String, unique: true },
   password: String, address: String, vehicleType: String,
-  vehicleModel: String, plateNumber: String,
-  documents: { govId: String, license: String },
+  vehicleModel: String, plateNumber: String, licenseNumber: String,
+  documents: { govId: String, license: String, orcr: String, clearance: String },
   profilePic: String, isOnline: { type: Boolean, default: false },
   status: { type: String, default: 'pending' }, role: { type: String, default: 'rider' },
   isActive: { type: Boolean, default: true }, rating: { type: Number, default: 0 },
@@ -446,67 +446,46 @@ app.post('/api/customers/upload-profile', auth(['customer']), (req, res) => {
 // ============================================================
 // MERCHANT AUTH
 // ============================================================
-app.post('/api/merchants/apply', async (req, res) => {
-  try {
-    const {
-      name,
-      phone,
-      email,
-      password,
-      storeName,
-      businessType,
-      address,
-      productCategory,
-      description,
-      dtiNumber,
-      permitNumber,
-      mayorPermit,
-      tin
-    } = req.body;
+app.post('/api/merchants/apply', (req, res) => {
+  upload.fields([{ name: 'govId', maxCount: 1 }, { name: 'businessPermitPhoto', maxCount: 1 }, { name: 'storeFrontPhoto', maxCount: 1 }])(req, res, async (err) => {
+    if (err) return res.status(400).json({ error: err.message });
+    try {
+      const {
+        name, phone, email, password, storeName, businessType, address,
+        productCategory, description, dtiNumber, permitNumber, mayorPermit, tin
+      } = req.body;
 
-    const existsMerchant = await Merchant.findOne({ email });
-    const existsApplication = await Application.findOne({
-      "data.email": email,
-      type: "merchant"
-    });
+      const existsMerchant = await Merchant.findOne({ email });
+      const existsApplication = await Application.findOne({ "data.email": email, type: "merchant" });
+      if (existsMerchant || existsApplication) {
+        return res.status(400).json({ error: "Email already registered or application already submitted" });
+      }
 
-    if (existsMerchant || existsApplication) {
-      return res.status(400).json({
-        error: "Email already registered or application already submitted"
+      const hashed = await bcrypt.hash(password, 10);
+
+      let govIdUrl = '', businessPermitPhotoUrl = '', storeFrontPhotoUrl = '';
+      if (req.files) {
+        if (req.files.govId) govIdUrl = (await uploadToCloudinary(req.files.govId[0].buffer, 'merchant-docs')).secure_url;
+        if (req.files.businessPermitPhoto) businessPermitPhotoUrl = (await uploadToCloudinary(req.files.businessPermitPhoto[0].buffer, 'merchant-docs')).secure_url;
+        if (req.files.storeFrontPhoto) storeFrontPhotoUrl = (await uploadToCloudinary(req.files.storeFrontPhoto[0].buffer, 'merchant-docs')).secure_url;
+      }
+
+      await Application.create({
+        type: "merchant",
+        data: {
+          fullName: name, name, phone, email, password: hashed,
+          storeName, businessType, address, productCategory, description,
+          dtiNumber, permitNumber, mayorPermit, tin,
+          documents: { govId: govIdUrl, businessPermit: businessPermitPhotoUrl, storeFront: storeFrontPhotoUrl }
+        },
+        status: "pending"
       });
+
+      res.json({ success: true, message: "Merchant application submitted successfully." });
+    } catch (e) {
+      res.status(500).json({ error: e.message });
     }
-
-    const hashed = await bcrypt.hash(password, 10);
-
-    await Application.create({
-      type: "merchant",
-      data: {
-        fullName: name,
-        name,
-        phone,
-        email,
-        password: hashed,
-        storeName,
-        businessType,
-        address,
-        productCategory,
-        description,
-        dtiNumber,
-        permitNumber,
-        mayorPermit,
-        tin
-      },
-      status: "pending"
-    });
-
-    res.json({
-      success: true,
-      message: "Merchant application submitted successfully."
-    });
-
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
+  });
 });
 app.post('/api/merchants/login', async (req, res) => {
   try {
