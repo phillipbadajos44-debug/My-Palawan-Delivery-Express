@@ -539,43 +539,48 @@ app.post('/api/merchants/upload-docs', auth(['merchant']), (req, res) => {
 // ============================================================
 // RIDER AUTH
 // ============================================================
-app.post('/api/riders/apply', async (req, res) => {
-  try {
-    const { fullName, email, phone, address, vehicleType, password } = req.body;
+app.post('/api/riders/apply', (req, res) => {
+  upload.fields([{ name: 'licensePhoto', maxCount: 1 }, { name: 'orcrPhoto', maxCount: 1 }, { name: 'clearancePhoto', maxCount: 1 }])(req, res, async (err) => {
+    if (err) return res.status(400).json({ error: err.message });
+    try {
+      const { name, fullName, email, phone, address, vehicleType, vehicleModel, plateNumber, licenseNumber, password } = req.body;
+      const finalName = fullName || name;
 
-    const exists = await Rider.findOne({ email });
-    if (exists) return res.status(400).json({ error: 'Email already registered' });
+      const exists = await Rider.findOne({ email });
+      if (exists) return res.status(400).json({ error: 'Email already registered' });
 
-    const hashed = await bcrypt.hash(password, 10);
+      const hashed = await bcrypt.hash(password, 10);
 
-    const rider = await Rider.create({
-  name: fullName,
-  email,
-  phone,
-  address,
-  vehicleType,
-  password: hashed,
-  status: "pending"
-});
+      let licenseUrl = '', orcrUrl = '', clearanceUrl = '';
+      if (req.files) {
+        if (req.files.licensePhoto) licenseUrl = (await uploadToCloudinary(req.files.licensePhoto[0].buffer, 'rider-docs')).secure_url;
+        if (req.files.orcrPhoto) orcrUrl = (await uploadToCloudinary(req.files.orcrPhoto[0].buffer, 'rider-docs')).secure_url;
+        if (req.files.clearancePhoto) clearanceUrl = (await uploadToCloudinary(req.files.clearancePhoto[0].buffer, 'rider-docs')).secure_url;
+      }
 
-await Application.create({
-  type: "rider",
-  data: {
-    fullName,
-    email,
-    phone,
-    address,
-    vehicleType
-  },
-  status: "pending",
-  createdAt: new Date(),
-  linkedId: rider._id
-});
-    res.json({ success: true, message: 'Application submitted' });
+      const rider = await Rider.create({
+        name: finalName, email, phone, address, vehicleType, vehicleModel, plateNumber, licenseNumber,
+        password: hashed, status: 'pending',
+        documents: { license: licenseUrl, orcr: orcrUrl, clearance: clearanceUrl }
+      });
 
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+      await Application.create({
+        type: 'rider',
+        data: {
+          fullName: finalName, name: finalName, email, phone, address,
+          vehicleType, vehicleModel, plateNumber, licenseNumber,
+          documents: { license: licenseUrl, orcr: orcrUrl, clearance: clearanceUrl }
+        },
+        status: 'pending',
+        createdAt: new Date(),
+        linkedId: rider._id
+      });
+
+      res.json({ success: true, message: 'Application submitted' });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
 });
 app.post('/api/riders/login', async (req, res) => {
   try {
@@ -733,6 +738,8 @@ app.put('/api/admin/applications/:id', auth(['admin']), async (req, res) => {
               vehicleType: appData.data.vehicleType,
               vehicleModel: appData.data.vehicleModel,
               plateNumber: appData.data.plateNumber,
+              licenseNumber: appData.data.licenseNumber,
+              documents: appData.data.documents,
               status: 'approved',
               isActive: true
             }
