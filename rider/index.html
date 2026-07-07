@@ -1150,6 +1150,7 @@ function hideOfferBubble(){
 }
 
 async function acceptOffer(){
+  alert('acceptOffer CALLED');
   if(!currentOfferId)return;
   const id=currentOfferId;
   try{
@@ -1168,6 +1169,7 @@ async function acceptOffer(){
 }
 
 async function declineOffer(){
+  alert('declineOffer CALLED');
   if(!currentOfferId)return;
   const id=currentOfferId;
   try{await fetch(`${API}/riders/orders/${id}/decline`,{method:'PUT',headers:{'Authorization':'Bearer '+token}});}catch(e){}
