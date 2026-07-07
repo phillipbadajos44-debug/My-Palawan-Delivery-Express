@@ -638,8 +638,9 @@ app.get('/api/debug/riders-status', async (req, res) => {
 });
 app.get('/api/debug/ready-orders', async (req, res) => {
   try {
-    const orders = await Order.find({ status: { $in: ['ready', 'rider_assigned'] } }).select('merchantName merchantAddress merchantLat merchantLng status riderName');
-    res.json(orders);
+    const orders = await Order.find({ status: { $in: ['ready', 'rider_assigned'] } }).select('merchantName merchantAddress merchantLat merchantLng status riderName offeredRiderId offerExpiresAt excludedRiderIds');
+    const now = new Date();
+    res.json({ now, orders });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 

@@ -860,6 +860,7 @@ function getSample(){return[{id:'ORD-001',merchantName:"Susie's Store",merchantA
 
 function renderAvailable(){
   const el=document.getElementById('available-wrap');
+  if(!el)return;
   if(!isOnline){
     el.innerHTML=`<div class="empty-state"><div class="ei">🛵</div><p>Go online to receive automatically-assigned deliveries</p></div>`;
     return;
