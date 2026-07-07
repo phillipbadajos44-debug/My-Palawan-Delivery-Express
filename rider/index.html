@@ -1174,6 +1174,10 @@ async function declineOffer(){
   hideOfferBubble();
 }
 
+window.onerror = function(msg, url, line, col, error) {
+  alert('JS ERROR: ' + msg + ' (line ' + line + ')');
+  return false;
+};
 checkSession();
 setInterval(()=>{if(isOnline)pollActiveDeliveries();},8000);
 setInterval(()=>{if(isOnline)pollOffer();},3000);
