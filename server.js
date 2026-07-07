@@ -630,6 +630,18 @@ app.put('/api/riders/toggle-online', auth(['rider']), async (req, res) => {
     res.json({ isOnline: r.isOnline });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
+app.put('/api/debug/reset-offer/:id', async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id);
+    if (!order) return res.status(404).json({ error: 'Order not found' });
+    order.offeredRiderId = null;
+    order.offerExpiresAt = null;
+    order.excludedRiderIds = [];
+    await order.save();
+    res.json({ success: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 app.get('/api/debug/riders-status', async (req, res) => {
   try {
     const riders = await Rider.find({}).select('name isOnline status currentLocation');

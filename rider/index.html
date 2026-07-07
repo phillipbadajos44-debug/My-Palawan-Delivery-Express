@@ -1107,15 +1107,19 @@ async function pollOffer(){
   try{
     const r=await fetch(`${API}/riders/current-offer`,{headers:{'Authorization':'Bearer '+token}});
     const d=await r.json();
+    console.log('[pollOffer] tick, offer=', d.offer, 'currentOfferId=', currentOfferId);
     if(d.offer && d.offer.orderId!==currentOfferId){
+      console.log('[pollOffer] NEW offer detected, calling showOfferBubble', d.offer.orderId, 'was', currentOfferId);
       showOfferBubble(d.offer);
     }else if(!d.offer && currentOfferId){
+      console.log('[pollOffer] offer gone, hiding bubble');
       hideOfferBubble();
     }
-  }catch(e){}
+  }catch(e){console.error('[pollOffer] ERROR', e);}
 }
 
 function showOfferBubble(offer){
+  console.log('[showOfferBubble] CALLED with orderId=', offer.orderId, 'expiresAt=', offer.expiresAt);
   currentOfferId=offer.orderId;
   document.getElementById('ob-merchant').textContent='Pickup at '+(offer.merchantName||'merchant');
   document.getElementById('ob-earnings').textContent='₱'+(offer.deliveryFee!=null?offer.deliveryFee:50);
