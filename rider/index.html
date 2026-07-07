@@ -1170,5 +1170,15 @@ checkSession();
 setInterval(()=>{if(isOnline)pollActiveDeliveries();},8000);
 setInterval(()=>{if(isOnline)pollOffer();},3000);
 </script>
+
+<div id="debugBox" style="display:none;position:fixed;bottom:0;left:0;right:0;background:#000;color:#0f0;font-size:11px;padding:10px;z-index:99999;max-height:40vh;overflow:auto;white-space:pre-wrap;"></div>
+<script>
+window.onerror=function(msg,src,line,col,err){
+  const box=document.getElementById('debugBox');
+  box.style.display='block';
+  box.textContent+='ERROR: '+msg+' at line '+line+':'+col+'
+';
+};
+</script>
 </body>
 </html>
