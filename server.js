@@ -651,6 +651,15 @@ app.put('/api/riders/set-online', auth(['rider']), async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// Get open merchants for the live map (rider-facing)
+app.get('/api/riders/merchants-map', auth(['rider']), async (req, res) => {
+  try {
+    const merchants = await Merchant.find({ isOpen: true, lat: { $ne: null }, lng: { $ne: null }, status: 'approved' })
+      .select('storeName name lat lng');
+    res.json(merchants);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // Get current delivery offer for this rider (if any, not expired)
 app.get('/api/riders/current-offer', auth(['rider']), async (req, res) => {
   try {
