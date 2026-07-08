@@ -1158,17 +1158,20 @@ async function acceptOffer(){
 }
 
 async function declineOffer(){
-
   if(!currentOfferId)return;
   const id=currentOfferId;
-  try{await fetch(`${API}/riders/orders/${id}/decline`,{method:'PUT',headers:{'Authorization':'Bearer '+token}});}catch(e){}
   hideOfferBubble();
+  try{
+    const r=await fetch(`${API}/riders/orders/${id}/decline`,{method:'PUT',headers:{'Authorization':'Bearer '+token}});
+    const d=await r.json();
+    if(!d.success)toast(d.error||'Could not decline (offer may have expired)');
+  }catch(e){toast('Connection error while declining');}
 }
 
 
 checkSession();
 setInterval(()=>{if(isOnline)pollActiveDeliveries();},8000);
-setInterval(()=>{if(isOnline)pollOffer();},3000);
+setInterval(()=>{if(isOnline)pollOffer();},1500);
 </script>
 
 </body>

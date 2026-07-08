@@ -305,7 +305,7 @@ async function tryAssignNearestRider(orderId) {
     }
 
     order.offeredRiderId = best._id.toString();
-    order.offerExpiresAt = new Date(Date.now() + 15000);
+    order.offerExpiresAt = new Date(Date.now() + 45000);
     await order.save();
 
     const distMsg = bestDist != null ? `, ${bestDist.toFixed(1)}km away` : '';
