@@ -1123,7 +1123,7 @@ function showOfferBubble(offer){
   currentOfferId=offer.orderId;
   document.getElementById('ob-merchant').textContent='Pickup at '+(offer.merchantName||'merchant');
   document.getElementById('ob-earnings').textContent='₱'+(offer.deliveryFee!=null?offer.deliveryFee:50);
-  document.getElementById('offerBubble').style.display='block';
+  document.getElementById('offerBubble').style.display='flex';
   if(offerCountdownInterval)clearInterval(offerCountdownInterval);
   offerCountdownInterval=setInterval(()=>{
     const secsLeft=Math.max(0,Math.round((new Date(offer.expiresAt)-new Date())/1000));
