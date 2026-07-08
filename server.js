@@ -1,4 +1,13 @@
 require('dotenv').config();
+
+const { calculatePricing } = require('./services/pricingEngine');
+const {
+  summarizeOrders,
+  summarizeRevenuePeriods,
+  summarizeRankings,
+  summarizeChartData
+} = require('./services/financialAnalytics');
+const FinancialSettings = require('./models/FinancialSettings');
 // ======================================
 // ⬇️ DITO SA IBABA MO IDIDIKIT ANG BUONG CODE MO ⬇️
 // ======================================
@@ -154,11 +163,22 @@ const ProductSchema = new mongoose.Schema({
 
 const OrderSchema = new mongoose.Schema({
   customerId: String, customerName: String, customerPhone: String,
-  customerAddress: String, merchantId: String, merchantName: String, merchantAddress: String, merchantPhone: String,
+  customerAddress: String,
+customerLat: Number,
+customerLng: Number,
+merchantId: String, merchantName: String, merchantAddress: String, merchantPhone: String,
   merchantLat: Number, merchantLng: Number,
   riderId: String, riderName: String,
   items: [{ id: String, name: String, qty: Number, price: Number }],
-  total: Number, deliveryFee: { type: Number, default: 50 },
+  total: Number,
+distanceKm: { type: Number, default: 0 },
+deliveryFee: { type: Number, default: 50 },
+riderEarnings: { type: Number, default: 0 },
+platformRevenue: { type: Number, default: 0 },
+merchantCommission: { type: Number, default: 0 },
+  merchantPayout: { type: Number, default: 0 },
+serviceFee: { type: Number, default: 0 },
+pricingSnapshot: { type: Object, default: {} },
   paymentMethod: { type: String, default: 'cod' },
   paymentStatus: { type: String, default: 'pending' },
   status: { type: String, default: 'pending' },
@@ -186,6 +206,67 @@ const AuditSchema = new mongoose.Schema({
   details: String, createdAt: { type: Date, default: Date.now }
 });
 
+
+
+const FinancialLedgerSchema = new mongoose.Schema({
+  orderId: String,
+
+  userType: {
+    type: String,
+    enum: ['customer','merchant','rider','platform']
+  },
+
+  userId: String,
+
+  transactionType: {
+    type: String,
+    enum: [
+      'order_payment',
+      'merchant_payout',
+      'delivery_earnings',
+      'platform_revenue',
+      'withdrawal',
+      'deposit',
+      'refund',
+      'remittance'
+    ],
+    default: 'order_payment'
+  },
+
+  type: {
+    type: String,
+    enum: ['credit','debit']
+  },
+
+  amount: {
+    type: Number,
+    default: 0
+  },
+
+  balanceBefore: {
+    type: Number,
+    default: 0
+  },
+
+  balanceAfter: {
+    type: Number,
+    default: 0
+  },
+
+  status: {
+    type: String,
+    default: 'completed'
+  },
+
+  description: String,
+
+  createdAt: {
+    type: Date,
+    default: Date.now
+  }
+});
+
+
 const MessageSchema = new mongoose.Schema({
   orderId: String, channel: String,
   senderId: String, senderRole: String, senderName: String,
@@ -193,6 +274,39 @@ const MessageSchema = new mongoose.Schema({
   isRead: { type: Boolean, default: false },
   createdAt: { type: Date, default: Date.now }
 });
+
+const FinancialLedger = mongoose.model(
+  'FinancialLedger',
+  FinancialLedgerSchema
+);
+
+async function addLedgerEntry({
+  orderId,
+  userType,
+  userId,
+  transactionType = 'order_payment',
+  type,
+  amount,
+  description,
+  balanceBefore = 0,
+  balanceAfter = 0,
+  status = 'completed'
+}) {
+  return await FinancialLedger.create({
+    orderId,
+    userType,
+    userId,
+    transactionType,
+    type,
+    amount,
+    description,
+    balanceBefore,
+    balanceAfter,
+    status
+  });
+}
+
+
 
 const Customer = mongoose.model('Customer', CustomerSchema);
 const Merchant = mongoose.model('Merchant', MerchantSchema);
@@ -1107,13 +1221,56 @@ app.get('/api/orders/:id', async (req, res) => {
 
 app.post('/api/orders', auth(['customer']), async (req, res) => {
   try {
-    const { items, merchantId, merchantName, total, deliveryFee, paymentMethod, customerAddress } = req.body;
+    const {
+      items,
+      merchantId,
+      merchantName,
+      total,
+      paymentMethod,
+      customerAddress,
+      customerLat,
+      customerLng,
+      distanceKm
+    } = req.body;
+
+    const itemCount = (items || []).reduce(
+      (sum, item) => sum + Number(item.qty || 1),
+      0
+    );
+
+    let settings = await FinancialSettings.findOne();
+
+    if (!settings) {
+      settings = await FinancialSettings.create({});
+    }
+
+    const pricing = calculatePricing({
+      distanceKm: Number(distanceKm || 1),
+      itemCount,
+      orderTotal: Number(total || 0),
+      settings
+    });
     const merchant = await Merchant.findById(merchantId);
     const customer = await Customer.findById(req.user.id);
     const order = await Order.create({
       customerId: req.user.id, customerName: req.user.name,
       customerPhone: customer ? customer.phone : '',
-      merchantId, merchantName, items, total, deliveryFee: deliveryFee || 50,
+      merchantId,
+      merchantName,
+      items,
+      total,
+
+      customerLat,
+      customerLng,
+
+      distanceKm: pricing.distanceKm,
+      deliveryFee: pricing.deliveryFee,
+      riderEarnings: pricing.riderEarnings,
+      platformRevenue: pricing.platformRevenue,
+      merchantCommission: pricing.merchantCommission,
+      merchantPayout: pricing.merchantPayout,
+      serviceFee: pricing.serviceFee,
+      pricingSnapshot: pricing.pricingSnapshot,
       paymentMethod: paymentMethod || 'cod', customerAddress,
       merchantAddress: merchant ? merchant.address : '',
       merchantPhone: merchant ? merchant.phone : '',
@@ -1148,12 +1305,45 @@ app.patch('/api/orders/:id/status', auth(['merchant', 'rider', 'admin']), async 
 
     if (status === 'delivered') {
       const deliveryFee = order.deliveryFee || 0;
-      const riderEarnings = Math.round(deliveryFee * 0.8);
-      const companyEarnings = deliveryFee - riderEarnings;
+      const riderEarnings = order.riderEarnings || 0;
+      const platformRevenue = order.platformRevenue || 0;
+      const merchantPayout = order.merchantPayout || 0;
       const totalCashCollected = order.paymentMethod === 'cod' ? (order.total + deliveryFee) : 0;
       const amountToRemit = order.paymentMethod === 'cod' ? (totalCashCollected - riderEarnings) : 0;
 
+      
+      await addLedgerEntry({
+        orderId: order._id.toString(),
+        userType: 'rider',
+        userId: order.riderId,
+        transactionType: 'delivery_earnings',
+        type: 'credit',
+        amount: riderEarnings,
+        description: 'Delivery earnings'
+      });
+
+      await addLedgerEntry({
+        orderId: order._id.toString(),
+        userType: 'merchant',
+        userId: order.merchantId,
+        transactionType: 'merchant_payout',
+        type: 'credit',
+        amount: merchantPayout,
+        description: 'Merchant payout'
+      });
+
+      await addLedgerEntry({
+        orderId: order._id.toString(),
+        userType: 'platform',
+        userId: 'platform',
+        transactionType: 'platform_revenue',
+        type: 'credit',
+        amount: platformRevenue,
+        description: 'Platform revenue'
+      });
+
       const remittance = await Remittance.create({
+
         orderId: order._id.toString(),
         riderId: order.riderId, riderName: order.riderName,
         merchantId: order.merchantId, merchantName: order.merchantName,
@@ -1165,11 +1355,11 @@ app.patch('/api/orders/:id/status', auth(['merchant', 'rider', 'admin']), async 
 
       if (order.paymentMethod !== 'cod') {
         // Non-COD: payment already settled electronically, credit balances immediately
-        await Merchant.findByIdAndUpdate(order.merchantId, { $inc: { availableBalance: order.total } });
+        await Merchant.findByIdAndUpdate(order.merchantId, { $inc: { availableBalance: merchantPayout } });
         if (order.riderId) await Rider.findByIdAndUpdate(order.riderId, { $inc: { wallet: riderEarnings, totalEarningsAmount: riderEarnings } });
       } else {
         // COD: merchant amount stays pending until rider remits and admin verifies
-        await Merchant.findByIdAndUpdate(order.merchantId, { $inc: { pendingBalance: order.total } });
+        await Merchant.findByIdAndUpdate(order.merchantId, { $inc: { pendingBalance: merchantPayout } });
       }
     }
 
@@ -1421,9 +1611,36 @@ app.put('/api/admin/remittances/:id/verify', auth(['admin']), async (req, res) =
 // ============================================================
 app.get('/api/merchants/balance', auth(['merchant']), async (req, res) => {
   try {
-    const m = await Merchant.findById(req.user.id).select('pendingBalance availableBalance totalPaidOut storeName');
-    res.json(m);
-  } catch(e) { res.status(500).json({ error: e.message }); }
+    const merchant = await Merchant.findById(req.user.id).select(
+      'pendingBalance availableBalance totalPaidOut totalRevenue storeName'
+    );
+
+    const transactions = await FinancialLedger.find({
+      userType: 'merchant',
+      userId: req.user.id
+    })
+    .sort('-createdAt')
+    .limit(50);
+
+    const totalCommission = transactions
+      .filter(t => t.transactionType === 'merchant_payout')
+      .reduce((sum, t) => sum + (t.amount || 0), 0);
+
+    res.json({
+      merchant,
+      wallet: {
+        availableBalance: merchant.availableBalance || 0,
+        pendingBalance: merchant.pendingBalance || 0,
+        totalPaidOut: merchant.totalPaidOut || 0,
+        totalRevenue: merchant.totalRevenue || 0,
+        totalCommission
+      },
+      recentTransactions: transactions
+    });
+
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 app.post('/api/merchants/payout', auth(['merchant']), async (req, res) => {
   try {
@@ -1494,6 +1711,70 @@ app.put('/api/admin/riders/:riderId/verify-all-remittances', auth(['admin']), as
     res.json({ success: true, verified: list.length });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
+
+app.get('/api/admin/financial-dashboard', auth(['admin']), async (req, res) => {
+  try {
+
+    const [
+      merchants,
+      riders,
+      orders,
+      ledgers,
+      remittances
+    ] = await Promise.all([
+      Merchant.find(),
+      Rider.find(),
+      Order.find(),
+      FinancialLedger.find(),
+      Remittance.find()
+    ]);
+
+    const analytics = summarizeOrders(orders);
+    const revenue = summarizeRevenuePeriods(orders);
+    const rankings = summarizeRankings(orders);
+    const charts = summarizeChartData(orders);
+
+    const platformRevenue =
+      ledgers
+        .filter(l => l.transactionType === 'platform_revenue')
+        .reduce((s, l) => s + (l.amount || 0), 0);
+
+    const merchantPending =
+      merchants.reduce((s, m) => s + (m.pendingBalance || 0), 0);
+
+    const merchantAvailable =
+      merchants.reduce((s, m) => s + (m.availableBalance || 0), 0);
+
+    const riderWallets =
+      riders.reduce((s, r) => s + (r.wallet || 0), 0);
+
+    const pendingRemittances =
+      remittances
+        .filter(r => r.status !== 'verified')
+        .reduce((s, r) => s + (r.amountToRemit || 0), 0);
+
+    res.json({
+      analytics,
+      revenue,
+      rankings,
+
+      activeMerchants: merchants.length,
+      activeRiders: riders.length,
+
+      financial: {
+        platformRevenue,
+        merchantPending,
+        merchantAvailable,
+        riderWallets,
+        pendingRemittances
+      }
+    });
+
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 app.put('/api/admin/payouts/:id/reject', auth(['admin']), async (req, res) => {
   try {
     const payout = await Payout.findByIdAndUpdate(req.params.id, { status: 'rejected', paidAt: new Date() }, { new: true });
