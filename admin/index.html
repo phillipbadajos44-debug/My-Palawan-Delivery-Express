@@ -821,3 +821,37 @@ setInterval(loadDashboard,10000);
 </script>
 </body>
 </html>
+<script src="/socket.io/socket.io.js"></script>
+<script>
+let socket;
+
+function initSocket(){
+    if(typeof io === 'undefined' || !adminToken) return;
+
+    socket = io();
+
+    socket.emit('join',{
+        role:'admin'
+    });
+
+    socket.on('admin_dashboard_update',()=>{
+        loadDashboard();
+    });
+
+    socket.on('order_updated',()=>{
+        loadDashboard();
+    });
+
+    socket.on('merchant_new_order',()=>{
+        loadDashboard();
+    });
+}
+
+const __oldEnterApp = enterApp;
+enterApp = function(){
+    __oldEnterApp();
+    initSocket();
+};
+</script>
+</body>
+</html>
