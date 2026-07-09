@@ -187,8 +187,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
 .spinner{width:36px;height:36px;border:3px solid var(--gl);border-top-color:var(--gm);border-radius:50%;animation:spin .7s linear infinite;margin:40px auto;display:block;}
 @keyframes spin{to{transform:rotate(360deg);}}
 </style>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
 <body>
 
@@ -323,27 +321,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
     </div>
   </div>
 
-  <!-- REMITTANCE -->
-  <div id="page-remittance" class="page">
-    <div class="section-title">💸 Remittance</div>
-    <div class="stats-grid">
-      <div class="stat-card green"><div class="stat-icon">💵</div><div class="stat-val" id="ra-collected">₱0</div><div class="stat-label">Total Collected</div></div>
-      <div class="stat-card gold"><div class="stat-icon">🛵</div><div class="stat-val" id="ra-rider">₱0</div><div class="stat-label">Rider Earnings</div></div>
-      <div class="stat-card"><div class="stat-icon">🏢</div><div class="stat-val" id="ra-company">₱0</div><div class="stat-label">Company Share</div></div>
-      <div class="stat-card red"><div class="stat-icon">⏳</div><div class="stat-val" id="ra-pending">0</div><div class="stat-label">Pending Verify</div></div>
-    </div>
-    <div class="filter-tabs">
-      <div class="ftab active" onclick="filterRemit('all',this)">All</div>
-      <div class="ftab" onclick="filterRemit('remitted',this)">📤 For Verify</div>
-      <div class="ftab" onclick="filterRemit('verified',this)">✅ Verified</div>
-    </div>
-    <div style="padding:0 18px 16px" id="remit-list"><div class="spinner"></div></div>
-  </div>
-  <!-- PAYOUTS -->
-  <div id="page-payouts" class="page">
-    <div class="section-title">🏦 Merchant Payouts</div>
-    <div style="padding:0 18px 16px" id="payout-list"><div class="spinner"></div></div>
-  </div>
   <!-- AUDIT LOGS -->
   <div id="page-audit" class="page">
     <div class="section-title">🕵️ Audit Logs</div>
@@ -353,25 +330,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
     <div style="padding:0 18px 16px" id="audit-list"><div class="spinner"></div></div>
   </div>
 
-  <div id="page-map" class="page">
-    <div class="section-title">🗺️ Live Map</div>
-    <div style="padding:0 18px 8px;display:flex;gap:16px;font-size:13px;color:var(--muted);">
-      <span>🔴 Riders Online</span>
-      <span>🔵 Merchants Open</span>
-    </div>
-    <div id="admin-map" style="width:100%;height:calc(100vh - 260px);border-radius:12px;"></div>
-  </div>
-
   <nav class="bottom-nav">
     <button class="nav-item active" onclick="showPage('dashboard',this)"><div class="nav-icon">📊</div><span class="nav-label">Dashboard</span></button>
     <button class="nav-item" onclick="showPage('applications',this);loadApplications()"><div class="nav-icon">📋</div><span class="nav-label">Applications</span><span class="n-badge" id="appBadge"></span></button>
     <button class="nav-item" onclick="showPage('orders',this);renderOrderTable()"><div class="nav-icon">📦</div><span class="nav-label">Orders</span></button>
     <button class="nav-item" onclick="showPage('users',this);showUsers('customers',null)"><div class="nav-icon">👥</div><span class="nav-label">Users</span></button>
     <button class="nav-item" onclick="showPage('analytics',this);loadAnalytics('monthly',null)"><div class="nav-icon">📈</div><span class="nav-label">Analytics</span></button>
-    <button class="nav-item" onclick="showPage('remittance',this);loadAdminRemit()"><div class="nav-icon">💸</div><span class="nav-label">Remit</span></button>
-    <button class="nav-item" onclick="showPage('payouts',this);loadAdminPayouts()"><div class="nav-icon">🏦</div><span class="nav-label">Payouts</span></button>
     <button class="nav-item" onclick="showPage('audit',this);loadAuditLogs()"><div class="nav-icon">🕵️</div><span class="nav-label">Audit</span></button>
-    <button class="nav-item" onclick="showPage('map',this);loadMap()"><div class="nav-icon">🗺️</div><span class="nav-label">Map</span></button>
   </nav>
 </div>
 
@@ -462,7 +427,6 @@ function enterApp(){
   document.getElementById('authScreen').style.display='none';
   document.getElementById('mainApp').classList.add('active');
   loadDashboard();
-    initSocket();
 }
 function logout(){
   localStorage.removeItem('pde_admin');adminToken=null;
@@ -665,7 +629,7 @@ function renderOrderTable(search=''){
 }
 
 async function advanceOrder(id){
-  const flow=['pending','accepted','ready','rider_assigned','picked_up','delivered'];
+  const flow=['pending','accepted','ready','picked_up','delivered'];
   const o=allOrders.find(x=>(x.id||x._id)===id);if(!o)return;
   const i=flow.indexOf(o.status);
   if(i<flow.length-1){o.status=flow[i+1];
@@ -852,60 +816,8 @@ function globalSearchHandler(q){
 
 function toast(msg){const t=document.getElementById('toastEl');document.getElementById('toastMsg').textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2800);}
 
-// ── LIVE MAP ──
-let adminMap=null, mapMarkersLayer=null;
-async function loadMap(){
-  try{
-    if(!adminMap){
-      adminMap=L.map('admin-map').setView([9.7392,118.7353],12);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap contributors'}).addTo(adminMap);
-      mapMarkersLayer=L.layerGroup().addTo(adminMap);
-    }
-    mapMarkersLayer.clearLayers();
-    const [ridersRes,merchantsRes]=await Promise.all([
-      fetch(`${API}/admin/riders`,{headers:{'Authorization':'Bearer '+adminToken}}),
-      fetch(`${API}/admin/merchants`,{headers:{'Authorization':'Bearer '+adminToken}})
-    ]);
-    const riders=await ridersRes.json();
-    const merchantsData=await merchantsRes.json();
-    const merchants=merchantsData.data||[];
-    riders.filter(r=>r.isOnline && r.currentLocation && r.currentLocation.lat!=null).forEach(r=>{
-      L.circleMarker([r.currentLocation.lat,r.currentLocation.lng],{radius:9,color:'#dc2626',fillColor:'#dc2626',fillOpacity:0.85,weight:2}).addTo(mapMarkersLayer).bindPopup(`🛵 <b>${r.name||'Rider'}</b><br>${r.vehicleType||''}`);
-    });
-    merchants.filter(m=>m.isOpen && m.lat!=null && m.lng!=null).forEach(m=>{
-      L.circleMarker([m.lat,m.lng],{radius:9,color:'#2563eb',fillColor:'#2563eb',fillOpacity:0.85,weight:2}).addTo(mapMarkersLayer).bindPopup(`🏪 <b>${m.storeName||m.name||'Merchant'}</b>`);
-    });
-  }catch(e){console.error('Map load error:',e.message);}
-}
-
 checkSession();
 setInterval(loadDashboard,10000);
-
-<script src="/socket.io/socket.io.js"></script>
-<script>
-let socket;
-
-function initSocket(){
-    if(typeof io==='undefined' || !adminToken) return;
-
-    socket = io();
-
-    socket.emit('join',{
-        role:'admin'
-    });
-
-    socket.on('admin_dashboard_update',()=>{
-        loadDashboard();
-    });
-
-    socket.on('order_updated',()=>{
-        loadDashboard();
-    });
-
-    socket.on('merchant_new_order',()=>{
-        loadDashboard();
-    });
-}
 </script>
 </body>
 </html>
