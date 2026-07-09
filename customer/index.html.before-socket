@@ -742,7 +742,6 @@ function checkSession(){
     token=saved;currentUser=JSON.parse(savedUser);
     document.getElementById('splashScreen').style.display='none';
     enterApp();
-    initSocket();
     return;
   }
   setTimeout(()=>{
@@ -1767,39 +1766,7 @@ function toast(msg){const t=document.getElementById('toastEl');document.getEleme
 // ── INIT ──
 favorites=JSON.parse(localStorage.getItem('pde_favs')||'[]');
 checkSession();
-
-// ===== SOCKET.IO =====
-let socket;
-
-function initSocket(){
-    if(typeof io === 'undefined' || !token || !currentUser) return;
-
-    socket = io();
-
-    socket.emit('join',{
-        role:'customer',
-        userId:currentUser.id || currentUser._id
-    });
-
-    socket.on('order_created',(order)=>{
-        toast('📦 Order created');
-        loadOrders?.();
-    });
-
-    socket.on('order_updated',(order)=>{
-        loadOrders?.();
-    });
-
-    socket.on('order_delivered',(order)=>{
-        toast('🎉 Your order has been delivered!');
-        loadOrders?.();
-        loadNotifications?.();
-    });
-}
-// =====================
-
 setInterval(loadProducts,30000);
 </script>
-  <script src="/socket.io/socket.io.js"></script>
 </body>
 </html>

@@ -562,10 +562,7 @@ function checkSession(){
     token=t;currentMerchant=JSON.parse(u);
     document.getElementById('splashScreen').style.display='none';
     if(currentMerchant.status==='pending')showPending();
-    else{
-      enterApp();
-      initSocket();
-    }
+    else enterApp();
     return;
   }
   setTimeout(()=>{
@@ -1388,35 +1385,6 @@ function closeNotif(){document.getElementById('notifPanel').classList.remove('op
 function toast(msg){const t=document.getElementById('toastEl');document.getElementById('toastMsg').textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2800);}
 
 checkSession();
-
-
-// ===== SOCKET.IO =====
-let socket;
-
-function initSocket(){
-    if(typeof io === 'undefined' || !token || !currentMerchant) return;
-
-    socket = io();
-
-    socket.emit('join',{
-        role:'merchant',
-        userId:currentMerchant.id || currentMerchant._id
-    });
-
-    socket.on('merchant_new_order',(order)=>{
-        toast('🆕 New order received!');
-        if(typeof loadOrders==='function') loadOrders();
-        if(typeof loadDashboard==='function') loadDashboard();
-    });
-
-    socket.on('order_updated',(order)=>{
-        if(typeof loadOrders==='function') loadOrders();
-    });
-}
-// =====================
-
-
 </script>
-  <script src="/socket.io/socket.io.js"></script>
 </body>
 </html>

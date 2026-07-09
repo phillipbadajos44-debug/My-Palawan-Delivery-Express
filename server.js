@@ -17,6 +17,8 @@ const FinancialSettings = require('./models/FinancialSettings');
 // ============================================================
 const Application = require('./models/Application');
 const express = require('express');
+const http = require('http');
+const { Server } = require('socket.io');
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
@@ -70,6 +72,38 @@ function haversineDistance(lat1, lng1, lat2, lng2) {
 }
 
 const app = express();
+
+const server = http.createServer(app);
+
+const io = new Server(server, {
+  cors: {
+    origin: "*",
+    methods: ["GET","POST","PUT","DELETE"]
+  }
+});
+
+app.set('io', io);
+
+io.on('connection', (socket) => {
+  console.log("🟢 Socket connected:", socket.id);
+
+  socket.on('join', ({ role, userId }) => {
+    if (!role || !userId) return;
+
+    const room = `${role}:${userId}`;
+    socket.join(room);
+
+    if (role === 'admin') {
+      socket.join('admin');
+    }
+
+    console.log(`✅ ${socket.id} joined ${room}`);
+  });
+
+  socket.on('disconnect', () => {
+    console.log("🔴 Socket disconnected:", socket.id);
+  });
+});
 
 app.use('/merchant', express.static(path.join(__dirname, 'merchant')));
 app.use('/admin', express.static(path.join(__dirname, 'admin')));
@@ -1252,7 +1286,9 @@ app.post('/api/orders', auth(['customer']), async (req, res) => {
     });
     const merchant = await Merchant.findById(merchantId);
     const customer = await Customer.findById(req.user.id);
-    const order = await Order.create({
+    const io = req.app.get('io');
+
+const order = await Order.create({
       customerId: req.user.id, customerName: req.user.name,
       customerPhone: customer ? customer.phone : '',
       merchantId,
@@ -1276,6 +1312,17 @@ app.post('/api/orders', auth(['customer']), async (req, res) => {
       merchantPhone: merchant ? merchant.phone : '',
       statusHistory: [{ status: 'pending', time: new Date(), note: 'Order placed by customer' }]
     });
+
+    if (io) {
+      // Admin dashboard
+      io.to('admin').emit('admin_dashboard_update');
+
+      // Merchant who owns the order
+      io.to(`merchant:${merchantId}`).emit('merchant_new_order', order);
+
+      // Customer who created the order
+      io.to(`customer:${req.user.id}`).emit('order_created', order);
+    }
 
     // Deduct stock for each ordered item
     for (const item of items) {
@@ -1302,6 +1349,21 @@ app.patch('/api/orders/:id/status', auth(['merchant', 'rider', 'admin']), async 
     order.statusHistory.push({ status, time: new Date(), note: note || '' });
     if (status === 'rider_assigned') { order.riderId = req.user.id; order.riderName = req.user.name; }
     await order.save();
+
+    const io = req.app.get('io');
+
+    if (io) {
+      io.emit('order_updated', order);
+      io.emit('admin_dashboard_update');
+
+      if (status === 'rider_assigned') {
+        io.emit('rider_assigned', order);
+      }
+
+      if (status === 'delivered') {
+        io.emit('order_delivered', order);
+      }
+    }
 
     if (status === 'delivered') {
       const deliveryFee = order.deliveryFee || 0;
@@ -1783,7 +1845,7 @@ app.put('/api/admin/payouts/:id/reject', auth(['admin']), async (req, res) => {
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`\n🚀 PDE Server running at http://localhost:${PORT}`);
   console.log(`📦 MongoDB: ${MONGO_URI}`);
   console.log(`\n📋 Setup Instructions:`);

@@ -451,14 +451,7 @@ async function doLogin(){
   try{
     const r=await fetch(`${API}/riders/login`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password:pw})});
     const d=await r.json();
-    if(d.success&&d.token){
-      token=d.token;
-      currentRider=d.user;
-      saveSession();
-      initSocket();
-      enterApp();
-      return;
-    }
+    if(d.success&&d.token){token=d.token;currentRider=d.user;saveSession();enterApp();return;}
     if(d.status==='pending'){showErr('login-err','Application still pending.');return;}
     showErr('login-err',d.error||'Invalid credentials.');
   }catch(e){
@@ -1177,41 +1170,9 @@ async function declineOffer(){
 
 
 checkSession();
-
-
-// ===== SOCKET.IO =====
-let socket;
-
-function initSocket(){
-    if(typeof io === 'undefined' || !token || !currentRider) return;
-
-    socket = io();
-
-    socket.emit('join',{
-        role:'rider',
-        userId:currentRider.id || currentRider._id
-    });
-
-    socket.on('rider_assigned',(order)=>{
-        toast('🛵 New delivery assigned!');
-        if(typeof pollActiveDeliveries==='function') pollActiveDeliveries();
-    });
-
-    socket.on('order_updated',(order)=>{
-        if(typeof pollActiveDeliveries==='function') pollActiveDeliveries();
-    });
-
-    socket.on('order_delivered',(order)=>{
-        if(typeof updateStats==='function') updateStats();
-    });
-}
-// =====================
-
-
 setInterval(()=>{if(isOnline)pollActiveDeliveries();},8000);
 setInterval(()=>{if(isOnline)pollOffer();},1500);
 </script>
 
-  <script src="/socket.io/socket.io.js"></script>
 </body>
 </html>
