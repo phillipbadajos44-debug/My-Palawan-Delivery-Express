@@ -1092,6 +1092,22 @@ async function enterApp(){
   setInterval(loadOrders,10000);
   setInterval(loadNotifications,15000);
   restoreLastPage();
+  startCustomerLocationTracking();
+}
+
+function startCustomerLocationTracking(){
+  if(!navigator.geolocation)return;
+  navigator.geolocation.watchPosition(
+    (pos)=>{
+      fetch(`${API}/customers/location`,{
+        method:'PUT',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+        body:JSON.stringify({lat:pos.coords.latitude,lng:pos.coords.longitude})
+      }).catch(()=>{});
+    },
+    ()=>{},
+    {enableHighAccuracy:true,maximumAge:15000,timeout:10000}
+  );
 }
 function restoreLastPage(){
   const savedPage=localStorage.getItem('pde_cust_page')||'home';

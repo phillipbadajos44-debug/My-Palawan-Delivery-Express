@@ -187,6 +187,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
 .spinner{width:36px;height:36px;border:3px solid var(--gl);border-top-color:var(--gm);border-radius:50%;animation:spin .7s linear infinite;margin:40px auto;display:block;}
 @keyframes spin{to{transform:rotate(360deg);}}
 </style>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
 <body>
 
@@ -229,8 +231,17 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
 
   <!-- DASHBOARD -->
   <div id="page-dashboard" class="page active">
-    <div class="section-title">📊 Live Overview</div>
-    <div class="stats-grid">
+    <div style="display:flex;gap:16px;padding:0 18px 16px;flex-wrap:wrap;">
+      <div style="flex:1;min-width:280px;">
+        <div class="section-title" style="padding:0 0 8px">🗺️ Live Map</div>
+        <div style="display:flex;gap:14px;font-size:12px;color:var(--muted);margin-bottom:8px;">
+          <span>🔴 Riders</span><span>🟢 Customers</span><span>🔵 Merchants</span>
+        </div>
+        <div id="admin-map" style="width:100%;height:360px;border-radius:12px;"></div>
+      </div>
+      <div style="flex:1;min-width:280px;">
+        <div class="section-title" style="padding:0 0 8px">📊 Live Overview</div>
+        <div class="stats-grid">
       <div class="stat-card" style="animation-delay:0ms"><div class="stat-icon">📦</div><div class="stat-val" id="s-orders">0</div><div class="stat-label">Total Orders</div></div>
       <div class="stat-card red" style="animation-delay:60ms"><div class="stat-icon">⏳</div><div class="stat-val" id="s-pending">0</div><div class="stat-label">Pending</div></div>
       <div class="stat-card green" style="animation-delay:120ms"><div class="stat-icon">🎉</div><div class="stat-val" id="s-delivered">0</div><div class="stat-label">Delivered</div></div>
@@ -240,6 +251,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
     </div>
     <div class="section-title" style="padding-top:0">📡 Live Activity Feed</div>
     <div class="feed-wrap" id="feed-wrap"><div class="spinner"></div></div>
+      </div>
+    </div>
   </div>
 
   <!-- APPLICATIONS -->
@@ -447,6 +460,38 @@ async function loadDashboard(){
   catch{allOrders=getSampleOrders();}
   loadApplications();
   updateStats();renderFeed();
+  loadMap();
+}
+
+let adminMap=null, mapMarkersLayer=null;
+async function loadMap(){
+  try{
+    if(!adminMap){
+      adminMap=L.map('admin-map').setView([9.7392,118.7353],12);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap contributors'}).addTo(adminMap);
+      mapMarkersLayer=L.layerGroup().addTo(adminMap);
+    }
+    mapMarkersLayer.clearLayers();
+    const [ridersRes,merchantsRes,customersRes]=await Promise.all([
+      fetch(`${API}/admin/riders`,{headers:{'Authorization':'Bearer '+adminToken}}),
+      fetch(`${API}/admin/merchants`,{headers:{'Authorization':'Bearer '+adminToken}}),
+      fetch(`${API}/admin/customers`,{headers:{'Authorization':'Bearer '+adminToken}})
+    ]);
+    const riders=await ridersRes.json();
+    const merchantsData=await merchantsRes.json();
+    const merchants=merchantsData.data||[];
+    const customersData=await customersRes.json();
+    const customers=customersData.customers||[];
+    (Array.isArray(riders)?riders:[]).filter(r=>r.isOnline && r.currentLocation && r.currentLocation.lat!=null).forEach(r=>{
+      L.circleMarker([r.currentLocation.lat,r.currentLocation.lng],{radius:9,color:'#dc2626',fillColor:'#dc2626',fillOpacity:0.85,weight:2}).addTo(mapMarkersLayer).bindPopup(`🛵 <b>${r.name||'Rider'}</b><br>${r.vehicleType||''}`);
+    });
+    merchants.filter(m=>m.isOpen && m.lat!=null && m.lng!=null).forEach(m=>{
+      L.circleMarker([m.lat,m.lng],{radius:9,color:'#2563eb',fillColor:'#2563eb',fillOpacity:0.85,weight:2}).addTo(mapMarkersLayer).bindPopup(`🏪 <b>${m.storeName||m.name||'Merchant'}</b>`);
+    });
+    customers.filter(c=>c.isOnline && c.lat!=null && c.lng!=null).forEach(c=>{
+      L.circleMarker([c.lat,c.lng],{radius:9,color:'#16a34a',fillColor:'#16a34a',fillOpacity:0.85,weight:2}).addTo(mapMarkersLayer).bindPopup(`🙋 <b>${c.name||'Customer'}</b>`);
+    });
+  }catch(e){console.error('Map load error:',e.message);}
 }
 
 function getSampleOrders(){return[

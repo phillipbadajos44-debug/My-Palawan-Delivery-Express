@@ -151,7 +151,8 @@ const CustomerSchema = new mongoose.Schema({
     street: String, additionalInfo: String
   },
   profilePic: String, favorites: [String], role: { type: String, default: 'customer' },
-  isActive: { type: Boolean, default: true }, createdAt: { type: Date, default: Date.now }
+  isActive: { type: Boolean, default: true }, createdAt: { type: Date, default: Date.now },
+  lat: Number, lng: Number, isOnline: { type: Boolean, default: false }
 });
 
 const MerchantSchema = new mongoose.Schema({
@@ -761,6 +762,14 @@ app.put('/api/riders/location', auth(['rider']), async (req, res) => {
   try {
     const { lat, lng } = req.body;
     await Rider.findByIdAndUpdate(req.user.id, { currentLocation: { lat, lng } });
+    res.json({ success: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.put('/api/customers/location', auth(['customer']), async (req, res) => {
+  try {
+    const { lat, lng } = req.body;
+    await Customer.findByIdAndUpdate(req.user.id, { lat, lng, isOnline: true });
     res.json({ success: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
