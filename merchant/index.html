@@ -374,6 +374,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
         </select>
       </div>
       <div class="field"><label>Description</label><textarea id="p-desc" placeholder="Brief description of your product…"></textarea></div>
+
+      <div class="field">
+        <label>Weight (kg) *</label>
+        <input id="p-weight" type="number" min="0.1" step="0.1" value="0.5" placeholder="e.g. 0.5">
+      </div>
+
       <div class="field"><label>Delivery Fee (% of item price) *</label>
         <select id="p-delivery-pct">
           <option value="8">5–10% — Mamahaling produkto o malapit lang ang delivery</option>
@@ -1145,9 +1151,21 @@ async function saveProduct(){
   const cat=document.getElementById('p-cat').value;
   const stock=parseInt(document.getElementById('p-stock').value)||0;
   const desc=document.getElementById('p-desc').value.trim();
+const weightKg=parseFloat(document.getElementById('p-weight').value)||0;
   const deliveryFeePercent=parseFloat(document.getElementById('p-delivery-pct').value)||15;
   if(!name||!price||!cat){toast('Please fill in name, price and category');return;}
-  const product={name,price,category:cat,description:desc,stock,deliveryFeePercent,merchantId:currentMerchant.id||currentMerchant._id,merchantName:currentMerchant.storeName||currentMerchant.name,isAvailable:stock>0};
+  const product={
+name,
+price,
+category:cat,
+description:desc,
+stock,
+weightKg,
+deliveryFeePercent,
+merchantId:currentMerchant.id||currentMerchant._id,
+merchantName:currentMerchant.storeName||currentMerchant.name,
+isAvailable:stock>0
+};
   if(editingProductId){
     try{await fetch(`${API}/products/${editingProductId}`,{method:'PUT',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify(product)});}catch(e){}
     await uploadProductImage(editingProductId);
@@ -1167,6 +1185,8 @@ async function saveProduct(){
   }
   ['p-name','p-price','p-desc','p-stock'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('p-cat').value='';
+  document.getElementById('p-weight').value='0.5';
+  document.getElementById('p-delivery-pct').value='15';
   document.getElementById('p-img-preview').innerHTML='📸 Tap to upload product image';
   renderMyProducts();
   loadMyProducts();
@@ -1181,6 +1201,8 @@ function editProduct(id){
   document.getElementById('p-cat').value=p.category||'';
   document.getElementById('p-stock').value=p.stock||0;
   document.getElementById('p-desc').value=p.description||'';
+  document.getElementById('p-weight').value=p.weightKg||0.5;
+  document.getElementById('p-delivery-pct').value=p.deliveryFeePercent||15;
   document.getElementById('addFormTitle').textContent='✏️ Edit Product';
   document.getElementById('saveProductBtn').textContent='💾 Save Changes';
   document.getElementById('cancelEditBtn').style.display='block';
@@ -1351,18 +1373,69 @@ function openEditProfile(){
   document.getElementById('editProfileModal').classList.add('open');
 }
 function closeEditProfile(){document.getElementById('editProfileModal').classList.remove('open');}
+async function getCurrentLocation(){
+  return new Promise((resolve)=>{
+    if(!navigator.geolocation) return resolve(null);
+
+    navigator.geolocation.getCurrentPosition(
+      pos=>resolve({
+        lat: pos.coords.latitude,
+        lng: pos.coords.longitude
+      }),
+      ()=>resolve(null),
+      {
+        enableHighAccuracy:true,
+        timeout:10000
+      }
+    );
+  });
+}
+
 async function saveProfile(){
   const name=document.getElementById('ep-name').value.trim();
   const phone=document.getElementById('ep-phone').value.trim();
   const storeName=document.getElementById('ep-store').value.trim();
   const address=document.getElementById('ep-addr').value.trim();
   const description=document.getElementById('ep-desc').value.trim();
-  currentMerchant={...currentMerchant,name,phone,storeName,address,description};
-  saveSession();updateStoreUI();
-  try{await fetch(`${API}/merchants/me`,{method:'PUT',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({name,phone,storeName,address,description})});}catch(e){}
-  closeEditProfile();toast('Profile updated!');
-}
 
+  const location=await getCurrentLocation();
+
+  currentMerchant={
+    ...currentMerchant,
+    name,
+    phone,
+    storeName,
+    address,
+    description,
+    lat:location?.lat,
+    lng:location?.lng
+  };
+
+  saveSession();
+  updateStoreUI();
+
+  try{
+    await fetch(`${API}/merchants/me`,{
+      method:'PUT',
+      headers:{
+        'Content-Type':'application/json',
+        'Authorization':'Bearer '+token
+      },
+      body:JSON.stringify({
+        name,
+        phone,
+        storeName,
+        address,
+        description,
+        lat:location?.lat,
+        lng:location?.lng
+      })
+    });
+  }catch(e){}
+
+  closeEditProfile();
+  toast('Profile updated!');
+}
 function handleLogo(e){
   const f=e.target.files[0];if(!f)return;
   const r=new FileReader();

@@ -1,41 +1,30 @@
 function calculatePricing({
-  distanceKm = 1,
-  itemCount = 1,
+  distanceKm = 0,
+  weightKg = 0,
   orderTotal = 0,
   settings = {}
 }) {
-
   const delivery = settings.delivery || {};
   const merchant = settings.merchant || {};
-  const platform = settings.platform || {};
   const rider = settings.rider || {};
+  const platform = settings.platform || {};
 
   const baseFee = Number(delivery.baseFee || 40);
   const perKm = Number(delivery.perKm || 10);
-  const serviceFee = Number(delivery.serviceFee || 5);
-  const perItemFee = Number(delivery.perItemFee || 2);
+  const perKg = Number(delivery.perKg || 5);
+  const minimumFee = Number(delivery.minimumFee || 40);
+  const maximumFee = Number(delivery.maximumFee || 500);
 
-  const platformPercent = Number(platform.percent || 20);
   const merchantPercent = Number(merchant.commissionPercent || 10);
-  const minimumRiderPay = Number(rider.minimumPay || 50);
+  const serviceFee = Number(platform.serviceFee || 0);
 
-  const quantityFee =
-    Math.max(0, itemCount - 1) * perItemFee;
-
-  const deliveryFee =
+  let deliveryFee =
     baseFee +
     (distanceKm * perKm) +
-    quantityFee +
-    serviceFee;
+    (weightKg * perKg);
 
-  const platformRevenue =
-    deliveryFee * (platformPercent / 100);
-
-  const riderEarnings =
-    Math.max(
-      minimumRiderPay,
-      deliveryFee - platformRevenue
-    );
+  if (deliveryFee < minimumFee) deliveryFee = minimumFee;
+  if (deliveryFee > maximumFee) deliveryFee = maximumFee;
 
   const merchantCommission =
     orderTotal * (merchantPercent / 100);
@@ -43,29 +32,32 @@ function calculatePricing({
   const merchantPayout =
     orderTotal - merchantCommission;
 
+  const riderEarnings =
+    Math.max(
+      Number(rider.basePay || 30),
+      deliveryFee - serviceFee
+    );
+
+  const platformRevenue =
+    merchantCommission + Math.max(0, deliveryFee - riderEarnings);
+
   return {
     distanceKm,
-    itemCount,
+    weightKg,
     orderTotal,
-
     deliveryFee: Math.round(deliveryFee),
-    quantityFee: Math.round(quantityFee),
-    serviceFee: Math.round(serviceFee),
-
     riderEarnings: Math.round(riderEarnings),
-    platformRevenue: Math.round(platformRevenue),
-
     merchantCommission: Math.round(merchantCommission),
     merchantPayout: Math.round(merchantPayout),
-
+    platformRevenue: Math.round(platformRevenue),
+    serviceFee,
     pricingSnapshot: {
       baseFee,
       perKm,
-      perItemFee,
-      serviceFee,
-      platformPercent,
-      merchantPercent,
-      minimumRiderPay
+      perKg,
+      minimumFee,
+      maximumFee,
+      serviceFee
     }
   };
 }

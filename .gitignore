@@ -7,3 +7,9 @@ main
 *.broken
 old_*
 *.py
+*.tar.gz
+*.pl
+*.before-socket
+*_block.txt
+save_profile.txt
+merchant_location.txt

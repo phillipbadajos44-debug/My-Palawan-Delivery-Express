@@ -4,6 +4,9 @@ const FinancialSettingsSchema = new mongoose.Schema({
   delivery: {
     baseFee: { type: Number, default: 40 },
     perKm: { type: Number, default: 10 },
+    perKg: { type: Number, default: 5 },
+    minimumWeight: { type: Number, default: 0 },
+    maximumWeight: { type: Number, default: 50 },
     minimumFee: { type: Number, default: 40 },
     maximumFee: { type: Number, default: 500 }
   },

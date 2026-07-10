@@ -188,6 +188,7 @@ const RiderSchema = new mongoose.Schema({
 const ProductSchema = new mongoose.Schema({
   name: String, price: Number, category: String, description: String,
   stock: { type: Number, default: 0 }, image: String, images: [String],
+  weightKg: { type: Number, default: 0.5 },
   deliveryFeePercent: { type: Number, default: 15 },
   merchantId: String, merchantName: String,
   isAvailable: { type: Boolean, default: true },
@@ -206,6 +207,7 @@ merchantId: String, merchantName: String, merchantAddress: String, merchantPhone
   items: [{ id: String, name: String, qty: Number, price: Number }],
   total: Number,
 distanceKm: { type: Number, default: 0 },
+weightKg: { type: Number, default: 0 },
 deliveryFee: { type: Number, default: 50 },
 riderEarnings: { type: Number, default: 0 },
 platformRevenue: { type: Number, default: 0 },
@@ -1176,8 +1178,20 @@ app.get('/api/products', async (req, res) => {
     if (category) query.category = category;
     if (search) query.name = new RegExp(search, 'i');
     const products = await Product.find(query).sort(sort).limit(Number(limit)).skip((page - 1) * limit);
+
+    const enrichedProducts = await Promise.all(
+      products.map(async (p)=>{
+        const m = await Merchant.findById(p.merchantId).select('lat lng');
+        return {
+          ...p.toObject(),
+          merchantLat: m?.lat ?? null,
+          merchantLng: m?.lng ?? null
+        };
+      })
+    );
+
     const total = await Product.countDocuments(query);
-    res.json({ products, total, pages: Math.ceil(total / limit) });
+    res.json({ products: enrichedProducts, total, pages: Math.ceil(total / limit) });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -1253,6 +1267,28 @@ app.get('/api/orders/:id', async (req, res) => {
   try { res.json(await Order.findById(req.params.id)); } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+
+// ============================================================
+// PRICING ESTIMATE
+// ============================================================
+app.post('/api/pricing/calculate', async (req, res) => {
+  try {
+    let settings = await FinancialSettings.findOne();
+    if (!settings) settings = await FinancialSettings.create({});
+
+    const pricing = calculatePricing({
+      distanceKm: Number(req.body.distanceKm || 1),
+      weightKg: Number(req.body.weightKg || 0),
+      orderTotal: Number(req.body.orderTotal || 0),
+      settings
+    });
+
+    res.json(pricing);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 app.post('/api/orders', auth(['customer']), async (req, res) => {
   try {
     const {
@@ -1280,7 +1316,7 @@ app.post('/api/orders', auth(['customer']), async (req, res) => {
 
     const pricing = calculatePricing({
       distanceKm: Number(distanceKm || 1),
-      itemCount,
+      weightKg: Number(req.body.weightKg || 0),
       orderTotal: Number(total || 0),
       settings
     });
@@ -1300,6 +1336,7 @@ const order = await Order.create({
       customerLng,
 
       distanceKm: pricing.distanceKm,
+      weightKg: Number(req.body.weightKg || 0),
       deliveryFee: pricing.deliveryFee,
       riderEarnings: pricing.riderEarnings,
       platformRevenue: pricing.platformRevenue,
@@ -1310,6 +1347,8 @@ const order = await Order.create({
       paymentMethod: paymentMethod || 'cod', customerAddress,
       merchantAddress: merchant ? merchant.address : '',
       merchantPhone: merchant ? merchant.phone : '',
+      merchantLat: merchant ? merchant.lat : null,
+      merchantLng: merchant ? merchant.lng : null,
       statusHistory: [{ status: 'pending', time: new Date(), note: 'Order placed by customer' }]
     });
 
@@ -1372,6 +1411,7 @@ app.patch('/api/orders/:id/status', auth(['merchant', 'rider', 'admin']), async 
       const merchantPayout = order.merchantPayout || 0;
       const totalCashCollected = order.paymentMethod === 'cod' ? (order.total + deliveryFee) : 0;
       const amountToRemit = order.paymentMethod === 'cod' ? (totalCashCollected - riderEarnings) : 0;
+      const companyEarnings = deliveryFee - riderEarnings;
 
       
       await addLedgerEntry({
