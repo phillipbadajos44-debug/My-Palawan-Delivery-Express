@@ -229,19 +229,19 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
     </div>
   </div>
 
+  <!-- MAP -->
+  <div id="page-map" class="page">
+    <div class="section-title">🗺️ Live Map</div>
+    <div style="display:flex;gap:14px;font-size:12px;color:var(--muted);padding:0 18px 8px;">
+      <span>🔴 Riders</span><span>🟢 Customers</span><span>🔵 Merchants</span>
+    </div>
+    <div id="admin-map" style="width:100%;height:calc(100vh - 220px);border-radius:12px;"></div>
+  </div>
+
   <!-- DASHBOARD -->
   <div id="page-dashboard" class="page active">
-    <div style="display:flex;gap:16px;padding:0 18px 16px;flex-wrap:wrap;">
-      <div style="flex:1;min-width:280px;">
-        <div class="section-title" style="padding:0 0 8px">🗺️ Live Map</div>
-        <div style="display:flex;gap:14px;font-size:12px;color:var(--muted);margin-bottom:8px;">
-          <span>🔴 Riders</span><span>🟢 Customers</span><span>🔵 Merchants</span>
-        </div>
-        <div id="admin-map" style="width:100%;height:360px;border-radius:12px;"></div>
-      </div>
-      <div style="flex:1;min-width:280px;">
-        <div class="section-title" style="padding:0 0 8px">📊 Live Overview</div>
-        <div class="stats-grid">
+    <div class="section-title">📊 Live Overview</div>
+    <div class="stats-grid">
       <div class="stat-card" style="animation-delay:0ms"><div class="stat-icon">📦</div><div class="stat-val" id="s-orders">0</div><div class="stat-label">Total Orders</div></div>
       <div class="stat-card red" style="animation-delay:60ms"><div class="stat-icon">⏳</div><div class="stat-val" id="s-pending">0</div><div class="stat-label">Pending</div></div>
       <div class="stat-card green" style="animation-delay:120ms"><div class="stat-icon">🎉</div><div class="stat-val" id="s-delivered">0</div><div class="stat-label">Delivered</div></div>
@@ -251,8 +251,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
     </div>
     <div class="section-title" style="padding-top:0">📡 Live Activity Feed</div>
     <div class="feed-wrap" id="feed-wrap"><div class="spinner"></div></div>
-      </div>
-    </div>
   </div>
 
   <!-- APPLICATIONS -->
@@ -344,6 +342,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
   </div>
 
   <nav class="bottom-nav">
+    <button class="nav-item" onclick="showPage('map',this);loadMap()"><div class="nav-icon">🗺️</div><span class="nav-label">Map</span></button>
     <button class="nav-item active" onclick="showPage('dashboard',this)"><div class="nav-icon">📊</div><span class="nav-label">Dashboard</span></button>
     <button class="nav-item" onclick="showPage('applications',this);loadApplications()"><div class="nav-icon">📋</div><span class="nav-label">Applications</span><span class="n-badge" id="appBadge"></span></button>
     <button class="nav-item" onclick="showPage('orders',this);renderOrderTable()"><div class="nav-icon">📦</div><span class="nav-label">Orders</span></button>
@@ -460,7 +459,6 @@ async function loadDashboard(){
   catch{allOrders=getSampleOrders();}
   loadApplications();
   updateStats();renderFeed();
-  loadMap();
 }
 
 let adminMap=null, mapMarkersLayer=null;
