@@ -1867,7 +1867,7 @@ let socket;
 function initSocket(){
     if(typeof io === 'undefined' || !token || !currentUser) return;
 
-    socket = io();
+    socket = io('https://my-palawan-delivery-express.onrender.com');
 
     socket.emit('join',{
         role:'customer',
@@ -1893,6 +1893,6 @@ function initSocket(){
 
 setInterval(loadProducts,30000);
 </script>
-  <script src="/socket.io/socket.io.js"></script>
+  <script src="https://my-palawan-delivery-express.onrender.com/socket.io/socket.io.js"></script>
 </body>
 </html>

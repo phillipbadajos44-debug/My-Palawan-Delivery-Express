@@ -1185,7 +1185,7 @@ let socket;
 function initSocket(){
     if(typeof io === 'undefined' || !token || !currentRider) return;
 
-    socket = io();
+    socket = io('https://my-palawan-delivery-express.onrender.com');
 
     socket.emit('join',{
         role:'rider',
@@ -1212,6 +1212,6 @@ setInterval(()=>{if(isOnline)pollActiveDeliveries();},8000);
 setInterval(()=>{if(isOnline)pollOffer();},1500);
 </script>
 
-  <script src="/socket.io/socket.io.js"></script>
+  <script src="https://my-palawan-delivery-express.onrender.com/socket.io/socket.io.js"></script>
 </body>
 </html>
