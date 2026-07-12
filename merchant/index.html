@@ -1296,32 +1296,19 @@ async function loadBalance(){
   try{
     const res=await fetch(API+'/merchants/balance',{headers:{'Authorization':'Bearer '+token}});
     const d=await res.json();
-    const pending=d.pendingBalance||0,available=d.availableBalance||0,paid=d.totalPaidOut||0;
-    const el=document.getElementById('merchant-balance-card');
-    if(!el)return;
-    el.innerHTML=`<div style="background:linear-gradient(135deg,var(--gd),var(--gm));border-radius:20px;margin:0 0 16px;padding:24px 20px;color:#fff">
-      <div style="font-size:12px;opacity:.8;margin-bottom:12px">💰 Merchant Wallet</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
-        <div style="background:rgba(255,255,255,.15);border-radius:12px;padding:14px;text-align:center">
-          <div style="font-size:22px;font-weight:900">₱${available.toLocaleString()}</div>
-          <div style="font-size:11px;opacity:.8;margin-top:4px">✅ Available</div>
-        </div>
-        <div style="background:rgba(255,255,255,.15);border-radius:12px;padding:14px;text-align:center">
-          <div style="font-size:22px;font-weight:900">₱${pending.toLocaleString()}</div>
-          <div style="font-size:11px;opacity:.8;margin-top:4px">⏳ Pending</div>
-        </div>
-      </div>
-      <div style="background:rgba(255,255,255,.1);border-radius:10px;padding:10px 14px;display:flex;justify-content:space-between;margin-bottom:12px">
-        <span style="font-size:13px;opacity:.8">Total Paid Out</span>
-        <span style="font-size:14px;font-weight:800">₱${paid.toLocaleString()}</span>
-      </div>
-      ${available>0?`<button onclick="requestPayout()" style="width:100%;padding:12px;background:#fff;color:var(--gd);border:none;border-radius:12px;font-size:14px;font-weight:800;cursor:pointer">🏦 Request Payout</button>`:'<div style="text-align:center;opacity:.7;font-size:13px">Walang available balance pa</div>'}
-    </div>
-    <div style="font-size:15px;font-weight:800;color:var(--gd);margin-bottom:10px">📋 Payout History</div>
-    <div id="payout-history-list"><div class="spinner"></div></div>`;
+    const w=d.wallet||{};
+    const pending=w.pendingBalance||0,available=w.availableBalance||0,paid=w.totalPaidOut||0;
+    document.getElementById('bal-available').textContent='₱'+available.toLocaleString();
+    document.getElementById('bal-pending').textContent='₱'+pending.toLocaleString();
+    document.getElementById('bal-paid').textContent='₱'+paid.toLocaleString();
+    const btn=document.getElementById('payout-btn');
+    const empty=document.getElementById('payout-btn-empty');
+    if(available>0){btn.style.display='block';empty.style.display='none';}
+    else{btn.style.display='none';empty.style.display='block';}
     loadPayoutHistory();
   }catch(e){}
 }
+
 async function requestPayout(){
   try{
     const r=await fetch(API+'/merchants/payout',{method:'POST',headers:{'Authorization':'Bearer '+token}});
