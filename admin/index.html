@@ -333,6 +333,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
   </div>
 
   <!-- AUDIT LOGS -->
+  <div id="page-payouts" class="page">
+    <div class="section-title">Payouts and Remittances</div>
+    <div class="filter-tabs">
+      <div class="ftab active" onclick="filterPayoutsTab('remittances',this)">Rider Remittances</div>
+      <div class="ftab" onclick="filterPayoutsTab('payouts',this)">Merchant Payouts</div>
+    </div>
+    <div id="payouts-list"><div class="spinner"></div></div>
+  </div>
+
   <div id="page-audit" class="page">
     <div class="section-title">🕵️ Audit Logs</div>
     <div style="padding:0 18px 8px">
@@ -348,6 +357,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
     <button class="nav-item" onclick="showPage('orders',this);renderOrderTable()"><div class="nav-icon">📦</div><span class="nav-label">Orders</span></button>
     <button class="nav-item" onclick="showPage('users',this);showUsers('customers',null)"><div class="nav-icon">👥</div><span class="nav-label">Users</span></button>
     <button class="nav-item" onclick="showPage('analytics',this);loadAnalytics('monthly',null)"><div class="nav-icon">📈</div><span class="nav-label">Analytics</span></button>
+    <button class="nav-item" onclick="showPage('payouts',this);loadPayoutsPage('remittances')"><div class="nav-icon">💸</div><span class="nav-label">Payouts</span></button>
     <button class="nav-item" onclick="showPage('audit',this);loadAuditLogs()"><div class="nav-icon">🕵️</div><span class="nav-label">Audit</span></button>
   </nav>
 </div>
@@ -832,6 +842,62 @@ function addAuditLog(action,detail){
   auditLogs.unshift({action,detail,time:new Date().toLocaleString(),icon:'⚙️'});
   localStorage.setItem('pde_audit_logs',JSON.stringify(auditLogs.slice(0,100)));
 }
+function filterPayoutsTab(tab,el){
+  document.querySelectorAll('#page-payouts .ftab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  loadPayoutsPage(tab);
+}
+
+async function loadPayoutsPage(tab){
+  const el=document.getElementById('payouts-list');
+  el.innerHTML='<div class="spinner"></div>';
+  if(tab==='remittances'){
+    try{
+      const r=await fetch(API+'/admin/remittances?status=remitted',{headers:{'Authorization':'Bearer '+token}});
+      const list=await r.json();
+      if(!list.length){el.innerHTML='<div style="text-align:center;padding:24px;color:var(--muted)">No remittances waiting for verification</div>';return;}
+      el.innerHTML=list.map(rm=>'<div style="background:#fff;border-radius:12px;box-shadow:var(--sh);padding:14px;margin-bottom:10px">'+
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'+
+        '<div style="font-weight:800">'+(rm.riderName||'Rider')+'</div>'+
+        '<div style="font-size:12px;color:var(--muted)">'+(rm.merchantName||'')+'</div>'+
+        '</div>'+
+        '<div style="font-size:13px;color:var(--muted);margin-bottom:8px">Cash collected: P'+(rm.totalCashCollected||0).toLocaleString()+' - To remit: P'+(rm.amountToRemit||0).toLocaleString()+'</div>'+
+        '<button onclick="verifyRemittance(\''+rm._id+'\',this)" style="width:100%;padding:10px;background:var(--gm);color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer">Verify Remittance</button>'+
+        '</div>').join('');
+    }catch(e){el.innerHTML='<div style="text-align:center;padding:24px;color:var(--muted)">Error loading remittances</div>';}
+  }else{
+    try{
+      const r=await fetch(API+'/admin/payouts',{headers:{'Authorization':'Bearer '+token}});
+      const all=await r.json();
+      const list=all.filter(p=>p.status==='pending');
+      if(!list.length){el.innerHTML='<div style="text-align:center;padding:24px;color:var(--muted)">No pending payout requests</div>';return;}
+      el.innerHTML=list.map(p=>'<div style="background:#fff;border-radius:12px;box-shadow:var(--sh);padding:14px;margin-bottom:10px">'+
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'+
+        '<div style="font-weight:800">'+(p.merchantName||'Merchant')+'</div>'+
+        '<div style="font-size:16px;font-weight:900;color:var(--gm)">P'+(p.amount||0).toLocaleString()+'</div>'+
+        '</div>'+
+        '<button onclick="approvePayout(\''+p._id+'\',this)" style="width:100%;padding:10px;background:var(--gm);color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer">Approve Payout</button>'+
+        '</div>').join('');
+    }catch(e){el.innerHTML='<div style="text-align:center;padding:24px;color:var(--muted)">Error loading payouts</div>';}
+  }
+}
+
+async function verifyRemittance(id,btn){
+  if(btn){btn.disabled=true;btn.textContent='...';}
+  try{
+    await fetch(API+'/admin/remittances/'+id+'/verify',{method:'PUT',headers:{'Authorization':'Bearer '+token}});
+    loadPayoutsPage('remittances');
+  }catch(e){}
+}
+
+async function approvePayout(id,btn){
+  if(btn){btn.disabled=true;btn.textContent='...';}
+  try{
+    await fetch(API+'/admin/payouts/'+id+'/approve',{method:'PUT',headers:{'Authorization':'Bearer '+token}});
+    loadPayoutsPage('payouts');
+  }catch(e){}
+}
+
 function loadAuditLogs(){
   const saved=localStorage.getItem('pde_audit_logs');
   if(saved)auditLogs=JSON.parse(saved);
