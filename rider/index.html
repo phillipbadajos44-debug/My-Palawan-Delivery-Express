@@ -978,6 +978,37 @@ function loadHistory(){
   </div>`).join('');
 }
 
+async function loadRemittances(){
+  try{
+    const r=await fetch(`${API}/remittances/my`,{headers:{'Authorization':'Bearer '+token}});
+    const d=await r.json();
+    document.getElementById('remit-amount').textContent='₱'+(d.pendingRemit||0).toLocaleString();
+    document.getElementById('remit-collected').textContent='₱'+(d.totalCashCollected||0).toLocaleString();
+    document.getElementById('remit-earnings').textContent='₱'+(d.totalEarnings||0).toLocaleString();
+    const list=d.remittances||[];
+    document.getElementById('remit-count').textContent=list.length;
+    const el=document.getElementById('remit-list');
+    if(!list.length){el.innerHTML=`<div class="empty-state"><div class="ei">💸</div><p>No remittances yet</p></div>`;return;}
+    el.innerHTML=list.map(rm=>`<div class="hist-item">
+      <div class="hist-icon">💸</div>
+      <div class="hist-info">
+        <div class="hist-id">${rm.merchantName||'Order'} · ₱${(rm.amountToRemit||0).toLocaleString()}</div>
+        <div class="hist-items">Cash collected: ₱${(rm.totalCashCollected||0).toLocaleString()} · Status: ${rm.status}</div>
+      </div>
+      ${rm.status==='pending'?`<button onclick="markRemitted('${rm._id}',this)" style="padding:8px 12px;background:var(--gd);color:#fff;border:none;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer">Mark Remitted</button>`:''}
+    </div>`).join('');
+  }catch(e){}
+}
+
+async function markRemitted(id,btn){
+  if(btn){btn.disabled=true;btn.textContent='...';}
+  try{
+    await fetch(`${API}/remittances/${id}/remit`,{method:'PUT',headers:{'Authorization':'Bearer '+token}});
+    toast('Marked as remitted ✅');
+    loadRemittances();
+  }catch(e){toast('Error marking remittance');}
+}
+
 let oamCurrentOrder=null;
 let oamPhotoFile=null;
 let oamChatInterval=null;
