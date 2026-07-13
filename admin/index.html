@@ -861,7 +861,7 @@ function renderTopProducts(){
 
 async function renderTopMerchants(){
   try{
-    const r=await fetch(API+'/admin/merchants',{headers:{'Authorization':'Bearer '+token}});
+    const r=await fetch(API+'/admin/merchants',{headers:{'Authorization':'Bearer '+adminToken}});
     const d=await r.json();
     const merchants=(d.data||[]).filter(m=>m.status==='approved');
     merchants.sort((a,b)=>(b.totalRevenue||0)-(a.totalRevenue||0));
@@ -902,7 +902,7 @@ async function loadPayoutsPage(tab){
   el.innerHTML='<div class="spinner"></div>';
   if(tab==='remittances'){
     try{
-      const r=await fetch(API+'/admin/remittances?status=remitted',{headers:{'Authorization':'Bearer '+token}});
+      const r=await fetch(API+'/admin/remittances?status=remitted',{headers:{'Authorization':'Bearer '+adminToken}});
       const list=await r.json();
       if(!list.length){el.innerHTML='<div style="text-align:center;padding:24px;color:var(--muted)">No remittances waiting for verification</div>';return;}
       el.innerHTML=list.map(rm=>'<div style="background:#fff;border-radius:12px;box-shadow:var(--sh);padding:14px;margin-bottom:10px">'+
@@ -916,7 +916,7 @@ async function loadPayoutsPage(tab){
     }catch(e){el.innerHTML='<div style="text-align:center;padding:24px;color:var(--muted)">Error loading remittances</div>';}
   }else{
     try{
-      const r=await fetch(API+'/admin/payouts',{headers:{'Authorization':'Bearer '+token}});
+      const r=await fetch(API+'/admin/payouts',{headers:{'Authorization':'Bearer '+adminToken}});
       const all=await r.json();
       const list=all.filter(p=>p.status==='pending');
       if(!list.length){el.innerHTML='<div style="text-align:center;padding:24px;color:var(--muted)">No pending payout requests</div>';return;}
@@ -934,7 +934,7 @@ async function loadPayoutsPage(tab){
 async function verifyRemittance(id,btn){
   if(btn){btn.disabled=true;btn.textContent='...';}
   try{
-    await fetch(API+'/admin/remittances/'+id+'/verify',{method:'PUT',headers:{'Authorization':'Bearer '+token}});
+    await fetch(API+'/admin/remittances/'+id+'/verify',{method:'PUT',headers:{'Authorization':'Bearer '+adminToken}});
     loadPayoutsPage('remittances');
   }catch(e){}
 }
@@ -942,7 +942,7 @@ async function verifyRemittance(id,btn){
 async function approvePayout(id,btn){
   if(btn){btn.disabled=true;btn.textContent='...';}
   try{
-    await fetch(API+'/admin/payouts/'+id+'/approve',{method:'PUT',headers:{'Authorization':'Bearer '+token}});
+    await fetch(API+'/admin/payouts/'+id+'/approve',{method:'PUT',headers:{'Authorization':'Bearer '+adminToken}});
     loadPayoutsPage('payouts');
   }catch(e){}
 }
