@@ -462,12 +462,7 @@ async function doLogin(){
     if(d.status==='pending'){showErr('login-err','Application still pending.');return;}
     showErr('login-err',d.error||'Invalid credentials.');
   }catch(e){
-    const db=JSON.parse(localStorage.getItem('pde_riders_db')||'[]');
-    const u=db.find(x=>x.email===email&&x.password===pw);
-    if(!u){showErr('login-err','Account not found.');return;}
-    if(u.status==='pending'){token='local_'+u.id;currentRider=u;saveSession();showPending();return;}
-    if(u.status==='rejected'){showErr('login-err','Application was rejected.');return;}
-    token='local_'+u.id;currentRider=u;saveSession();enterApp();
+    showErr('login-err','Unable to reach server. Please check your connection.');
   }
 }
 

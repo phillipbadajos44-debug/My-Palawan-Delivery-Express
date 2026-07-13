@@ -705,13 +705,16 @@ async function cancelOrder(id){
 }
 
 // ── USERS ──
-function showUsers(type,el){
+async function showUsers(type,el){
   currentUserType=type;
   if(el){document.querySelectorAll('#page-users .ftab').forEach(t=>t.classList.remove('active'));el.classList.add('active');}
-  const dbKeys={customers:'pde_customers_db',merchants:'pde_merchants_db',riders:'pde_riders_db'};
-  const data=JSON.parse(localStorage.getItem(dbKeys[type])||'[]');
-  allUsers[type]=data;
-  renderUsers(data,type);
+  try{
+    const r=await fetch(`${API}/admin/${type}`,{headers:{'Authorization':'Bearer '+adminToken}});
+    const j=await r.json();
+    const data=(type==='customers'?j.customers:type==='merchants'?j.data:j)||[];
+    allUsers[type]=data;
+    renderUsers(data,type);
+  }catch(e){toast('Failed to load '+type);}
 }
 
 function searchUsers(q){
@@ -740,23 +743,21 @@ function renderUsers(data,type){
         <span class="u-badge ${badgeCls}">${badgeLbl}</span>
       </div>
       <div class="user-actions">
-        ${isBanned?`<button class="ua-btn btn-unban" onclick="banUser('${u.id}','${type}',false,this)">✅ Unban</button>`:`<button class="ua-btn btn-ban" onclick="banUser('${u.id}','${type}',true,this)">🚫 Ban</button>`}
-        <button class="ua-btn btn-reset-pw" onclick="openResetPw('${u.id}','${type}','${u.name}')">🔒 Reset PW</button>
-        ${type!=='customers'?`<button class="ua-btn btn-view-docs" onclick="viewDocs('${u.id}','${type==='merchants'?'merchant':'rider'}')">📄 Docs</button>`:''}
+        ${isBanned?`<button class="ua-btn btn-unban" onclick="banUser('${u._id}','${type}',false,this)">✅ Unban</button>`:`<button class="ua-btn btn-ban" onclick="banUser('${u._id}','${type}',true,this)">🚫 Ban</button>`}
+        <button class="ua-btn btn-reset-pw" onclick="openResetPw('${u._id}','${type}','${u.name}')">🔒 Reset PW</button>
+        ${type!=='customers'?`<button class="ua-btn btn-view-docs" onclick="viewDocs('${u._id}','${type==='merchants'?'merchant':'rider'}')">📄 Docs</button>`:''}
       </div>
     </div>`;
   }).join('');
 }
 
-function banUser(id,type,ban,btn){
-  const dbKey=type==='customers'?'pde_customers_db':type==='merchants'?'pde_merchants_db':'pde_riders_db';
-  const db=JSON.parse(localStorage.getItem(dbKey)||'[]');
-  const idx=db.findIndex(u=>u.id===id);
-  if(idx>-1){db[idx].isActive=!ban;localStorage.setItem(dbKey,JSON.stringify(db));}
-  addAuditLog(ban?'🚫 Banned user':'✅ Unbanned user',`${type}: ${db[idx]?.name||id}`);
-  showUsers(type,null);
-  toast(ban?'User has been banned.':'User has been unbanned.');
-  try{fetch(`${API}/admin/ban/${type.slice(0,-1)}/${id}`,{method:'PUT',headers:{'Content-Type':'application/json','Authorization':'Bearer '+adminToken},body:JSON.stringify({ban})});}catch(e){}
+async function banUser(id,type,ban,btn){
+  try{
+    await fetch(`${API}/admin/ban/${type.slice(0,-1)}/${id}`,{method:'PUT',headers:{'Content-Type':'application/json','Authorization':'Bearer '+adminToken},body:JSON.stringify({ban})});
+    addAuditLog(ban?'🚫 Banned user':'✅ Unbanned user',`${type}: ${id}`);
+    showUsers(type,null);
+    toast(ban?'User has been banned.':'User has been unbanned.');
+  }catch(e){toast('Action failed.');}
 }
 
 function openResetPw(id,type,name){
@@ -775,13 +776,11 @@ async function submitResetPw(){
   const confirmPw=document.getElementById('rp-confirm').value;
   if(!newPw||newPw.length<6){toast('Password must be at least 6 characters');return;}
   if(newPw!==confirmPw){toast('Passwords do not match');return;}
-  const dbKey=role==='customers'?'pde_customers_db':role==='merchants'?'pde_merchants_db':'pde_riders_db';
-  const db=JSON.parse(localStorage.getItem(dbKey)||'[]');
-  const idx=db.findIndex(u=>u.id===id);
-  if(idx>-1){db[idx].password=newPw;localStorage.setItem(dbKey,JSON.stringify(db));}
-  addAuditLog('🔒 Reset password',`${role}: ${db[idx]?.name||id}`);
-  closeResetPw();toast('Password reset successfully!');
-  try{await fetch(`${API}/admin/reset-password/${role.slice(0,-1)}/${id}`,{method:'PUT',headers:{'Content-Type':'application/json','Authorization':'Bearer '+adminToken},body:JSON.stringify({newPassword:newPw})});}catch(e){}
+  try{
+    await fetch(`${API}/admin/reset-password/${role.slice(0,-1)}/${id}`,{method:'PUT',headers:{'Content-Type':'application/json','Authorization':'Bearer '+adminToken},body:JSON.stringify({newPassword:newPw})});
+    addAuditLog('🔒 Reset password',`${role}`);
+    closeResetPw();toast('Password reset successfully!');
+  }catch(e){toast('Reset failed.');}
 }
 
 // ── ANALYTICS ──
@@ -895,7 +894,7 @@ function exportCSV(){
 // ── AUDIT LOGS ──
 function addAuditLog(action,detail){
   auditLogs.unshift({action,detail,time:new Date().toLocaleString(),icon:'⚙️'});
-  localStorage.setItem('pde_audit_logs',JSON.stringify(auditLogs.slice(0,100)));
+  auditLogs=auditLogs.slice(0,100);
 }
 function filterPayoutsTab(tab,el){
   document.querySelectorAll('#page-payouts .ftab').forEach(t=>t.classList.remove('active'));
@@ -953,10 +952,13 @@ async function approvePayout(id,btn){
   }catch(e){}
 }
 
-function loadAuditLogs(){
-  const saved=localStorage.getItem('pde_audit_logs');
-  if(saved)auditLogs=JSON.parse(saved);
-  renderAuditLogs();
+async function loadAuditLogs(){
+  try{
+    const r=await fetch(`${API}/admin/audit-logs`,{headers:{'Authorization':'Bearer '+adminToken}});
+    const j=await r.json();
+    auditLogs=(j||[]).map(l=>({action:l.action,detail:`${l.target||''} ${l.targetId||''} ${l.details||''}`.trim(),time:new Date(l.createdAt).toLocaleString(),icon:'⚙️'}));
+    renderAuditLogs();
+  }catch(e){toast('Failed to load audit logs');}
 }
 function searchAudit(q){renderAuditLogs(q);}
 function renderAuditLogs(search=''){

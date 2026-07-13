@@ -781,11 +781,7 @@ async function doLogin(){
     if(d.success&&d.token){token=d.token;currentUser=d.user;saveSession();enterApp();return;}
     showErr('login-err',d.error||'Invalid credentials.');
   }catch(e){
-    // Fallback to localStorage
-    const db=JSON.parse(localStorage.getItem('pde_customers_db')||'[]');
-    const u=db.find(x=>x.email===email&&x.password===pw);
-    if(u){token='local_'+u.id;currentUser=u;saveSession();enterApp();}
-    else showErr('login-err','Invalid email or password.');
+    showErr('login-err','Unable to reach server. Please check your connection.');
   }
 }
 
@@ -1070,11 +1066,7 @@ async function doSignUp(){
     if(d.success&&d.token){token=d.token;currentUser=d.user;saveSession();enterApp();return;}
     showErr('signup-err',d.error||'Registration failed.');
   }catch(e){
-    const db=JSON.parse(localStorage.getItem('pde_customers_db')||'[]');
-    if(db.find(u=>u.email===email)){showErr('signup-err','Email already registered.');return;}
-    const newUser={id:'cust_'+Date.now(),name,phone,email,password:pw,address,role:'customer',createdAt:new Date().toISOString()};
-    db.push(newUser);localStorage.setItem('pde_customers_db',JSON.stringify(db));
-    token='local_'+newUser.id;currentUser=newUser;saveSession();enterApp();
+    showErr('signup-err','Unable to reach server. Please check your connection.');
   }
 }
 
@@ -1087,6 +1079,11 @@ async function enterApp(){
   document.getElementById('mainApp').classList.add('active');
   document.body.style.paddingBottom=0;
   updateAccountUI();
+  try{
+    const mr=await fetch(`${API}/customers/me`,{headers:{'Authorization':'Bearer '+token}});
+    const me=await mr.json();
+    favorites=(me.favorites||[]).map(String);
+  }catch(e){favorites=[];}
   await loadProducts();
   loadOrders();loadNotifications();
   setInterval(loadOrders,10000);
@@ -1411,10 +1408,13 @@ function doPageSearch(q){
 function focusSearch(){setTimeout(()=>document.getElementById('searchPage').focus(),200);}
 
 // ── FAVORITES ──
-function toggleFav(id,btn){
-  if(isFav(id)){favorites=favorites.filter(f=>f!==String(id));btn.textContent='🤍';toast('Removed from favorites');}
+async function toggleFav(id,btn){
+  const removing=isFav(id);
+  if(removing){favorites=favorites.filter(f=>f!==String(id));btn.textContent='🤍';toast('Removed from favorites');}
   else{favorites.push(String(id));btn.textContent='❤️';toast('Added to favorites! ❤️');}
-  localStorage.setItem('pde_favs',JSON.stringify(favorites));
+  try{
+    await fetch(`${API}/customers/favorites/${id}`,{method:removing?'DELETE':'POST',headers:{'Authorization':'Bearer '+token}});
+  }catch(e){toast('Failed to sync favorite');}
 }
 function openFavPanel(){
   const favProds=products.filter(p=>isFav(p._id||p.id));
@@ -1858,7 +1858,7 @@ function showPage(page,btn){
 function toast(msg){const t=document.getElementById('toastEl');document.getElementById('toastMsg').textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2800);}
 
 // ── INIT ──
-favorites=JSON.parse(localStorage.getItem('pde_favs')||'[]');
+favorites=[];
 checkSession();
 
 // ===== SOCKET.IO =====
