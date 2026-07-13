@@ -1090,6 +1090,31 @@ async function enterApp(){
   setInterval(loadNotifications,15000);
   restoreLastPage();
   startCustomerLocationTracking();
+  initPush();
+}
+
+function urlBase64ToUint8Array(base64String){
+  const padding='='.repeat((4-base64String.length%4)%4);
+  const base64=(base64String+padding).replace(/-/g,'+').replace(/_/g,'/');
+  const raw=atob(base64);
+  return Uint8Array.from([...raw].map(c=>c.charCodeAt(0)));
+}
+
+async function initPush(){
+  if(!('serviceWorker' in navigator)||!('PushManager' in window))return;
+  try{
+    const reg=await navigator.serviceWorker.register('/customer/sw.js');
+    const perm=await Notification.requestPermission();
+    if(perm!=='granted')return;
+    let sub=await reg.pushManager.getSubscription();
+    if(!sub){
+      const kr=await fetch(`${API}/push/vapid-public-key`);
+      const {publicKey}=await kr.json();
+      if(!publicKey)return;
+      sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:urlBase64ToUint8Array(publicKey)});
+    }
+    await fetch(`${API}/push/subscribe`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify(sub)});
+  }catch(e){console.log('Push setup failed',e);}
 }
 
 function startCustomerLocationTracking(){

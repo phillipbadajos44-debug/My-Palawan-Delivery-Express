@@ -28,6 +28,33 @@ const { getAllRegions, getProvincesByRegion, getMunicipalitiesByProvince, getBar
 const path = require('path');
 const fs = require('fs');
 const cloudinary = require('cloudinary').v2;
+const webpush = require('web-push');
+const nodemailer = require('nodemailer');
+
+if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
+  webpush.setVapidDetails(
+    process.env.VAPID_SUBJECT || 'mailto:admin@example.com',
+    process.env.VAPID_PUBLIC_KEY,
+    process.env.VAPID_PRIVATE_KEY
+  );
+}
+
+const crypto = require('crypto');
+const mailTransporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_APP_PASSWORD }
+});
+async function sendResetEmail(toEmail, name, code) {
+  try {
+    await mailTransporter.sendMail({
+      from: `"Palawan Delivery Express" <${process.env.GMAIL_USER}>`,
+      to: toEmail,
+      subject: 'Password Reset Code - Palawan Delivery Express',
+      html: `<p>Hi ${name || ''},</p><p>Your password reset code is:</p><h2 style="letter-spacing:4px">${code}</h2><p>This code expires in 15 minutes. If you did not request this, ignore this email.</p>`
+    });
+    return true;
+  } catch (e) { console.log('Email send failed:', e.message); return false; }
+}
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -151,6 +178,7 @@ const CustomerSchema = new mongoose.Schema({
     street: String, additionalInfo: String
   },
   profilePic: String, favorites: [String], role: { type: String, default: 'customer' },
+  resetCode: String, resetCodeExpiry: Date,
   isActive: { type: Boolean, default: true }, createdAt: { type: Date, default: Date.now },
   lat: Number, lng: Number, isOnline: { type: Boolean, default: false }
 });
@@ -386,8 +414,55 @@ const auth = (roles = []) => (req, res, next) => {
 };
 
 // ── NOTIFICATION HELPER ──
+const PushSubscriptionSchema = new mongoose.Schema({
+  userId: String, userRole: String,
+  endpoint: String, keys: { p256dh: String, auth: String },
+  createdAt: { type: Date, default: Date.now }
+});
+const PushSubscription = mongoose.model('PushSubscription', PushSubscriptionSchema);
+
+async function sendPushToUser(userId, title, message, url) {
+  try {
+    const subs = await PushSubscription.find({ userId: String(userId) });
+    const payload = JSON.stringify({ title, body: message, url: url || '/' });
+    for (const sub of subs) {
+      const pushConfig = { endpoint: sub.endpoint, keys: sub.keys };
+      webpush.sendNotification(pushConfig, payload).catch(async (err) => {
+        if (err.statusCode === 410 || err.statusCode === 404) {
+          await PushSubscription.deleteOne({ _id: sub._id });
+        }
+      });
+    }
+  } catch (e) {}
+}
+
+app.post('/api/push/subscribe', auth(), async (req, res) => {
+  try {
+    const { endpoint, keys } = req.body;
+    if (!endpoint || !keys) return res.status(400).json({ error: 'Invalid subscription' });
+    await PushSubscription.findOneAndUpdate(
+      { endpoint },
+      { userId: String(req.user.id), userRole: req.user.role, endpoint, keys },
+      { upsert: true }
+    );
+    res.json({ success: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/push/unsubscribe', auth(), async (req, res) => {
+  try {
+    await PushSubscription.deleteOne({ endpoint: req.body.endpoint });
+    res.json({ success: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/push/vapid-public-key', (req, res) => {
+  res.json({ publicKey: process.env.VAPID_PUBLIC_KEY || '' });
+});
+
 async function createNotification(userId, userRole, title, message, type, orderId = null) {
   try { await Notification.create({ userId, userRole, title, message, type, orderId }); } catch (e) {}
+  sendPushToUser(userId, title, message, '/' + userRole);
 }
 
 // ============================================================
@@ -551,6 +626,36 @@ app.post('/api/customers/login', async (req, res) => {
     if (!customer.isActive) return res.status(403).json({ error: 'Account disabled' });
     const token = jwt.sign({ id: customer._id, role: 'customer', name: customer.name }, JWT_SECRET, { expiresIn: '30d' });
     res.json({ success: true, token, user: { id: customer._id, name: customer.name, email, phone: customer.phone, address: customer.address, addresses: customer.addresses || [], role: 'customer' } });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/customers/forgot-password', async (req, res) => {
+  try {
+    const { email } = req.body;
+    const customer = await Customer.findOne({ email });
+    if (!customer) return res.json({ success: true }); // don't reveal if email exists
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    customer.resetCode = code;
+    customer.resetCodeExpiry = new Date(Date.now() + 15 * 60 * 1000);
+    await customer.save();
+    await sendResetEmail(email, customer.name, code);
+    res.json({ success: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/customers/reset-password', async (req, res) => {
+  try {
+    const { email, code, newPassword } = req.body;
+    if (!newPassword || newPassword.length < 6) return res.status(400).json({ error: 'Password must be at least 6 characters' });
+    const customer = await Customer.findOne({ email, resetCode: code });
+    if (!customer || !customer.resetCodeExpiry || customer.resetCodeExpiry < new Date()) {
+      return res.status(400).json({ error: 'Invalid or expired code' });
+    }
+    customer.password = await bcrypt.hash(newPassword, 10);
+    customer.resetCode = undefined;
+    customer.resetCodeExpiry = undefined;
+    await customer.save();
+    res.json({ success: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
