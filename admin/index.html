@@ -791,15 +791,58 @@ function loadAnalytics(period,el){
 }
 
 function renderAnalyticsChart(period){
-  const labels=period==='daily'?['12am','3am','6am','9am','12pm','3pm','6pm']:period==='weekly'?['Mon','Tue','Wed','Thu','Fri','Sat','Sun']:period==='monthly'?['Wk1','Wk2','Wk3','Wk4']:['Jan','Mar','May','Jul','Sep','Nov'];
-  const vals=labels.map(()=>Math.floor(Math.random()*500+50));
-  const max=Math.max(...vals);
-  document.getElementById('analyticsChart').innerHTML=vals.map((v,i)=>`
-    <div class="bc-bar-wrap">
-      <div class="bc-val">₱${v}</div>
-      <div class="bc-bar ${i===vals.length-1?'highlight':''}" style="height:${Math.round(v/max*70)+10}px"></div>
-      <div class="bc-lbl">${labels[i]}</div>
-    </div>`).join('');
+  const done=allOrders.filter(o=>o.status==='delivered' && o.date);
+  const now=new Date();
+  let labels, buckets;
+  if(period==='daily'){
+    labels=['12am','3am','6am','9am','12pm','3pm','6pm'];
+    buckets=labels.map(()=>0);
+    done.forEach(o=>{
+      const d=new Date(o.date);
+      if(d.toDateString()!==now.toDateString())return;
+      const idx=Math.min(6,Math.floor(d.getHours()/3));
+      buckets[idx]+=(o.total||0);
+    });
+  }else if(period==='weekly'){
+    labels=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+    buckets=labels.map(()=>0);
+    const startOfWeek=new Date(now);
+    const dow=(now.getDay()+6)%7;
+    startOfWeek.setDate(now.getDate()-dow);
+    startOfWeek.setHours(0,0,0,0);
+    done.forEach(o=>{
+      const d=new Date(o.date);
+      if(d<startOfWeek)return;
+      buckets[(d.getDay()+6)%7]+=(o.total||0);
+    });
+  }else if(period==='monthly'){
+    labels=['Wk1','Wk2','Wk3','Wk4'];
+    buckets=labels.map(()=>0);
+    done.forEach(o=>{
+      const d=new Date(o.date);
+      if(d.getMonth()!==now.getMonth()||d.getFullYear()!==now.getFullYear())return;
+      const idx=Math.min(3,Math.floor((d.getDate()-1)/7));
+      buckets[idx]+=(o.total||0);
+    });
+  }else{
+    labels=['Jan','Mar','May','Jul','Sep','Nov'];
+    const monthBuckets=[0,2,4,6,8,10];
+    buckets=labels.map(()=>0);
+    done.forEach(o=>{
+      const d=new Date(o.date);
+      if(d.getFullYear()!==now.getFullYear())return;
+      const m=d.getMonth();
+      const bucketMonth=m-(m%2);
+      const idx=monthBuckets.indexOf(bucketMonth);
+      if(idx>=0)buckets[idx]+=(o.total||0);
+    });
+  }
+  const max=Math.max.apply(null,buckets.concat([1]));
+  document.getElementById('analyticsChart').innerHTML=buckets.map((v,i)=>'<div class="bc-bar-wrap">'+
+    '<div class="bc-val">P'+Math.round(v)+'</div>'+
+    '<div class="bc-bar '+(i===buckets.length-1?'highlight':'')+'" style="height:'+(Math.round(v/max*70)+10)+'px"></div>'+
+    '<div class="bc-lbl">'+labels[i]+'</div>'+
+    '</div>').join('');
 }
 
 function renderTopProducts(){
@@ -816,13 +859,19 @@ function renderTopProducts(){
   </div>`).join(''):`<div class="empty-state"><div class="ei">📊</div><p>No sales data yet</p></div>`;
 }
 
-function renderTopMerchants(){
-  const merchants=JSON.parse(localStorage.getItem('pde_merchants_db')||'[]').filter(m=>m.status==='approved');
-  document.getElementById('top-merchants').innerHTML=merchants.length?merchants.slice(0,5).map((m,i)=>`<div class="top-item">
-    <div class="top-rank">#${i+1}</div>
-    <div class="top-info"><div class="top-name">🏪 ${m.storeName||m.name}</div><div class="top-sub">${m.businessType||''} · ${m.address||''}</div></div>
-    <div class="top-val" style="font-size:12px;color:var(--muted)">${m.status}</div>
-  </div>`).join(''):`<div class="empty-state"><div class="ei">🏪</div><p>No merchants yet</p></div>`;
+async function renderTopMerchants(){
+  try{
+    const r=await fetch(API+'/admin/merchants',{headers:{'Authorization':'Bearer '+token}});
+    const d=await r.json();
+    const merchants=(d.data||[]).filter(m=>m.status==='approved');
+    merchants.sort((a,b)=>(b.totalRevenue||0)-(a.totalRevenue||0));
+    const top=merchants.slice(0,5);
+    document.getElementById('top-merchants').innerHTML=top.length?top.map((m,i)=>'<div class="top-item">'+
+      '<div class="top-rank">#'+(i+1)+'</div>'+
+      '<div class="top-info"><div class="top-name">'+(m.storeName||m.name)+'</div><div class="top-sub">'+(m.businessType||'')+' - '+(m.address||'')+'</div></div>'+
+      '<div class="top-val">P'+(m.totalRevenue||0).toLocaleString()+'</div>'+
+      '</div>').join(''):'<div class="empty-state"><div class="ei">Store</div><p>No merchants yet</p></div>';
+  }catch(e){}
 }
 
 function exportCSV(){
