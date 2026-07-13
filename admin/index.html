@@ -510,18 +510,24 @@ function getSampleOrders(){return[
   {id:'ORD-005',customerName:'Rico Cruz',items:[{name:'Noodles',qty:5,price:15}],total:75,paymentMethod:'cod',status:'ready',date:'Jun 28, 2026'},
 ];}
 
-function updateStats(){
+async function updateStats(){
   const pend=allOrders.filter(o=>o.status==='pending').length;
   const done=allOrders.filter(o=>o.status==='delivered').length;
   const rev=allOrders.filter(o=>o.status==='delivered').reduce((s,o)=>s+o.total,0);
-  const merchants=JSON.parse(localStorage.getItem('pde_merchants_db')||'[]').filter(m=>m.status==='approved').length;
-  const riders=JSON.parse(localStorage.getItem('pde_riders_db')||'[]').filter(r=>r.status==='approved').length;
   document.getElementById('s-orders').textContent=allOrders.length;
   document.getElementById('s-pending').textContent=pend;
   document.getElementById('s-delivered').textContent=done;
-  document.getElementById('s-revenue').textContent='₱'+rev.toLocaleString();
-  document.getElementById('s-merchants').textContent=merchants;
-  document.getElementById('s-riders').textContent=riders;
+  document.getElementById('s-revenue').textContent='P'+rev.toLocaleString();
+  try{
+    const mRes=await fetch(API+'/admin/merchants',{headers:{'Authorization':'Bearer '+adminToken}});
+    const rRes=await fetch(API+'/admin/riders',{headers:{'Authorization':'Bearer '+adminToken}});
+    const mData=await mRes.json();
+    const rData=await rRes.json();
+    const merchants=(mData.data||[]).filter(m=>m.status==='approved').length;
+    const riders=(Array.isArray(rData)?rData:[]).filter(r=>r.status==='approved').length;
+    document.getElementById('s-merchants').textContent=merchants;
+    document.getElementById('s-riders').textContent=riders;
+  }catch(e){}
   const pendApps=applications.filter(a=>a.status==='pending').length;
   const ab=document.getElementById('appBadge');
   if(pendApps>0){ab.style.display='flex';ab.textContent=pendApps;}else ab.style.display='none';
