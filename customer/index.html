@@ -1103,7 +1103,7 @@ function urlBase64ToUint8Array(base64String){
 async function initPush(){
   if(!('serviceWorker' in navigator)||!('PushManager' in window))return;
   try{
-    const reg=await navigator.serviceWorker.register('/customer/sw.js');
+    const reg=await navigator.serviceWorker.register('/sw.js');
     const perm=await Notification.requestPermission();
     if(perm!=='granted')return;
     let sub=await reg.pushManager.getSubscription();

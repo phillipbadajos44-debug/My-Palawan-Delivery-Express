@@ -4,7 +4,7 @@ self.addEventListener('push', (event) => {
   const options = {
     body: data.body || '',
     vibrate: [200, 100, 200, 100, 200],
-    data: { url: data.url || '/merchant' },
+    data: { url: data.url || '/' },
     tag: 'pde-notification',
     renotify: true
   };
