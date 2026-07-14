@@ -462,7 +462,7 @@ app.get('/api/push/vapid-public-key', (req, res) => {
 
 async function createNotification(userId, userRole, title, message, type, orderId = null) {
   try { await Notification.create({ userId, userRole, title, message, type, orderId }); } catch (e) {}
-  sendPushToUser(userId, title, message, '/' + userRole);
+  sendPushToUser(userId, title, message, '/');
 }
 
 // ============================================================
