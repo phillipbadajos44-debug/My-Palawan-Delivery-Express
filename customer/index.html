@@ -391,8 +391,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
     </div>
     <div class="search-wrap">
       <span class="s-icon">🔍</span>
-      <input type="text" id="searchInput" placeholder="Search for products…" oninput="handleSearch(this.value)" onfocus="openSearchDrop()"/>
-      <div class="search-drop" id="searchDrop"></div>
+      <input type="text" id="searchInput" placeholder="Search for products or services…" oninput="globalSearch(this.value)"/>
     </div>
   </div>
 
@@ -488,7 +487,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
     </div>
     <div class="sec-title">Settings</div>
     <div class="menu-item" onclick="openChangePassword()"><div class="mi-icon">🔒</div><div class="mi-label">Change Password</div><div class="mi-arr">›</div></div>
-    <div class="menu-item" onclick="showPage('orders',document.querySelectorAll('.nav-item')[4])"><div class="mi-icon">📦</div><div class="mi-label">Order History</div><div class="mi-arr">›</div></div>
+    <div class="menu-item" onclick="showPage('orders',document.querySelectorAll('.nav-item')[3])"><div class="mi-icon">📦</div><div class="mi-label">Order History</div><div class="mi-arr">›</div></div>
     <div class="menu-item" onclick="openFavPanel()"><div class="mi-icon">❤️</div><div class="mi-label">My Favorites</div><div class="mi-arr">›</div></div>
     <div class="menu-item" onclick="openAddressesModal()"><div class="mi-icon">📍</div><div class="mi-label">Saved Addresses</div><div class="mi-arr">›</div></div>
     <div class="menu-item" onclick="openNotif()"><div class="mi-icon">🔔</div><div class="mi-label">Notifications</div><div class="mi-arr">›</div></div>
@@ -501,7 +500,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
   <nav class="bottom-nav">
     <button class="nav-item active" onclick="showPage('home',this)"><div class="nav-icon">🏠</div><span class="nav-label">Home</span></button>
     <button class="nav-item" onclick="showPage('grocery',this)"><div class="nav-icon">🛒</div><span class="nav-label">Grocery</span></button>
-    <button class="nav-item" onclick="showPage('search',this);focusSearch()"><div class="nav-icon">🔍</div><span class="nav-label">Search</span></button>
     <button class="nav-item" onclick="openCart()"><div class="nav-icon">🧺</div><span class="nav-label">Cart</span><span class="n-badge" id="cartBadge"></span></button>
     <button class="nav-item" onclick="showPage('orders',this)"><div class="nav-icon">📦</div><span class="nav-label">Orders</span><span class="n-badge" id="ordersBadge"></span></button>
     <button class="nav-item" onclick="showPage('account',this)"><div class="nav-icon">👤</div><span class="nav-label">Account</span></button>
@@ -1419,16 +1417,14 @@ function goBackGrocery(){
 }
 
 // ── SEARCH ──
-function handleSearch(q){
-  const box=document.getElementById('searchDrop');
-  if(!q.trim()){box.classList.remove('open');return;}
-  const res=products.filter(p=>p.name.toLowerCase().includes(q.toLowerCase())).slice(0,8);
-  box.innerHTML=res.length?res.map(p=>`<div class="sd-item" onclick="quickAdd('${p._id||p.id}','${p.name.replace(/'/g,"\\'")}',${p.price})">
-    <div class="sd-emo">${emo(p.name)}</div><div class="sd-name">${p.name}</div><div class="sd-price">₱${Number(p.price).toLocaleString()}</div></div>`).join(''):`<div class="sd-empty">No results for "${q}"</div>`;
-  box.classList.add('open');
+function globalSearch(q){
+  if(!q.trim())return;
+  const sp=document.getElementById('searchPage');
+  sp.value=q;
+  showPage('search',null);
+  doPageSearch(q);
+  setTimeout(()=>{sp.focus();sp.setSelectionRange(sp.value.length,sp.value.length);},150);
 }
-function openSearchDrop(){if(document.getElementById('searchInput').value.trim())handleSearch(document.getElementById('searchInput').value);}
-document.addEventListener('click',e=>{if(!e.target.closest('.search-wrap'))document.getElementById('searchDrop').classList.remove('open');});
 
 let searchFilterCat='all';
 function setSearchFilter(cat,el){
@@ -1634,7 +1630,7 @@ const pricing=await getPricing(distanceKm,weightKg,total);
     directBuyItem=null;
     renderOrders();closeCheckout();
     toast('Order placed! Merchant will be notified 🎉');
-    setTimeout(()=>{showPage('orders',document.querySelectorAll('.nav-item')[4]);},1000);
+    setTimeout(()=>{showPage('orders',document.querySelectorAll('.nav-item')[3]);},1000);
     return;
   }
   const groups={};
@@ -1667,7 +1663,7 @@ const pricing=await getPricing(distanceKm,weightKg,total);
   renderOrders();
   cart=[];updateCartBadge();closeCheckout();
   toast('Order placed! Merchant will be notified 🎉');
-  setTimeout(()=>{showPage('orders',document.querySelectorAll('.nav-item')[4]);},1000);
+  setTimeout(()=>{showPage('orders',document.querySelectorAll('.nav-item')[3]);},1000);
 }
 
 function buyNow(id,name,price,btn,merchantId,merchantName){
