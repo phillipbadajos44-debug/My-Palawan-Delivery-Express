@@ -398,7 +398,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
 
   <!-- HOME -->
   <div id="page-home" class="page active">
-    <div class="banner"><div class="banner-text"><h3>Free Delivery Today!</h3><p>On orders above ₱500</p></div><div class="banner-emoji">🎉</div></div>
+    <div class="banner"><div class="banner-text"><h3 id="ai-greeting-title">Welcome!</h3><p id="ai-greeting-sub">Glad you're here today.</p></div><div class="banner-emoji">💚</div></div>
     <div class="filter-tabs">
       <div class="ftab active" onclick="filterHome('all',this)">All</div>
       <div class="ftab" onclick="filterHome('hot',this)">🔥 Hot</div>
@@ -1084,6 +1084,7 @@ async function enterApp(){
     const me=await mr.json();
     favorites=(me.favorites||[]).map(String);
   }catch(e){favorites=[];}
+  loadAiGreeting();
   await loadProducts();
   loadOrders();loadNotifications();
   setInterval(loadOrders,10000);
@@ -1091,6 +1092,18 @@ async function enterApp(){
   restoreLastPage();
   startCustomerLocationTracking();
   initPush();
+}
+
+async function loadAiGreeting(){
+  try{
+    const r=await fetch(`${API}/customers/greeting`,{headers:{'Authorization':'Bearer '+token}});
+    const d=await r.json();
+    if(d.greeting){
+      const parts=d.greeting.split(/[.!]\s*/).filter(Boolean);
+      document.getElementById('ai-greeting-title').textContent=parts[0]||d.greeting;
+      document.getElementById('ai-greeting-sub').textContent=parts.slice(1).join('. ')||'';
+    }
+  }catch(e){}
 }
 
 function urlBase64ToUint8Array(base64String){

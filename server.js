@@ -180,7 +180,8 @@ const CustomerSchema = new mongoose.Schema({
   profilePic: String, favorites: [String], role: { type: String, default: 'customer' },
   resetCode: String, resetCodeExpiry: Date,
   isActive: { type: Boolean, default: true }, createdAt: { type: Date, default: Date.now },
-  lat: Number, lng: Number, isOnline: { type: Boolean, default: false }
+  lat: Number, lng: Number, isOnline: { type: Boolean, default: false },
+  cachedGreeting: String, cachedGreetingNotifId: String, cachedGreetingAt: Date
 });
 
 const MerchantSchema = new mongoose.Schema({
@@ -663,6 +664,53 @@ app.get('/api/customers/me', auth(['customer']), async (req, res) => {
   try {
     const c = await Customer.findById(req.user.id).select('-password');
     res.json(c);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/customers/greeting', auth(['customer']), async (req, res) => {
+  try {
+    const customer = await Customer.findById(req.user.id);
+    if (!customer) return res.status(404).json({ error: 'Not found' });
+
+    const latestNotif = await Notification.findOne({ userId: String(req.user.id) }).sort('-createdAt');
+    const latestNotifId = latestNotif ? String(latestNotif._id) : null;
+    const cacheAgeMs = customer.cachedGreetingAt ? (Date.now() - new Date(customer.cachedGreetingAt).getTime()) : Infinity;
+    const cacheStillFresh = cacheAgeMs < 6 * 60 * 60 * 1000; // 6 hours
+
+    if (customer.cachedGreeting && customer.cachedGreetingNotifId === latestNotifId && cacheStillFresh) {
+      return res.json({ greeting: customer.cachedGreeting });
+    }
+
+    const hour = new Date().getHours();
+    const timeOfDay = hour < 12 ? 'morning' : hour < 18 ? 'afternoon' : 'evening';
+    const firstName = (customer.name || '').split(' ')[0] || 'there';
+
+    let contextLine = 'No recent notifications.';
+    if (latestNotif) contextLine = `Their most recent app notification was: "${latestNotif.title}: ${latestNotif.message}".`;
+
+    const prompt = `Write ONE short, warm, friendly, comforting greeting (max 12 words) for a food/parcel delivery app's home screen banner. It's currently ${timeOfDay}. The customer's first name is ${firstName}. ${contextLine} Make it sound caring and human, like a small kind note from the app, not a sales pitch. Do not mention "free delivery" or discounts. Do not use quotation marks. Reply with ONLY the greeting text, nothing else.`;
+
+    let greeting = `Good ${timeOfDay}, ${firstName}! Hope you're having a great day. 💚`;
+    try {
+      const gr = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+        }
+      );
+      const gd = await gr.json();
+      const aiText = gd?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+      if (aiText) greeting = aiText;
+    } catch (e) { /* fall back to default greeting above */ }
+
+    customer.cachedGreeting = greeting;
+    customer.cachedGreetingNotifId = latestNotifId;
+    customer.cachedGreetingAt = new Date();
+    await customer.save();
+
+    res.json({ greeting });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
