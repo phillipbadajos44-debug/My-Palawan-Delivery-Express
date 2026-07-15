@@ -692,16 +692,21 @@ app.get('/api/customers/greeting', auth(['customer']), async (req, res) => {
 
     let greeting = `Good ${timeOfDay}, ${firstName}! Hope you're having a great day. 💚`;
     try {
-      const gr = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-        }
-      );
+      const gr = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': process.env.ANTHROPIC_API_KEY,
+          'anthropic-version': '2023-06-01'
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 60,
+          messages: [{ role: 'user', content: prompt }]
+        })
+      });
       const gd = await gr.json();
-      const aiText = gd?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+      const aiText = gd?.content?.[0]?.text?.trim();
       if (aiText) greeting = aiText;
     } catch (e) { /* fall back to default greeting above */ }
 
