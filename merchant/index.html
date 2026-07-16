@@ -2087,47 +2087,79 @@ async function loadProfile() {
             headers: { 'Authorization': 'Bearer ' + token }
         });
         const data = await r.json();
+        console.log('Profile data:', data);
         if (data) {
             // Update profile fields
-            document.getElementById('storeNameDisplay').textContent = data.storeName || data.name || 'My Store';
-            document.getElementById('pfName').textContent = data.name || '—';
-            document.getElementById('pfPhone').textContent = data.phone || '—';
-            document.getElementById('pfEmail').textContent = data.email || '—';
-            document.getElementById('pfStoreName').textContent = data.storeName || '—';
-            document.getElementById('pfAddress').textContent = data.address || '—';
-            document.getElementById('pfBusinessType').textContent = data.businessType || '—';
-            document.getElementById('pfDti').textContent = data.dtiNumber || '—';
-            document.getElementById('pfPermit').textContent = data.permitNumber || '—';
-            document.getElementById('pfDescription').textContent = data.description || '—';
-            document.getElementById('addressDisplay').textContent = '📍 ' + (data.address || 'Address not set');
-            document.getElementById('businessTypeDisplay').textContent = '📂 ' + (data.businessType || 'General');
+            const nameDisplay = document.getElementById('storeNameDisplay');
+            if (nameDisplay) nameDisplay.textContent = data.storeName || data.name || 'My Store';
+            
+            const pfName = document.getElementById('pfName');
+            if (pfName) pfName.textContent = data.name || '—';
+            
+            const pfPhone = document.getElementById('pfPhone');
+            if (pfPhone) pfPhone.textContent = data.phone || '—';
+            
+            const pfEmail = document.getElementById('pfEmail');
+            if (pfEmail) pfEmail.textContent = data.email || '—';
+            
+            const pfStoreName = document.getElementById('pfStoreName');
+            if (pfStoreName) pfStoreName.textContent = data.storeName || '—';
+            
+            const pfAddress = document.getElementById('pfAddress');
+            if (pfAddress) pfAddress.textContent = data.address || '—';
+            
+            const pfBusinessType = document.getElementById('pfBusinessType');
+            if (pfBusinessType) pfBusinessType.textContent = data.businessType || '—';
+            
+            const pfDti = document.getElementById('pfDti');
+            if (pfDti) pfDti.textContent = data.dtiNumber || '—';
+            
+            const pfPermit = document.getElementById('pfPermit');
+            if (pfPermit) pfPermit.textContent = data.permitNumber || '—';
+            
+            const pfDescription = document.getElementById('pfDescription');
+            if (pfDescription) pfDescription.textContent = data.description || '—';
+            
+            const addressDisplay = document.getElementById('addressDisplay');
+            if (addressDisplay) addressDisplay.textContent = '📍 ' + (data.address || 'Address not set');
+            
+            const businessTypeDisplay = document.getElementById('businessTypeDisplay');
+            if (businessTypeDisplay) businessTypeDisplay.textContent = '📂 ' + (data.businessType || 'General');
             
             // Status badge
             const badge = document.getElementById('statusBadge');
-            if (data.isOpen) {
-                badge.textContent = '🟢 Open';
-                badge.style.background = '#d1fae5';
-                badge.style.color = '#065f46';
-            } else {
-                badge.textContent = '🔴 Closed';
-                badge.style.background = '#fee2e2';
-                badge.style.color = '#991b1b';
+            if (badge) {
+                if (data.isOpen) {
+                    badge.textContent = '🟢 Open';
+                    badge.style.background = '#d1fae5';
+                    badge.style.color = '#065f46';
+                } else {
+                    badge.textContent = '🔴 Closed';
+                    badge.style.background = '#fee2e2';
+                    badge.style.color = '#991b1b';
+                }
             }
             
             // Store logo
             if (data.storeLogo) {
-                document.getElementById('avatarEmoji').style.display = 'none';
+                const emoji = document.getElementById('avatarEmoji');
+                if (emoji) emoji.style.display = 'none';
                 const img = document.getElementById('avatarImage');
-                img.src = data.storeLogo;
-                img.style.display = 'block';
+                if (img) {
+                    img.src = data.storeLogo;
+                    img.style.display = 'block';
+                }
             }
             
             // Store banner
             if (data.storeBanner) {
                 const cover = document.getElementById('coverImage');
-                cover.src = data.storeBanner;
-                cover.style.display = 'block';
-                document.getElementById('coverPlaceholder').style.display = 'none';
+                if (cover) {
+                    cover.src = data.storeBanner;
+                    cover.style.display = 'block';
+                }
+                const placeholder = document.getElementById('coverPlaceholder');
+                if (placeholder) placeholder.style.display = 'none';
             }
         }
     } catch (e) {
