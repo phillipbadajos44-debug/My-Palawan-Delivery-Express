@@ -170,6 +170,75 @@
     overflow: hidden;
     box-shadow: 0 2px 12px rgba(0,0,0,0.08);
 }
+
+/* ===== NAVIGATION BAR ===== */
+.bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 68px;
+    background: #ffffff;
+    border-top: 1px solid #e5e7eb;
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    z-index: 150;
+    box-shadow: 0 -4px 20px rgba(15, 92, 46, 0.08);
+    padding-bottom: env(safe-area-inset-bottom);
+}
+
+.nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px 12px;
+    position: relative;
+    min-width: 56px;
+    transition: all 0.2s ease;
+}
+
+.nav-icon {
+    font-size: 22px;
+    line-height: 1;
+}
+
+.nav-label {
+    font-size: 10px;
+    font-weight: 600;
+    color: #6b7280;
+    transition: color 0.2s ease;
+}
+
+.nav-item.active .nav-label {
+    color: #0f5c2e;
+}
+
+.nav-item.active .nav-icon {
+    transform: scale(1.1);
+}
+
+.n-badge {
+    position: absolute;
+    top: -4px;
+    right: 4px;
+    background: #ef4444;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid #fff;
+}
 </style>
 
 </head>
