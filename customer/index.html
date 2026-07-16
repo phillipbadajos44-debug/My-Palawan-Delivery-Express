@@ -599,6 +599,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
     <div class="product-grid" id="cat-products"></div>
   </div>
 
+  <!-- STORE -->
+  <div id="page-store" class="page">
+    <div style="padding:20px 18px 10px"><h2 style="font-size:21px;font-weight:800;color:var(--gd)">Stores</h2><p style="font-size:13px;color:var(--muted);margin-top:2px">Browse merchants and their products</p></div>
+    <div id="store-list" style="padding:0 18px 20px;display:flex;flex-direction:column;gap:10px"></div>
+  </div>
+
   <!-- SEARCH -->
   <div id="page-search" class="page">
     <div style="padding:20px 18px 10px"><h2 style="font-size:21px;font-weight:800;color:var(--gd)">Search Products</h2></div>
@@ -657,7 +663,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
     </div>
     <div class="sec-title">Settings</div>
     <div class="menu-item" onclick="openChangePassword()"><div class="mi-icon">🔒</div><div class="mi-label">Change Password</div><div class="mi-arr">›</div></div>
-    <div class="menu-item" onclick="showPage('orders',document.querySelectorAll('.nav-item')[3])"><div class="mi-icon">📦</div><div class="mi-label">Order History</div><div class="mi-arr">›</div></div>
+    <div class="menu-item" onclick="showPage('orders',document.querySelectorAll('.nav-item')[2])"><div class="mi-icon">📦</div><div class="mi-label">Order History</div><div class="mi-arr">›</div></div>
     <div class="menu-item" onclick="openFavPanel()"><div class="mi-icon">❤️</div><div class="mi-label">My Favorites</div><div class="mi-arr">›</div></div>
     <div class="menu-item" onclick="openAddressesModal()"><div class="mi-icon">📍</div><div class="mi-label">Saved Addresses</div><div class="mi-arr">›</div></div>
     <div class="menu-item" onclick="openNotif()"><div class="mi-icon">🔔</div><div class="mi-label">Notifications</div><div class="mi-arr">›</div></div>
@@ -671,15 +677,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
     <button class="nav-item active" onclick="showPage('home',this)"><div class="nav-icon">🏠</div><span class="nav-label">Home</span></button>
     <button class="nav-item" onclick="showPage('grocery',this)"><div class="nav-icon">🛒</div><span class="nav-label">Grocery</span></button>
     <button class="nav-item" onclick="showPage('orders',this)"><div class="nav-icon">📦</div><span class="nav-label">Orders</span><span class="n-badge" id="ordersBadge"></span></button>
+    <button class="nav-item" onclick="showPage('store',this);loadStores()"><div class="nav-icon">🏪</div><span class="nav-label">Store</span></button>
     <button class="nav-item" onclick="showPage('account',this)"><div class="nav-icon">👤</div><span class="nav-label">Account</span></button>
   </nav>
 </div>
 
 <!-- FLOATING CART BUTTON -->
 <button class="floating-cart" onclick="openCart()" id="floatingCartBtn">
-  <span class="cart-icon">🛒</span>
-  <span class="floating-badge" id="cartBadge">0</span>
-</button>
   <span class="cart-icon">🛒</span>
   <span class="floating-badge" id="cartBadge">0</span>
 </button>
@@ -1497,6 +1501,33 @@ async function loadProductReviews(id){
 }
 function closeProductModal(){document.getElementById('productModal').classList.remove('open');}
 
+let merchantsList=[];
+async function loadStores(){
+  const grid=document.getElementById('store-list');
+  grid.innerHTML='<div class="loading-state"><div style="font-size:48px">🏪</div><span>Loading stores…</span></div>';
+  try{
+    const r=await fetch(`${API}/merchants-list`);
+    merchantsList=await r.json();
+  }catch(e){merchantsList=[];}
+  renderStoreList();
+}
+function resolveMerchantImg(u){return u.startsWith('http')?u:API.replace('/api','')+u;}
+function renderStoreList(){
+  const grid=document.getElementById('store-list');
+  if(!merchantsList.length){grid.innerHTML='<div class="loading-state"><div style="font-size:48px">📭</div><span>No stores yet</span></div>';return;}
+  grid.innerHTML=merchantsList.map((m,mi)=>{
+    const logo=m.storeLogo?`<img src="${resolveMerchantImg(m.storeLogo)}" style="width:100%;height:100%;object-fit:cover;border-radius:14px" onerror="this.style.display='none'"/>`:'🏪';
+    return `<div style="display:flex;gap:12px;align-items:center;background:#fff;border-radius:16px;padding:12px;box-shadow:var(--sh);cursor:pointer" onclick="openStoreModal(merchantsList[${mi}]._id,merchantsList[${mi}].storeName||merchantsList[${mi}].name)">
+      <div style="width:52px;height:52px;border-radius:14px;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0;overflow:hidden">${logo}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:800;font-size:15px">${m.storeName||m.name}</div>
+        <div style="font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${m.productCategory||''}</div>
+      </div>
+      <div style="font-size:11px;font-weight:700;color:${m.isOpen?'var(--gm)':'#ef4444'}">${m.isOpen?'🟢 Open':'🔴 Closed'}</div>
+    </div>`;
+  }).join('');
+}
+
 function openStoreModal(merchantId, merchantName) {
   document.getElementById("store-content").innerHTML = `
     <div class="store-loading">
@@ -1885,7 +1916,7 @@ const pricing=await getPricing(distanceKm,weightKg,total);
     directBuyItem=null;
     renderOrders();closeCheckout();
     toast('Order placed! Merchant will be notified 🎉');
-    setTimeout(()=>{showPage('orders',document.querySelectorAll('.nav-item')[3]);},1000);
+    setTimeout(()=>{showPage('orders',document.querySelectorAll('.nav-item')[2]);},1000);
     return;
   }
   const groups={};
@@ -1918,7 +1949,7 @@ const pricing=await getPricing(distanceKm,weightKg,total);
   renderOrders();
   cart=[];updateCartBadge();closeCheckout();
   toast('Order placed! Merchant will be notified 🎉');
-  setTimeout(()=>{showPage('orders',document.querySelectorAll('.nav-item')[3]);},1000);
+  setTimeout(()=>{showPage('orders',document.querySelectorAll('.nav-item')[2]);},1000);
 }
 
 function buyNow(id,name,price,btn,merchantId,merchantName){

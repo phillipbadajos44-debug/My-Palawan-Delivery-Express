@@ -846,17 +846,20 @@ app.put('/api/merchants/toggle-store', auth(['merchant']), async (req, res) => {
 
 // Upload merchant documents
 app.post('/api/merchants/upload-docs', auth(['merchant']), (req, res) => {
-  req.uploadDir = 'merchants/' + req.user.id;
   upload.fields([{ name: 'govId' }, { name: 'businessPermit' }, { name: 'storeFront' }, { name: 'storeLogo' }, { name: 'storeBanner' }])(req, res, async (err) => {
     if (err) return res.status(400).json({ error: err.message });
-    const docs = {};
-    if (req.files?.govId) docs['documents.govId'] = `/uploads/merchants/${req.user.id}/${req.files.govId[0].filename}`;
-    if (req.files?.businessPermit) docs['documents.businessPermit'] = `/uploads/merchants/${req.user.id}/${req.files.businessPermit[0].filename}`;
-    if (req.files?.storeFront) docs['documents.storeFront'] = `/uploads/merchants/${req.user.id}/${req.files.storeFront[0].filename}`;
-    if (req.files?.storeLogo) docs['storeLogo'] = `/uploads/merchants/${req.user.id}/${req.files.storeLogo[0].filename}`;
-    if (req.files?.storeBanner) docs['storeBanner'] = `/uploads/merchants/${req.user.id}/${req.files.storeBanner[0].filename}`;
-    await Merchant.findByIdAndUpdate(req.user.id, { $set: docs });
-    res.json({ success: true, docs });
+    try {
+      const docs = {};
+      if (req.files?.govId) docs['documents.govId'] = (await uploadToCloudinary(req.files.govId[0].buffer, 'merchant-docs')).secure_url;
+      if (req.files?.businessPermit) docs['documents.businessPermit'] = (await uploadToCloudinary(req.files.businessPermit[0].buffer, 'merchant-docs')).secure_url;
+      if (req.files?.storeFront) docs['documents.storeFront'] = (await uploadToCloudinary(req.files.storeFront[0].buffer, 'merchant-docs')).secure_url;
+      if (req.files?.storeLogo) docs['storeLogo'] = (await uploadToCloudinary(req.files.storeLogo[0].buffer, 'merchant-logos')).secure_url;
+      if (req.files?.storeBanner) docs['storeBanner'] = (await uploadToCloudinary(req.files.storeBanner[0].buffer, 'merchant-banners')).secure_url;
+      await Merchant.findByIdAndUpdate(req.user.id, { $set: docs });
+      res.json({ success: true, docs });
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
   });
 });
 
@@ -2069,6 +2072,14 @@ server.listen(PORT, () => {
 // PRODUCT REVIEWS API
 // GET MERCHANT BY ID (Public)
 // ============================================================
+app.get('/api/merchants-list', async (req, res) => {
+  try {
+    const merchants = await Merchant.find({ status: 'approved' })
+      .select('storeName name address lat lng productCategory description storeLogo storeBanner isOpen');
+    res.json(merchants);
+  } catch (e) { res.json([]); }
+});
+
 app.get('/api/merchants/:id', async (req, res) => {
   try {
     const merchant = await Merchant.findById(req.params.id)
