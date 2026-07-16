@@ -825,19 +825,6 @@ app.post('/api/merchants/login', async (req, res) => {
 });
 
 app.get('/api/merchants/me', auth(['merchant']), async (req, res) => {
-
-// ============================================================
-// PUBLIC MERCHANT API (for customers)
-// ============================================================
-  try {
-    const merchant = await Merchant.findById(req.params.id)
-      .select("storeName name phone email address lat lng productCategory businessType description storeLogo storeBanner isOpen status dtiNumber permitNumber tin createdAt");
-    if (!merchant) return res.status(404).json({ error: "Merchant not found" });
-    res.json(merchant);
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
-});
   try { res.json(await Merchant.findById(req.user.id).select('-password')); } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -2098,6 +2085,7 @@ server.listen(PORT, () => {
 // ============================================================
 // GET MERCHANT BY ID (Public)
 // ============================================================
+app.get('/api/merchants/:id', async (req, res) => {
   try {
     const merchant = await Merchant.findById(req.params.id)
       .select('storeName name phone email address lat lng productCategory businessType description storeLogo storeBanner isOpen status dtiNumber permitNumber tin createdAt');
@@ -2111,19 +2099,6 @@ server.listen(PORT, () => {
 // ============================================================
 // PUBLIC MERCHANT API (for customers)
 // ============================================================
-    const merchant = await Merchant.findById(req.params.id)
-      .select('storeName name phone email address lat lng productCategory businessType description storeLogo storeBanner isOpen status dtiNumber permitNumber tin createdAt');
-    if (!merchant) return res.status(404).json({ error: 'Merchant not found' });
-    res.json(merchant);
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
-});
-
-// ============================================================
-// PUBLIC MERCHANT API (for customers)
-// ============================================================
-app.get('/api/merchants/:id', async (req, res) => {
   try {
     const merchant = await Merchant.findById(req.params.id)
       .select('storeName name phone email address lat lng productCategory businessType description storeLogo storeBanner isOpen status dtiNumber permitNumber tin createdAt');
