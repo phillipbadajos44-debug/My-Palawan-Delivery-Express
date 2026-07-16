@@ -500,11 +500,19 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
   <nav class="bottom-nav">
     <button class="nav-item active" onclick="showPage('home',this)"><div class="nav-icon">🏠</div><span class="nav-label">Home</span></button>
     <button class="nav-item" onclick="showPage('grocery',this)"><div class="nav-icon">🛒</div><span class="nav-label">Grocery</span></button>
-    <button class="nav-item" onclick="openCart()"><div class="nav-icon">🧺</div><span class="nav-label">Cart</span><span class="n-badge" id="cartBadge"></span></button>
     <button class="nav-item" onclick="showPage('orders',this)"><div class="nav-icon">📦</div><span class="nav-label">Orders</span><span class="n-badge" id="ordersBadge"></span></button>
     <button class="nav-item" onclick="showPage('account',this)"><div class="nav-icon">👤</div><span class="nav-label">Account</span></button>
   </nav>
 </div>
+
+<!-- FLOATING CART BUTTON -->
+<button class="floating-cart" onclick="openCart()" id="floatingCartBtn">
+  <span class="cart-icon">🛒</span>
+  <span class="floating-badge" id="cartBadge">0</span>
+</button>
+  <span class="cart-icon">🛒</span>
+  <span class="floating-badge" id="cartBadge">0</span>
+</button>
 
 <!-- CART DRAWER -->
 <div class="overlay" id="overlay" onclick="closeCart()"></div>
