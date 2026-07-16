@@ -2081,3 +2081,17 @@ server.listen(PORT, () => {
   }
 });
 
+
+// ============================================================
+// GET MERCHANT BY ID (Public)
+// ============================================================
+app.get('/api/merchants/:id', async (req, res) => {
+  try {
+    const merchant = await Merchant.findById(req.params.id)
+      .select('storeName name phone email address lat lng productCategory businessType description storeLogo storeBanner isOpen status dtiNumber permitNumber tin createdAt');
+    if (!merchant) return res.status(404).json({ error: 'Merchant not found' });
+    res.json(merchant);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
