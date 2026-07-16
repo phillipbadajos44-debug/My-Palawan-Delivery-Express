@@ -2009,6 +2009,67 @@ function initSocket(){
 // =====================
 
 
+
+
+// ===== LOAD MERCHANT PROFILE =====
+async function loadProfile() {
+    try {
+        const r = await fetch(`${API}/merchants/me`, {
+            headers: { 'Authorization': 'Bearer ' + token }
+        });
+        const data = await r.json();
+        if (data) {
+            // Update profile fields
+            document.getElementById('storeNameDisplay').textContent = data.storeName || data.name || 'My Store';
+            document.getElementById('pfName').textContent = data.name || '—';
+            document.getElementById('pfPhone').textContent = data.phone || '—';
+            document.getElementById('pfEmail').textContent = data.email || '—';
+            document.getElementById('pfStoreName').textContent = data.storeName || '—';
+            document.getElementById('pfAddress').textContent = data.address || '—';
+            document.getElementById('pfBusinessType').textContent = data.businessType || '—';
+            document.getElementById('pfDti').textContent = data.dtiNumber || '—';
+            document.getElementById('pfPermit').textContent = data.permitNumber || '—';
+            document.getElementById('pfDescription').textContent = data.description || '—';
+            document.getElementById('addressDisplay').textContent = '📍 ' + (data.address || 'Address not set');
+            document.getElementById('businessTypeDisplay').textContent = '📂 ' + (data.businessType || 'General');
+            
+            // Status badge
+            const badge = document.getElementById('statusBadge');
+            if (data.isOpen) {
+                badge.textContent = '🟢 Open';
+                badge.style.background = '#d1fae5';
+                badge.style.color = '#065f46';
+            } else {
+                badge.textContent = '🔴 Closed';
+                badge.style.background = '#fee2e2';
+                badge.style.color = '#991b1b';
+            }
+            
+            // Store logo
+            if (data.storeLogo) {
+                document.getElementById('avatarEmoji').style.display = 'none';
+                const img = document.getElementById('avatarImage');
+                img.src = data.storeLogo;
+                img.style.display = 'block';
+            }
+            
+            // Store banner
+            if (data.storeBanner) {
+                const cover = document.getElementById('coverImage');
+                cover.src = data.storeBanner;
+                cover.style.display = 'block';
+                document.getElementById('coverPlaceholder').style.display = 'none';
+            }
+        }
+    } catch (e) {
+        console.error('Error loading profile:', e);
+    }
+}
+
+// Call loadProfile when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    if (token) loadProfile();
+});
 </script>
   <script src="https://my-palawan-delivery-express.onrender.com/socket.io/socket.io.js"></script>
 </body>
