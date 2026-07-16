@@ -4,6 +4,514 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>PDE – Merchant</title>
+
+<style>
+/* ===== MERCHANT PROFILE STYLES ===== */
+.profile-cover {
+    width: 100%;
+    height: 160px;
+    background: linear-gradient(135deg, #0f5c2e, #16a34a);
+    border-radius: 16px 16px 0 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+}
+
+.cover-placeholder {
+    color: rgba(255,255,255,0.8);
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.profile-header {
+    display: flex;
+    gap: 16px;
+    padding: 0 20px;
+    margin-top: -40px;
+    position: relative;
+    z-index: 2;
+    align-items: flex-end;
+}
+
+.profile-avatar {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: #fff;
+    border: 3px solid #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 40px;
+    cursor: pointer;
+    position: relative;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    flex-shrink: 0;
+}
+
+.avatar-badge {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    background: #0f5c2e;
+    color: #fff;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid #fff;
+}
+
+.profile-info {
+    flex: 1;
+    padding-bottom: 10px;
+}
+
+.profile-info h2 {
+    font-size: 22px;
+    font-weight: 800;
+    color: #0a0a0a;
+    margin: 0 0 4px 0;
+}
+
+.profile-status {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 4px;
+}
+
+.status-badge {
+    font-size: 13px;
+    font-weight: 600;
+    padding: 2px 12px;
+    border-radius: 20px;
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.business-type {
+    font-size: 13px;
+    font-weight: 600;
+    color: #4b5563;
+    background: #f3f4f6;
+    padding: 2px 12px;
+    border-radius: 20px;
+}
+
+.profile-location {
+    font-size: 14px;
+    color: #4b5563;
+}
+
+.details-card {
+    background: #fff;
+    border-radius: 16px;
+    margin: 16px;
+    padding: 16px 0;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+}
+
+.details-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #0a0a0a;
+    padding: 0 16px 12px 16px;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.detail-row {
+    display: flex;
+    padding: 12px 16px;
+    border-bottom: 1px solid #f9fafb;
+    align-items: center;
+}
+
+.detail-row:last-child {
+    border-bottom: none;
+}
+
+.detail-icon {
+    font-size: 20px;
+    width: 40px;
+    flex-shrink: 0;
+}
+
+.detail-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.detail-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #9ca3af;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.detail-value {
+    font-size: 15px;
+    font-weight: 600;
+    color: #0a0a0a;
+}
+
+.settings-menu {
+    margin: 16px;
+    background: #fff;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+}
+</style>
+
+</head>
+<body>
+
+<!-- AUTH -->
+<!-- SPLASH -->
+<div class="splash-screen" id="splashScreen">
+  <div class="splash-logo">🏪</div>
+  <div class="splash-name">Merchant Portal<br><small>Palawan Delivery Express</small></div>
+</div>
+
+<!-- WELCOME -->
+<div class="welcome-screen" id="welcomeScreen" style="display:none">
+  <div class="welcome-logo">🏪</div>
+  <h1 class="welcome-title">Merchant Portal</h1>
+  <p class="welcome-sub">Grow your business with Palawan Delivery Express.</p>
+  <div class="welcome-btns">
+    <button class="welcome-btn primary" onclick="goScreen('loginScreen')">Log In</button>
+    <button class="welcome-btn secondary" onclick="goScreen('signupIntroScreen')">Apply as Merchant</button>
+  </div>
+</div>
+
+<!-- LOGIN -->
+<div class="welcome-screen" id="loginScreen" style="display:none">
+  <div class="back-arrow" onclick="goScreen('welcomeScreen')">←</div>
+  <div class="welcome-logo" style="font-size:44px">🏪</div>
+  <h1 class="welcome-title" style="font-size:20px">Log In</h1>
+  <div class="auth-error" id="login-err"></div>
+  <div class="field"><label>Email</label><input id="l-email" type="email" placeholder="store@email.com"/></div>
+  <div class="field"><label>Password</label>
+    <div class="pw-wrap"><input id="l-pw" type="password" placeholder="Your password"/><span class="pw-eye" onclick="togglePw('l-pw',this)">👁️</span></div>
+  </div>
+  <button class="auth-btn" onclick="doLogin()">Log In</button>
+</div>
+
+<!-- APPLY INTRO -->
+<div class="welcome-screen" id="signupIntroScreen" style="display:none">
+  <div class="back-arrow" onclick="goScreen('welcomeScreen')">←</div>
+  <div class="welcome-logo">🏪</div>
+  <h1 class="welcome-title">Apply as a Merchant</h1>
+  <p class="welcome-sub">Let's get your store set up. This will take about 5 minutes.</p>
+  <div class="welcome-btns">
+    <button class="welcome-btn primary" onclick="startWizard()">Get Started</button>
+  </div>
+</div>
+
+<!-- WIZARD -->
+<div class="wizard-screen" id="wizardScreen" style="display:none">
+  <div class="wizard-top">
+    <div class="back-arrow" onclick="wizardBack()">←</div>
+    <div class="wizard-progress"><div class="wizard-progress-bar" id="wizardProgressBar"></div></div>
+  </div>
+  <div class="auth-error" id="apply-err"></div>
+  <div class="auth-success" id="apply-ok">✅ Application submitted! Waiting for Admin approval.</div>
+  <div id="wizardStepsContainer"></div>
+</div>
+
+<!-- PENDING -->
+<div class="pending-screen" id="pendingScreen">
+  <div class="pending-icon">⏳</div>
+  <div class="pending-title">Application Submitted!</div>
+  <div class="pending-sub">Your merchant application is being reviewed by the Admin. You will be notified once approved.</div>
+  <div class="pending-badge">🔍 Under Review</div>
+  <div class="logout-link" onclick="logout()">Log out</div>
+</div>
+
+<!-- MAIN APP -->
+<div class="app" id="mainApp">
+  <div class="header">
+    <div class="header-top">
+      <div class="brand">
+        <div class="brand-icon">🏪</div>
+        <div><div class="brand-name">Merchant Dashboard</div><div class="brand-sub" id="storeName">Palawan Delivery Express</div></div>
+      </div>
+      <div class="store-toggle">
+        <span class="toggle-lbl" id="storeStatusLabel">Closed</span>
+        <div class="toggle" id="storeToggle" onclick="toggleStore()"></div>
+        <div style="background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.3);border-radius:10px;padding:6px 10px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;margin-left:8px" onclick="openNotif()">🔔</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div id="page-dashboard" class="page active">
+    <div class="section-title">📊 Dashboard</div>
+    <div class="stats-grid">
+      <div class="stat-card" style="animation-delay:0ms"><div class="stat-icon">📦</div><div class="stat-val" id="s-total">0</div><div class="stat-label">Total Orders</div></div>
+      <div class="stat-card red" style="animation-delay:60ms"><div class="stat-icon">⏳</div><div class="stat-val" id="s-pend">0</div><div class="stat-label">Pending</div></div>
+      <div class="stat-card green" style="animation-delay:120ms"><div class="stat-icon">✅</div><div class="stat-val" id="s-acc">0</div><div class="stat-label">Accepted</div></div>
+      <div class="stat-card gold" style="animation-delay:180ms"><div class="stat-icon">💰</div><div class="stat-val" id="s-rev">₱0</div><div class="stat-label">Revenue</div></div>
+    </div>
+    <!-- Sales mini chart -->
+    <div class="sales-card">
+      <h3>📈 This Week's Sales</h3>
+      <div class="chart-bars" id="salesChart"></div>
+    </div>
+    <div class="section-title" style="padding-top:4px">🆕 New Orders <span id="newOrderCount" style="background:#ef4444;color:#fff;font-size:11px;font-weight:800;padding:2px 8px;border-radius:20px;margin-left:6px;display:none"></span></div>
+    <div class="orders-wrap" id="new-orders-wrap">
+      <div class="empty-state"><div class="ei">📭</div><p>No new orders yet</p></div>
+    </div>
+  </div>
+
+  <!-- ALL ORDERS -->
+  <div id="page-orders" class="page">
+    <div class="section-title">📦 All Orders</div>
+    <div class="filter-tabs">
+      <div class="ftab active" onclick="filterOrders('all',this)">All</div>
+      <div class="ftab" onclick="filterOrders('pending',this)">⏳ Pending</div>
+      <div class="ftab" onclick="filterOrders('accepted',this)">✅ Accepted</div>
+      <div class="ftab" onclick="filterOrders('ready',this)">📦 Ready</div>
+      <div class="ftab" onclick="filterOrders('picked_up',this)">🛵 Transit</div>
+      <div class="ftab" onclick="filterOrders('delivered',this)">🎉 Done</div>
+    </div>
+    <div class="orders-wrap" id="all-orders-wrap"><div class="spinner"></div></div>
+  </div>
+
+  <!-- ADD PRODUCT -->
+  <div id="page-add" class="page">
+    <div class="section-title" id="addFormTitle">➕ Post a Product</div>
+    <div class="add-form">
+      <h3>Product Details</h3>
+      <div class="field"><label>Product Name *</label><input id="p-name" type="text" placeholder="e.g. Fresh Bangus 1kg"/></div>
+      <div class="field-row">
+        <div class="field"><label>Price (₱) *</label><input id="p-price" type="number" placeholder="120" min="1"/></div>
+        <div class="field"><label>Stock *</label><input id="p-stock" type="number" placeholder="50" min="0"/></div>
+      </div>
+      <div class="field"><label>Category *</label>
+        <select id="p-cat"><option value="">Select category</option>
+          <option>Canned Goods</option><option>Rice & Grains</option><option>Meat & Poultry</option>
+          <option>Fish & Seafood</option><option>Vegetables</option><option>Fruits</option>
+          <option>Dairy & Eggs</option><option>Beverages</option><option>Bread & Bakery</option>
+          <option>Noodles & Pasta</option><option>Condiments</option><option>Household</option>
+          <option>Snacks</option><option>Cooking Oil</option><option>Baby Products</option><option>Health & Beauty</option>
+        </select>
+      </div>
+      <div class="field"><label>Description</label><textarea id="p-desc" placeholder="Brief description of your product…"></textarea></div>
+
+      <div class="field">
+        <label>Weight (kg) *</label>
+        <input id="p-weight" type="number" min="0.1" step="0.1" value="0.5" placeholder="e.g. 0.5">
+      </div>
+
+      <div class="field"><label>Delivery Fee (% of item price) *</label>
+        <select id="p-delivery-pct">
+          <option value="8">5–10% — Mamahaling produkto o malapit lang ang delivery</option>
+          <option value="15" selected>10–20% — Karaniwan sa maraming local delivery</option>
+          <option value="25">20%+ — Malayo ang biyahe / maliit ang halaga / mahirap ang ruta</option>
+        </select>
+      </div>
+      <div class="field"><label>Product Images (up to 5)</label>
+        <div class="upload-box"><input type="file" accept="image/*" id="p-img-input" multiple onchange="previewProductImg(this)"/>
+          <div id="p-img-preview" style="font-size:13px;color:var(--muted);font-weight:600">📸 Tap to upload product images (max 5)</div>
+        </div>
+      </div>
+      <input type="hidden" id="editing-product-id"/>
+      <button class="submit-btn" onclick="saveProduct()" id="saveProductBtn">📤 Post Product</button>
+      <button class="submit-btn" onclick="cancelEdit()" id="cancelEditBtn" style="display:none;background:#f3f4f6;color:var(--text);margin-top:8px">✕ Cancel Edit</button>
+    </div>
+  </div>
+
+  <!-- MY PRODUCTS -->
+  <div id="page-products" class="page">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 18px 10px">
+      <div class="section-title" style="padding:0">🛍️ My Products</div>
+      <div style="display:flex;gap:8px">
+        <input id="prod-search" type="text" placeholder="Search…" oninput="searchProducts(this.value)" style="padding:8px 12px;border:1.5px solid var(--gl);border-radius:10px;font-size:13px;outline:none;font-family:inherit;width:120px"/>
+      </div>
+    </div>
+    <div class="filter-tabs">
+      <div class="ftab active" onclick="filterProducts('all',this)">All</div>
+      <div class="ftab" onclick="filterProducts('available',this)">✅ Available</div>
+      <div class="ftab" onclick="filterProducts('low',this)">⚠️ Low Stock</div>
+      <div class="ftab" onclick="filterProducts('out',this)">❌ Out of Stock</div>
+    </div>
+    <div class="prod-list" id="prod-list"><div class="spinner"></div></div>
+  </div>
+
+  <!-- EARNINGS -->
+  <div id="page-earnings" class="page">
+    <div class="section-title">💰 Earnings</div>
+    <div style="padding:0 18px 16px">
+      <div style="background:linear-gradient(135deg,#1e3a5f,#2563eb);border-radius:20px;padding:22px 18px;color:#fff">
+        <div style="font-size:11px;opacity:.8;margin-bottom:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px">💰 Merchant Wallet</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+          <div style="background:rgba(255,255,255,.15);border-radius:12px;padding:14px;text-align:center">
+            <div style="font-size:22px;font-weight:900" id="bal-available">₱0</div>
+            <div style="font-size:11px;opacity:.8;margin-top:4px">✅ Available</div>
+          </div>
+          <div style="background:rgba(255,255,255,.15);border-radius:12px;padding:14px;text-align:center">
+            <div style="font-size:22px;font-weight:900" id="bal-pending">₱0</div>
+            <div style="font-size:11px;opacity:.8;margin-top:4px">⏳ Pending</div>
+          </div>
+        </div>
+        <div style="background:rgba(255,255,255,.1);border-radius:10px;padding:10px 14px;display:flex;justify-content:space-between;margin-bottom:12px">
+          <span style="font-size:13px;opacity:.8">Total Paid Out</span>
+          <span style="font-size:14px;font-weight:800" id="bal-paid">₱0</span>
+        </div>
+        <button id="payout-btn" onclick="requestPayout()" style="display:none;width:100%;padding:12px;background:#fff;color:#1e3a5f;border:none;border-radius:12px;font-size:14px;font-weight:800;cursor:pointer">🏦 Request Payout</button>
+        <div id="payout-btn-empty" style="text-align:center;opacity:.65;font-size:13px;padding:4px">Walang available balance pa</div>
+      </div>
+      <div style="font-size:14px;font-weight:800;color:#1e3a5f;margin:14px 0 8px">📋 Payout History</div>
+      <div id="payout-history-list"><div style="text-align:center;padding:12px;color:#6b7280;font-size:13px">Loading...</div></div>
+    </div>
+    <div class="earn-card">
+      <div class="earn-label">Total Earnings</div>
+      <div class="earn-total" id="earn-total">₱0</div>
+      <div class="earn-breakdown">
+        <div class="earn-item"><div class="earn-val" id="earn-today">₱0</div><div class="earn-lbl">Today</div></div>
+        <div class="earn-item"><div class="earn-val" id="earn-week">₱0</div><div class="earn-lbl">This Week</div></div>
+        <div class="earn-item"><div class="earn-val" id="earn-cnt">0</div><div class="earn-lbl">Orders</div></div>
+      </div>
+    </div>
+    <div class="section-title" style="padding-top:4px">📊 Top Products</div>
+    <div class="prod-list" id="top-products-list"></div>
+    <div class="section-title" style="padding-top:4px">✅ Completed Orders</div>
+    <div class="orders-wrap" id="completed-orders-wrap">
+      <div class="empty-state"><div class="ei">📊</div><p>No completed orders yet</p></div>
+    </div>
+  </div>
+
+  <!-- PROFILE -->
+  
+<div id="page-profile" class="page">
+    <!-- COVER PHOTO -->
+    <div class="profile-cover" onclick="document.getElementById('coverInput').click()">
+        <div class="cover-placeholder" id="coverPlaceholder">📸 Tap to add cover photo</div>
+        <img id="coverImage" src="" style="display:none; width:100%; height:100%; object-fit:cover;">
+        <input type="file" accept="image/*" id="coverInput" style="display:none" onchange="handleCoverUpload(event)">
+    </div>
+
+    <!-- PROFILE HEADER -->
+    <div class="profile-header">
+        <div class="profile-avatar" onclick="document.getElementById('logoInput').click()">
+            <span id="avatarEmoji">🏪</span>
+            <img id="avatarImage" src="" style="display:none; width:100%; height:100%; border-radius:50%; object-fit:cover;">
+            <div class="avatar-badge">📷</div>
+        </div>
+        <input type="file" accept="image/*" id="logoInput" style="display:none" onchange="handleLogoUpload(event)">
+        <div class="profile-info">
+            <h2 id="storeNameDisplay">My Store</h2>
+            <div class="profile-status">
+                <span class="status-badge" id="statusBadge">🟢 Open</span>
+                <span class="business-type" id="businessTypeDisplay">📂 General</span>
+            </div>
+            <div class="profile-location" id="addressDisplay">📍 Address not set</div>
+        </div>
+    </div>
+
+    <!-- STORE DETAILS CARD -->
+    <div class="details-card">
+        <div class="details-title">📋 Store Information</div>
+        <div class="detail-row">
+            <div class="detail-icon">👤</div>
+            <div class="detail-content">
+                <span class="detail-label">Full Name</span>
+                <span class="detail-value" id="pfName">—</span>
+            </div>
+        </div>
+        <div class="detail-row">
+            <div class="detail-icon">📱</div>
+            <div class="detail-content">
+                <span class="detail-label">Phone</span>
+                <span class="detail-value" id="pfPhone">—</span>
+            </div>
+        </div>
+        <div class="detail-row">
+            <div class="detail-icon">✉️</div>
+            <div class="detail-content">
+                <span class="detail-label">Email</span>
+                <span class="detail-value" id="pfEmail">—</span>
+            </div>
+        </div>
+        <div class="detail-row">
+            <div class="detail-icon">🏪</div>
+            <div class="detail-content">
+                <span class="detail-label">Store Name</span>
+                <span class="detail-value" id="pfStoreName">—</span>
+            </div>
+        </div>
+        <div class="detail-row">
+            <div class="detail-icon">📍</div>
+            <div class="detail-content">
+                <span class="detail-label">Store Address</span>
+                <span class="detail-value" id="pfAddress">—</span>
+            </div>
+        </div>
+        <div class="detail-row">
+            <div class="detail-icon">📂</div>
+            <div class="detail-content">
+                <span class="detail-label">Business Type</span>
+                <span class="detail-value" id="pfBusinessType">—</span>
+            </div>
+        </div>
+        <div class="detail-row">
+            <div class="detail-icon">📋</div>
+            <div class="detail-content">
+                <span class="detail-label">DTI Number</span>
+                <span class="detail-value" id="pfDti">—</span>
+            </div>
+        </div>
+        <div class="detail-row">
+            <div class="detail-icon">📄</div>
+            <div class="detail-content">
+                <span class="detail-label">Business Permit</span>
+                <span class="detail-value" id="pfPermit">—</span>
+            </div>
+        </div>
+        <div class="detail-row">
+            <div class="detail-icon">📝</div>
+            <div class="detail-content">
+                <span class="detail-label">Description</span>
+                <span class="detail-value" id="pfDescription">—</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- SETTINGS MENU -->
+    <div class="settings-menu">
+        <div class="menu-item" onclick="openEditProfile()">
+            <div class="mi-icon">✏️</div>
+            <div class="mi-label">Edit Profile</div>
+            <div class="mi-arr">›</div>
+        </div>
+        <div class="menu-item" onclick="openChangePassword()">
+            <div class="mi-icon">🔒</div>
+            <div class="mi-label">Change Password</div>
+            <div class="mi-arr">›</div>
+        </div>
+        <div class="menu-item" onclick="logout()">
+            <div class="mi-icon">🚪</div>
+            <div class="mi-label" style="color:#ef4444">Log Out</div>
+            <div class="mi-arr">›</div>
+        </div>
+    </div>
+    <div style="height:24px"></div>
+</div>
+">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>PDE – Merchant</title>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 :root{--gd:#1e3a5f;--gm:#2563eb;--gl:#dbeafe;--bg:#f0f6ff;--gold:#f59e0b;--red:#ef4444;--green:#22c55e;--text:#1e293b;--muted:#6b7280;--card:#fff;--r:16px;--sh:0 4px 24px rgba(37,99,235,.10);--nav:68px;}
