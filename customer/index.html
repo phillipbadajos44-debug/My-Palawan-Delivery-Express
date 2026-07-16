@@ -5,6 +5,84 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Palawan Delivery Express</title>
 <style>
+
+/* FLOATING CART BUTTON */
+.floating-cart {
+  position: fixed;
+  bottom: 90px;
+  right: 20px;
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0f5c2e, #16a34a);
+  color: white;
+  border: 3px solid #fff;
+  box-shadow: 0 8px 30px rgba(15, 92, 46, 0.5), 0 0 0 8px rgba(22, 163, 74, 0.15);
+  z-index: 160;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: floatPulse 2.5s ease-in-out infinite;
+}
+
+.floating-cart:hover {
+  transform: scale(1.08);
+  box-shadow: 0 12px 40px rgba(15, 92, 46, 0.6), 0 0 0 12px rgba(22, 163, 74, 0.1);
+}
+
+.floating-cart:active {
+  transform: scale(0.88);
+}
+
+.floating-cart .cart-icon {
+  font-size: 30px;
+  line-height: 1;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+}
+
+.floating-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  background: linear-gradient(135deg, #f59e0b, #f97316);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 900;
+  min-width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  border: 3px solid #fff;
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.5);
+  padding: 0 6px;
+  animation: badgePop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.floating-badge.show {
+  display: flex;
+}
+
+@keyframes floatPulse {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+    box-shadow: 0 8px 30px rgba(15, 92, 46, 0.5), 0 0 0 8px rgba(22, 163, 74, 0.15);
+  }
+  50% {
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: 0 16px 40px rgba(15, 92, 46, 0.6), 0 0 0 12px rgba(22, 163, 74, 0.08);
+  }
+}
+
+@keyframes badgePop {
+  0% { transform: scale(0); }
+  60% { transform: scale(1.3); }
+  100% { transform: scale(1); }
+}
+
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 :root{
   --gd:#0f5c2e;--gm:#16a34a;--gl:#bbf7d0;--bg:#f0faf4;
