@@ -6,6 +6,45 @@
 <title>Palawan Delivery Express</title>
 <style>
 
+/* ===== MERCHANT PROFILE STYLES ===== */
+.store-header { position: relative; margin: -20px -20px 0 -20px; }
+.store-banner { width: 100%; height: 160px; overflow: hidden; background: linear-gradient(135deg, #0f5c2e, #16a34a); border-radius: 16px 16px 0 0; }
+.store-banner img { width: 100%; height: 100%; object-fit: cover; }
+.store-banner-placeholder { width: 100%; height: 100%; background: linear-gradient(135deg, #0f5c2e, #16a34a); }
+.store-info-wrap { display: flex; gap: 15px; padding: 0 20px; margin-top: -40px; position: relative; z-index: 2; align-items: flex-end; }
+.store-logo-wrapper { flex-shrink: 0; }
+.store-logo-lg { width: 80px; height: 80px; border-radius: 16px; border: 3px solid #fff; background: #fff; object-fit: cover; box-shadow: 0 4px 12px rgba(0,0,0,0.15); display: flex; align-items: center; justify-content: center; font-size: 36px; }
+.store-details { flex: 1; padding-bottom: 10px; }
+.store-name-lg { font-size: 20px; font-weight: 700; color: #1a1a1a; margin: 0 0 6px 0; }
+.store-meta { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 4px; }
+.store-status { font-size: 13px; font-weight: 600; padding: 2px 10px; border-radius: 20px; }
+.store-status.open { color: #16a34a; background: #dcfce7; }
+.store-status.closed { color: #dc2626; background: #fee2e2; }
+.store-category { font-size: 13px; color: #6b7280; background: #f3f4f6; padding: 2px 10px; border-radius: 20px; }
+.store-rating { font-size: 13px; color: #f59e0b; background: #fef3c7; padding: 2px 10px; border-radius: 20px; }
+.store-location { font-size: 13px; color: #6b7280; margin-top: 4px; }
+.store-social { display: flex; gap: 12px; margin: 16px 0; }
+.social-btn { padding: 8px 20px; border: none; border-radius: 24px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+.social-btn:active { transform: scale(0.95); }
+.like-btn { background: #fee2e2; color: #dc2626; }
+.like-btn:hover { background: #fecaca; }
+.follow-btn { background: #dbeafe; color: #2563eb; }
+.follow-btn:hover { background: #bfdbfe; }
+.store-description { background: #f8fafc; padding: 16px 20px; border-radius: 12px; margin: 16px 0; }
+.store-description p { font-size: 14px; line-height: 1.6; color: #374151; margin: 6px 0 0 0; }
+.store-details-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 16px 0; }
+.detail-item { background: #f8fafc; padding: 12px; border-radius: 10px; }
+.detail-label { display: block; font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+.detail-value { font-size: 14px; font-weight: 500; color: #1a1a1a; }
+.store-products-header { display: flex; justify-content: space-between; align-items: center; margin: 20px 0 16px 0; }
+.store-products-header h3 { font-size: 18px; margin: 0; color: #1a1a1a; }
+.product-count { font-size: 13px; color: #6b7280; background: #f3f4f6; padding: 4px 12px; border-radius: 20px; }
+.store-loading { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px; gap: 16px; }
+.store-loading .spinner { width: 40px; height: 40px; border: 4px solid #e5e7eb; border-top-color: #0f5c2e; border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (max-width: 480px) { .store-info-wrap { flex-direction: column; align-items: center; text-align: center; margin-top: -30px; } .store-details-grid { grid-template-columns: 1fr; } .store-logo-lg { width: 70px; height: 70px; } }
+
+
 /* FLOATING CART BUTTON */
 .floating-cart {
   position: fixed;
@@ -1405,13 +1444,90 @@ async function loadProductReviews(id){
 }
 function closeProductModal(){document.getElementById('productModal').classList.remove('open');}
 
-function openStoreModal(merchantId,merchantName){
-  const items=products.filter(p=>(p.merchantId||'')===merchantId);
-  document.getElementById('store-content').innerHTML=`
-    <div class="modal-title" style="text-align:left">🏪 ${merchantName}</div>
-    <div style="font-size:13px;color:var(--muted);margin-bottom:14px">${items.length} product${items.length!==1?'s':''} available</div>
-    <div class="product-grid">${items.length?items.map((p,i)=>buildCard(p,i*40)).join(''):'<div class="loading-state"><div style="font-size:48px">📭</div><span>No products yet</span></div>'}</div>`;
-  document.getElementById('storeModal').classList.add('open');
+function openStoreModal(merchantId, merchantName) {
+  document.getElementById("store-content").innerHTML = `
+    <div class="store-loading">
+      <div class="spinner"></div>
+      <span>Loading store...</span>
+    </div>
+  `;
+  document.getElementById("storeModal").classList.add("open");
+  
+  fetch(`/api/merchants/${merchantId}`)
+    .then(res => res.json())
+    .then(merchant => {
+      const items = products.filter(p => (p.merchantId || "") === merchantId);
+      
+      let storeHTML = `
+        <!-- STORE HEADER WITH BANNER -->
+        <div class="store-header">
+          <div class="store-banner">
+            ${merchant.storeBanner ? `<img src="${merchant.storeBanner}" alt="Store Banner">` : `<div class="store-banner-placeholder"></div>`}
+          </div>
+          <div class="store-info-wrap">
+            <div class="store-logo-wrapper">
+              ${merchant.storeLogo ? `<img src="${merchant.storeLogo}" class="store-logo-lg">` : `<div class="store-logo-lg" style="background: linear-gradient(135deg, #0f5c2e, #16a34a); display:flex; align-items:center; justify-content:center; font-size:36px; color:#fff;">🏪</div>`}
+            </div>
+            <div class="store-details">
+              <h2 class="store-name-lg">${merchant.storeName || merchant.name}</h2>
+              <div class="store-meta">
+                <span class="store-status ${merchant.isOpen ? "open" : "closed"}">${merchant.isOpen ? "🟢 Open" : "🔴 Closed"}</span>
+                <span class="store-category">📂 ${merchant.businessType || "General"}</span>
+              </div>
+              <div class="store-location">📍 ${merchant.address || "Address not set"}</div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- SOCIAL BUTTONS -->
+        <div class="store-social">
+          <button class="social-btn like-btn" onclick="toggleLikeStore(${merchant._id})">❤️ <span id="likeCount">0</span></button>
+          <button class="social-btn follow-btn" onclick="toggleFollowStore(${merchant._id})">➕ <span id="followCount">0</span> Follow</button>
+        </div>
+        
+        <!-- ABOUT THE STORE -->
+        ${merchant.description ? `<div class="store-description">📝 <strong>About the Store</strong><p>${merchant.description}</p></div>` : ""}
+        
+        <!-- STORE DETAILS GRID -->
+        <div class="store-details-grid">
+          ${merchant.phone ? `<div class="detail-item"><span class="detail-label">📞 Contact</span><span class="detail-value">${merchant.phone}</span></div>` : ""}
+          ${merchant.email ? `<div class="detail-item"><span class="detail-label">📧 Email</span><span class="detail-value">${merchant.email}</span></div>` : ""}
+          ${merchant.address ? `<div class="detail-item"><span class="detail-label">📍 Address</span><span class="detail-value">${merchant.address}</span></div>` : ""}
+          ${merchant.businessType ? `<div class="detail-item"><span class="detail-label">🏷️ Business Type</span><span class="detail-value">${merchant.businessType}</span></div>` : ""}
+          ${merchant.productCategory ? `<div class="detail-item"><span class="detail-label">📂 Category</span><span class="detail-value">${merchant.productCategory}</span></div>` : ""}
+          ${merchant.dtiNumber ? `<div class="detail-item"><span class="detail-label">📋 DTI Number</span><span class="detail-value">${merchant.dtiNumber}</span></div>` : ""}
+          ${merchant.permitNumber ? `<div class="detail-item"><span class="detail-label">📄 Permit</span><span class="detail-value">${merchant.permitNumber}</span></div>` : ""}
+        </div>
+        
+        <!-- PRODUCTS SECTION -->
+        <div class="store-products-header">
+          <h3>🛍️ Products</h3>
+          <span class="product-count">${items.length} items</span>
+        </div>
+        <div class="product-grid">
+          ${items.length ? items.map((p, i) => buildCard(p, i * 40)).join("") : `<div class="loading-state"><div style="font-size:48px">📭</div><span>No products available</span></div>`}
+        </div>
+      `;
+      
+      document.getElementById("store-content").innerHTML = storeHTML;
+      
+      // Fetch store rating and reviews
+      fetch(`/api/reviews/store/${merchantId}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.averageRating) {
+            const ratingEl = document.querySelector(".store-meta");
+            if (ratingEl) {
+              ratingEl.innerHTML += `<span class="store-rating">⭐ ${data.averageRating.toFixed(1)} (${data.totalReviews} reviews)</span>`;
+            }
+          }
+        })
+        .catch(() => {});
+    })
+    .catch(err => {
+      document.getElementById("store-content").innerHTML = `<div class="loading-state"><div style="font-size:48px">❌</div><span>Failed to load store</span></div>`;
+      console.error("Error loading store:", err);
+    });
 }
 function closeStoreModal(){document.getElementById('storeModal').classList.remove('open');}
 
