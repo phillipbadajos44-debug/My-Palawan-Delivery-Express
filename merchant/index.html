@@ -143,12 +143,17 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
 .earn-val{font-size:17px;font-weight:800;}
 .earn-lbl{font-size:10px;opacity:.8;margin-top:2px;}
 /* PROFILE */
-.profile-hero{background:linear-gradient(135deg,var(--gd),var(--gm));padding:28px 18px 44px;text-align:center;}
-.store-avatar{width:80px;height:80px;border-radius:20px;background:rgba(255,255,255,.2);border:3px solid rgba(255,255,255,.4);display:flex;align-items:center;justify-content:center;font-size:36px;margin:0 auto 12px;overflow:hidden;cursor:pointer;}
+.profile-hero{position:relative;background:#fff;padding:0 0 44px;}
+.cover-photo{width:100%;height:130px;background:linear-gradient(135deg,var(--gd),var(--gm));background-size:cover;background-position:center;position:relative;cursor:pointer;overflow:hidden;}
+.cover-photo img{width:100%;height:100%;object-fit:cover;position:absolute;top:0;left:0;}
+.cover-edit-btn{position:absolute;top:10px;right:10px;background:rgba(0,0,0,.45);color:#fff;font-size:11px;font-weight:700;padding:6px 10px;border-radius:20px;z-index:2;}
+.profile-header-row{display:flex;align-items:flex-end;gap:12px;padding:0 18px;margin-top:-34px;position:relative;z-index:1;}
+.store-avatar{width:76px;height:76px;border-radius:20px;background:var(--bg);border:4px solid #fff;display:flex;align-items:center;justify-content:center;font-size:34px;overflow:hidden;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.15);flex-shrink:0;}
 .store-avatar img{width:100%;height:100%;object-fit:cover;}
-.store-name-display{color:#fff;font-size:20px;font-weight:800;}
-.store-sub{color:var(--gl);font-size:12px;margin-top:4px;opacity:.85;}
-.profile-card{background:#fff;border-radius:20px;margin:-22px 16px 0;box-shadow:0 8px 32px rgba(37,99,235,.15);padding:20px;position:relative;z-index:1;}
+.profile-header-text{padding-bottom:6px;min-width:0;}
+.store-name-display{color:var(--gd);font-size:19px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.store-sub{color:var(--muted);font-size:12px;margin-top:2px;}
+.profile-card{background:#fff;border-radius:20px;margin:16px 16px 0;box-shadow:0 8px 32px rgba(37,99,235,.15);padding:20px;position:relative;z-index:1;}
 .pf{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--bg);}
 .pf:last-child{border-bottom:none;}
 .pf-icon{width:38px;height:38px;background:var(--bg);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
@@ -417,14 +422,23 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
   <!-- PROFILE -->
   <div id="page-profile" class="page">
     <div class="profile-hero">
-      <div class="store-avatar" onclick="document.getElementById('logoInput').click()">
-        <span id="storeAvatarEmoji">🏪</span>
-        <img id="storeAvatarImg" src="" style="display:none"/>
+      <div class="cover-photo" id="coverPhoto" onclick="document.getElementById('coverInput').click()">
+        <img id="coverPhotoImg" src="" style="display:none"/>
+        <div class="cover-edit-btn">📷 Edit Cover</div>
       </div>
-      <div class="store-name-display" id="storeNameDisplay">My Store</div>
-      <div class="store-sub" id="storeTypeDisplay">Merchant · PDE</div>
+      <div class="profile-header-row">
+        <div class="store-avatar" onclick="document.getElementById('logoInput').click()">
+          <span id="storeAvatarEmoji">🏪</span>
+          <img id="storeAvatarImg" src="" style="display:none"/>
+        </div>
+        <div class="profile-header-text">
+          <div class="store-name-display" id="storeNameDisplay">My Store</div>
+          <div class="store-sub" id="storeTypeDisplay">Merchant · PDE</div>
+        </div>
+      </div>
     </div>
     <input type="file" accept="image/*" class="avatar-input" id="logoInput" onchange="handleLogo(event)"/>
+    <input type="file" accept="image/*" class="avatar-input" id="coverInput" onchange="handleCoverPhoto(event)"/>
     <div class="profile-card">
       <div class="pf"><div class="pf-icon">👤</div><div class="pf-info"><div class="pf-label">Full Name</div><div class="pf-value" id="pf-name">—</div></div><div class="pf-edit" onclick="openEditProfile()">›</div></div>
       <div class="pf"><div class="pf-icon">📱</div><div class="pf-info"><div class="pf-label">Phone</div><div class="pf-value" id="pf-phone">—</div></div><div class="pf-edit" onclick="openEditProfile()">›</div></div>
@@ -656,6 +670,15 @@ function updateStoreUI(){
   document.getElementById('pf-addr').textContent=currentMerchant.address||'—';
   document.getElementById('pf-btype').textContent=currentMerchant.businessType||'—';
   document.getElementById('pf-dti').textContent=currentMerchant.dtiNumber||'—';
+  if(currentMerchant.storeLogo){
+    document.getElementById('storeAvatarImg').src=currentMerchant.storeLogo;
+    document.getElementById('storeAvatarImg').style.display='block';
+    document.getElementById('storeAvatarEmoji').style.display='none';
+  }
+  if(currentMerchant.storeBanner){
+    document.getElementById('coverPhotoImg').src=currentMerchant.storeBanner;
+    document.getElementById('coverPhotoImg').style.display='block';
+  }
   isStoreOpen=currentMerchant.isOpen||false;
   updateStoreToggle();
 }
@@ -985,11 +1008,60 @@ async function saveProfile(){
   closeEditProfile();toast('Profile updated!');
 }
 
-function handleLogo(e){
+async function handleLogo(e){
   const f=e.target.files[0];if(!f)return;
+  const img=document.getElementById('storeAvatarImg');
+  const emoji=document.getElementById('storeAvatarEmoji');
+  const prevSrc=img.src;
   const r=new FileReader();
-  r.onload=ev=>{const img=document.getElementById('storeAvatarImg');img.src=ev.target.result;img.style.display='block';document.getElementById('storeAvatarEmoji').style.display='none';toast('Store logo updated!');};
+  r.onload=ev=>{img.src=ev.target.result;img.style.display='block';emoji.style.display='none';};
   r.readAsDataURL(f);
+  toast('Uploading store logo...');
+  try{
+    const fd=new FormData();
+    fd.append('storeLogo',f);
+    const res=await fetch(`${API}/merchants/upload-docs`,{method:'POST',headers:{'Authorization':'Bearer '+token},body:fd});
+    const data=await res.json();
+    if(data.success && data.docs && data.docs.storeLogo){
+      img.src=data.docs.storeLogo;
+      img.style.display='block';
+      emoji.style.display='none';
+      toast('Store logo updated!');
+    } else {
+      img.src=prevSrc;
+      toast('Upload failed. Try again.');
+    }
+  }catch(err){
+    img.src=prevSrc;
+    toast('Upload failed. Check connection.');
+  }
+}
+
+async function handleCoverPhoto(e){
+  const f=e.target.files[0];if(!f)return;
+  const img=document.getElementById('coverPhotoImg');
+  const prevSrc=img.src;
+  const r=new FileReader();
+  r.onload=ev=>{img.src=ev.target.result;img.style.display='block';};
+  r.readAsDataURL(f);
+  toast('Uploading cover photo...');
+  try{
+    const fd=new FormData();
+    fd.append('storeBanner',f);
+    const res=await fetch(`${API}/merchants/upload-docs`,{method:'POST',headers:{'Authorization':'Bearer '+token},body:fd});
+    const data=await res.json();
+    if(data.success && data.docs && data.docs.storeBanner){
+      img.src=data.docs.storeBanner;
+      img.style.display='block';
+      toast('Cover photo updated!');
+    } else {
+      img.src=prevSrc;
+      toast('Upload failed. Try again.');
+    }
+  }catch(err){
+    img.src=prevSrc;
+    toast('Upload failed. Check connection.');
+  }
 }
 
 // ── NOTIFICATIONS ──
