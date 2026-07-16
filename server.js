@@ -136,7 +136,7 @@ app.use('/merchant', express.static(path.join(__dirname, 'merchant')));
 app.use('/admin', express.static(path.join(__dirname, 'admin')));
 app.use('/customer', express.static(path.join(__dirname, 'customer')));
 app.use('/rider', express.static(path.join(__dirname, 'rider')));
-app.use(cors());
+app.use(cors({ origin: "*" }));
 app.use(express.json());
 
 const PORT = 5000;
@@ -149,7 +149,7 @@ mongoose.connect(process.env.MONGODB_URI)
   .then(() => console.log('✅ Nakakonekta na sa Database (MongoDB)'))
   .catch(err => console.error('❌ Error sa koneksyon sa Database:', err));
 // ── MIDDLEWARE ──
-app.use(cors());
+app.use(cors({ origin: "*" }));
 app.use(express.json());
 app.use('/uploads', express.static('uploads'));
 
