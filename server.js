@@ -2067,22 +2067,6 @@ server.listen(PORT, () => {
 
 // ============================================================
 // PRODUCT REVIEWS API
-// ============================================================
-
-// Submit a review for a product (only verified buyers)
-    const average = reviews.length > 0 ? total / reviews.length : 0;
-    res.json({
-      averageRating: average,
-      totalReviews: reviews.length,
-      reviews
-    });
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
-});
-
-
-// ============================================================
 // GET MERCHANT BY ID (Public)
 // ============================================================
 app.get('/api/merchants/:id', async (req, res) => {
