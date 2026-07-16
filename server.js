@@ -234,7 +234,7 @@ customerLng: Number,
 merchantId: String, merchantName: String, merchantAddress: String, merchantPhone: String,
   merchantLat: Number, merchantLng: Number,
   riderId: String, riderName: String,
-  items: [{ id: String, name: String, qty: Number, price: Number }],
+  items: [{ id: String, name: String, qty: Number, price: Number, reviewed: { type: Boolean, default: false } }],
   total: Number,
 distanceKm: { type: Number, default: 0 },
 weightKg: { type: Number, default: 0 },
@@ -264,6 +264,9 @@ const NotificationSchema = new mongoose.Schema({
 const ReviewSchema = new mongoose.Schema({
   orderId: String, customerId: String, customerName: String,
   merchantId: String, productId: String, rating: Number, review: String,
+  verifiedPurchase: { type: Boolean, default: true },
+  helpful: { type: Number, default: 0 },
+  photos: [String],
   createdAt: { type: Date, default: Date.now }
 });
 
@@ -2061,3 +2064,20 @@ server.listen(PORT, () => {
   console.log(`   3. Make sure MongoDB is running`);
   console.log(`   4. node server.js\n`);
 });
+
+// ============================================================
+// PRODUCT REVIEWS API
+// ============================================================
+
+// Submit a review for a product (only verified buyers)
+    const average = reviews.length > 0 ? total / reviews.length : 0;
+    res.json({
+      averageRating: average,
+      totalReviews: reviews.length,
+      reviews
+    });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
