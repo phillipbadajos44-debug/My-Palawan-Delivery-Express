@@ -446,6 +446,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
       <div class="pf"><div class="pf-icon">📍</div><div class="pf-info"><div class="pf-label">Store Address</div><div class="pf-value" id="pf-addr">—</div></div><div class="pf-edit" onclick="openEditProfile()">›</div></div>
       <div class="pf"><div class="pf-icon">🏪</div><div class="pf-info"><div class="pf-label">Business Type</div><div class="pf-value" id="pf-btype">—</div></div></div>
       <div class="pf"><div class="pf-icon">📋</div><div class="pf-info"><div class="pf-label">DTI Number</div><div class="pf-value" id="pf-dti">—</div></div></div>
+      <div class="pf"><div class="pf-icon">📄</div><div class="pf-info"><div class="pf-label">Business Permit</div><div class="pf-value" id="pf-permit">—</div></div></div>
+      <div class="pf"><div class="pf-icon">📝</div><div class="pf-info"><div class="pf-label">Description</div><div class="pf-value" id="pf-desc">—</div></div></div>
     </div>
     <div class="sec-title">Settings</div>
     <div class="menu-item" onclick="openEditProfile()"><div class="mi-icon">✏️</div><div class="mi-label">Edit Profile</div><div class="mi-arr">›</div></div>
@@ -670,6 +672,8 @@ function updateStoreUI(){
   document.getElementById('pf-addr').textContent=currentMerchant.address||'—';
   document.getElementById('pf-btype').textContent=currentMerchant.businessType||'—';
   document.getElementById('pf-dti').textContent=currentMerchant.dtiNumber||'—';
+  document.getElementById('pf-permit').textContent=currentMerchant.permitNumber||'—';
+  document.getElementById('pf-desc').textContent=currentMerchant.description||'—';
   if(currentMerchant.storeLogo){
     document.getElementById('storeAvatarImg').src=currentMerchant.storeLogo;
     document.getElementById('storeAvatarImg').style.display='block';

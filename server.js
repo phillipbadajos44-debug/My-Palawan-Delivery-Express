@@ -8,6 +8,8 @@ const {
   summarizeChartData
 } = require('./services/financialAnalytics');
 const FinancialSettings = require('./models/FinancialSettings');
+const Post = require('./models/Post');
+const Follow = require('./models/Follow');
 // ======================================
 // ⬇️ DITO SA IBABA MO IDIDIKIT ANG BUONG CODE MO ⬇️
 // ======================================
@@ -1411,6 +1413,164 @@ app.put('/api/products/:id/stock', auth(['merchant']), async (req, res) => {
   try {
     const p = await Product.findByIdAndUpdate(req.params.id, { stock: req.body.stock, isAvailable: req.body.stock > 0 }, { new: true });
     res.json(p);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ============================================================
+// SOCIAL — POSTS, FOLLOW, REACTIONS, SHARE
+// ============================================================
+
+// Create a post (merchant)
+app.post('/api/posts', auth(['merchant']), async (req, res) => {
+  try {
+    const merchant = await Merchant.findById(req.user.id);
+    const post = await Post.create({
+      merchantId: req.user.id,
+      merchantName: merchant?.storeName || req.user.storeName,
+      storeLogo: merchant?.storeLogo || '',
+      caption: req.body.caption || ''
+    });
+    res.json(post);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Upload images to a post (merchant, owns the post)
+app.post('/api/posts/:id/image', auth(['merchant']), (req, res) => {
+  upload.array('images', 5)(req, res, async (err) => {
+    if (err) return res.status(400).json({ error: err.message });
+    if (!req.files || !req.files.length) return res.status(400).json({ error: 'No files uploaded' });
+    try {
+      const post = await Post.findOne({ _id: req.params.id, merchantId: req.user.id });
+      if (!post) return res.status(404).json({ error: 'Post not found' });
+      const results = await Promise.all(req.files.map(f => uploadToCloudinary(f.buffer, 'posts')));
+      const urls = results.map(r => r.secure_url);
+      post.images = [...(post.images || []), ...urls];
+      await post.save();
+      res.json({ images: post.images });
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+});
+
+// Feed — all posts, or only from merchants the customer follows (?filter=following)
+app.get('/api/posts/feed', auth(['customer', 'merchant']), async (req, res) => {
+  try {
+    const { filter, page = 1, limit = 20 } = req.query;
+    let query = { isActive: true };
+
+    if (filter === 'following' && req.user.role === 'customer') {
+      const follows = await Follow.find({ customerId: req.user.id }).select('merchantId');
+      query.merchantId = { $in: follows.map(f => f.merchantId) };
+    }
+
+    const posts = await Post.find(query)
+      .sort('-createdAt')
+      .limit(Number(limit))
+      .skip((page - 1) * limit);
+
+    const total = await Post.countDocuments(query);
+    res.json({ posts, total, pages: Math.ceil(total / limit) });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Posts for a single merchant (public — used on store profile page)
+app.get('/api/posts/merchant/:merchantId', async (req, res) => {
+  try {
+    const posts = await Post.find({ merchantId: req.params.merchantId, isActive: true }).sort('-createdAt');
+    res.json(posts);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Delete a post (merchant, owns the post)
+app.delete('/api/posts/:id', auth(['merchant']), async (req, res) => {
+  try {
+    await Post.findOneAndDelete({ _id: req.params.id, merchantId: req.user.id });
+    res.json({ success: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// React to a post — like / love / wow (one reaction per user, upsert)
+app.post('/api/posts/:id/react', auth(['customer', 'merchant']), async (req, res) => {
+  try {
+    const { type = 'like' } = req.body;
+    if (!['like', 'love', 'wow'].includes(type)) return res.status(400).json({ error: 'Invalid reaction type' });
+
+    const post = await Post.findById(req.params.id);
+    if (!post) return res.status(404).json({ error: 'Post not found' });
+
+    post.reactions = post.reactions.filter(r => r.userId !== req.user.id);
+    post.reactions.push({ userId: req.user.id, userRole: req.user.role, type });
+    await post.save();
+
+    res.json({ reactions: post.reactions });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Remove your reaction from a post
+app.delete('/api/posts/:id/react', auth(['customer', 'merchant']), async (req, res) => {
+  try {
+    const post = await Post.findById(req.params.id);
+    if (!post) return res.status(404).json({ error: 'Post not found' });
+
+    post.reactions = post.reactions.filter(r => r.userId !== req.user.id);
+    await post.save();
+
+    res.json({ reactions: post.reactions });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Share a post (increments share count)
+app.post('/api/posts/:id/share', auth(['customer', 'merchant']), async (req, res) => {
+  try {
+    const post = await Post.findByIdAndUpdate(req.params.id, { $inc: { sharesCount: 1 } }, { new: true });
+    if (!post) return res.status(404).json({ error: 'Post not found' });
+    res.json({ sharesCount: post.sharesCount });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Follow a merchant (customer only)
+app.post('/api/merchants/:id/follow', auth(['customer']), async (req, res) => {
+  try {
+    const merchant = await Merchant.findById(req.params.id);
+    if (!merchant) return res.status(404).json({ error: 'Merchant not found' });
+
+    const follow = await Follow.findOneAndUpdate(
+      { customerId: req.user.id, merchantId: req.params.id },
+      { customerId: req.user.id, customerName: req.user.name, merchantId: req.params.id, merchantName: merchant.storeName },
+      { upsert: true, new: true }
+    );
+
+    await createNotification(req.params.id, 'merchant', '🎉 New Follower!', `${req.user.name} followed your store.`, 'follow');
+
+    res.json(follow);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Unfollow a merchant (customer only)
+app.delete('/api/merchants/:id/follow', auth(['customer']), async (req, res) => {
+  try {
+    await Follow.findOneAndDelete({ customerId: req.user.id, merchantId: req.params.id });
+    res.json({ success: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Follow status + follower count for a merchant
+app.get('/api/merchants/:id/follow-status', auth(['customer']), async (req, res) => {
+  try {
+    const [isFollowing, followerCount] = await Promise.all([
+      Follow.exists({ customerId: req.user.id, merchantId: req.params.id }),
+      Follow.countDocuments({ merchantId: req.params.id })
+    ]);
+    res.json({ isFollowing: !!isFollowing, followerCount });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// List of merchants the logged-in customer follows
+app.get('/api/customers/following', auth(['customer']), async (req, res) => {
+  try {
+    const follows = await Follow.find({ customerId: req.user.id }).sort('-createdAt');
+    res.json(follows);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
