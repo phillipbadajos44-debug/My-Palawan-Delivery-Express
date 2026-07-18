@@ -200,6 +200,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
 .spinner{width:36px;height:36px;border:3px solid var(--gl);border-top-color:var(--gm);border-radius:50%;animation:spin .7s linear infinite;margin:40px auto;display:block;}
 @keyframes spin{to{transform:rotate(360deg);}}
 .avatar-input{display:none;}
+.posts-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:3px;padding:0 16px 8px;}
+.post-tile{position:relative;aspect-ratio:1/1;border-radius:8px;overflow:hidden;background:var(--bg);cursor:pointer;}
+.post-tile img{width:100%;height:100%;object-fit:cover;}
+.post-tile .pt-noimg{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:var(--muted);padding:6px;text-align:center;}
+.post-tile .pt-stats{position:absolute;bottom:4px;left:4px;right:4px;display:flex;gap:6px;font-size:10px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.6);font-weight:700;}
+.post-composer-imgs{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}
+.post-composer-imgs img{width:64px;height:64px;object-fit:cover;border-radius:10px;}
+.post-view-img{width:100%;border-radius:14px;margin-bottom:12px;max-height:340px;object-fit:cover;background:var(--bg);}
+.post-reaction-row{display:flex;gap:14px;font-size:13px;color:var(--muted);margin:10px 0;font-weight:600;}
 </style>
 </head>
 <body>
@@ -449,6 +458,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
       <div class="pf"><div class="pf-icon">📄</div><div class="pf-info"><div class="pf-label">Business Permit</div><div class="pf-value" id="pf-permit">—</div></div></div>
       <div class="pf"><div class="pf-icon">📝</div><div class="pf-info"><div class="pf-label">Description</div><div class="pf-value" id="pf-desc">—</div></div></div>
     </div>
+    <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between;padding-right:16px">
+      <span>📸 My Posts</span>
+      <span style="font-size:12px;font-weight:800;color:var(--gm);cursor:pointer" onclick="openCreatePost()">+ New Post</span>
+    </div>
+    <div class="posts-grid" id="postsGrid"><div class="spinner"></div></div>
     <div class="sec-title">Settings</div>
     <div class="menu-item" onclick="openEditProfile()"><div class="mi-icon">✏️</div><div class="mi-label">Edit Profile</div><div class="mi-arr">›</div></div>
     <div class="menu-item"><div class="mi-icon">🔒</div><div class="mi-label">Change Password</div><div class="mi-arr">›</div></div>
@@ -462,7 +476,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
     <button class="nav-item" onclick="showPage('add',this)"><div class="nav-icon">➕</div><span class="nav-label">Add Product</span></button>
     <button class="nav-item" onclick="showPage('products',this);loadMyProducts()"><div class="nav-icon">🛍️</div><span class="nav-label">Products</span></button>
     <button class="nav-item" onclick="showPage('earnings',this);loadEarnings()"><div class="nav-icon">💰</div><span class="nav-label">Earnings</span></button>
-    <button class="nav-item" onclick="showPage('profile',this)"><div class="nav-icon">👤</div><span class="nav-label">Profile</span></button>
+    <button class="nav-item" onclick="showPage('profile',this);loadMyPosts()"><div class="nav-icon">👤</div><span class="nav-label">Profile</span></button>
   </nav>
 </div>
 
@@ -492,6 +506,30 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
   </div>
 </div>
 
+<!-- CREATE POST MODAL -->
+<div class="modal-bg" id="createPostModal" onclick="if(event.target===this)closeCreatePost()">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">📸 New Post</div>
+    <div class="field"><label>Caption</label><textarea id="post-caption" placeholder="What's new sa store mo?" style="height:80px;width:100%;padding:12px 14px;border:1.5px solid #e5e7eb;border-radius:12px;font-family:inherit;font-size:14px;outline:none;resize:none"></textarea></div>
+    <div class="upload-box" onclick="document.getElementById('postImgInput').click()">
+      <div id="post-upload-label">📷 Tap to add photos (max 5)</div>
+    </div>
+    <input type="file" accept="image/*" multiple class="avatar-input" id="postImgInput" onchange="previewPostImages(this)"/>
+    <div class="post-composer-imgs" id="postImgPreview"></div>
+    <button class="modal-btn" onclick="submitPost()" id="post-submit-btn">Post</button>
+  </div>
+</div>
+
+<!-- VIEW POST MODAL -->
+<div class="modal-bg" id="viewPostModal" onclick="if(event.target===this)closeViewPost()">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div id="post-view-body"></div>
+    <button class="modal-btn" style="background:var(--red)" onclick="confirmDeletePost()">🗑️ Delete Post</button>
+  </div>
+</div>
+
 <!-- NOTIFICATIONS -->
 <div class="side-panel" id="notifPanel">
   <div class="sp-header"><h3>🔔 Notifications</h3><span class="sp-close" onclick="closeNotif()">✕</span></div>
@@ -507,7 +545,7 @@ const EM={rice:'🍚',vegetable:'🥦',fish:'🐟',isda:'🐟',meat:'🥩',chick
 function emo(n){if(!n)return'📦';const l=n.toLowerCase();for(const[k,e]of Object.entries(EM))if(l.includes(k))return e;return'📦';}
 
 let token=null,currentMerchant=null;
-let allOrders=[],myProducts=[];
+let allOrders=[],myProducts=[],myPosts=[],pendingPostImages=[],viewingPostId=null;
 let currentOrderFilter='all',currentProdFilter='all';
 let isStoreOpen=false;
 let editingProductId=null;
@@ -1065,6 +1103,106 @@ async function handleCoverPhoto(e){
   }catch(err){
     img.src=prevSrc;
     toast('Upload failed. Check connection.');
+  }
+}
+
+// ── POSTS ──
+async function loadMyPosts(){
+  const el=document.getElementById('postsGrid');
+  if(!el)return;
+  el.innerHTML='<div class="spinner"></div>';
+  try{
+    const id=currentMerchant.id||currentMerchant._id;
+    const r=await fetch(`${API}/posts/merchant/${id}`,{headers:{'Authorization':'Bearer '+token}});
+    myPosts=await r.json();
+    if(!Array.isArray(myPosts))myPosts=[];
+  }catch{myPosts=[];}
+  renderMyPosts();
+}
+
+function renderMyPosts(){
+  const el=document.getElementById('postsGrid');
+  if(!myPosts.length){el.innerHTML='<div class="empty-state"><div class="ei">📸</div><p>Wala ka pang posts. I-share ang bago mong produkto!</p></div>';return;}
+  el.innerHTML=myPosts.map(p=>{
+    const img=(p.images&&p.images[0])?`<img src="${p.images[0]}"/>`:`<div class="pt-noimg">${(p.caption||'Post').slice(0,40)}</div>`;
+    return`<div class="post-tile" onclick="openViewPost('${p._id}')">
+      ${img}
+      <div class="pt-stats">❤️ ${p.reactions?p.reactions.length:0} · 🔁 ${p.sharesCount||0}</div>
+    </div>`;
+  }).join('');
+}
+
+function openCreatePost(){
+  document.getElementById('post-caption').value='';
+  document.getElementById('postImgPreview').innerHTML='';
+  document.getElementById('post-upload-label').textContent='📷 Tap to add photos (max 5)';
+  pendingPostImages=[];
+  document.getElementById('createPostModal').classList.add('open');
+}
+function closeCreatePost(){document.getElementById('createPostModal').classList.remove('open');}
+
+function previewPostImages(input){
+  pendingPostImages=Array.from(input.files||[]).slice(0,5);
+  document.getElementById('post-upload-label').textContent=pendingPostImages.length?`✅ ${pendingPostImages.length} photo(s) selected`:'📷 Tap to add photos (max 5)';
+  const prev=document.getElementById('postImgPreview');
+  prev.innerHTML='';
+  pendingPostImages.forEach(f=>{
+    const r=new FileReader();
+    r.onload=ev=>{const img=document.createElement('img');img.src=ev.target.result;prev.appendChild(img);};
+    r.readAsDataURL(f);
+  });
+}
+
+async function submitPost(){
+  const caption=document.getElementById('post-caption').value.trim();
+  if(!caption&&!pendingPostImages.length){toast('Maglagay ng caption o photo.');return;}
+  const btn=document.getElementById('post-submit-btn');
+  btn.disabled=true;btn.textContent='Posting...';
+  try{
+    const r=await fetch(`${API}/posts`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({caption})});
+    const post=await r.json();
+    if(pendingPostImages.length){
+      const fd=new FormData();
+      pendingPostImages.forEach(f=>fd.append('images',f));
+      await fetch(`${API}/posts/${post._id}/image`,{method:'POST',headers:{'Authorization':'Bearer '+token},body:fd});
+    }
+    toast('Na-post na! 🎉');
+    closeCreatePost();
+    loadMyPosts();
+  }catch(e){
+    toast('Failed to post. Try again.');
+  }finally{
+    btn.disabled=false;btn.textContent='Post';
+  }
+}
+
+function openViewPost(id){
+  const p=myPosts.find(x=>x._id===id);
+  if(!p)return;
+  viewingPostId=id;
+  const img=(p.images&&p.images[0])?`<img class="post-view-img" src="${p.images[0]}"/>`:'';
+  const reactionCount=p.reactions?p.reactions.length:0;
+  document.getElementById('post-view-body').innerHTML=`
+    ${img}
+    <div style="font-size:14px;color:var(--text);margin-bottom:8px">${p.caption||''}</div>
+    <div class="post-reaction-row">
+      <span>❤️ ${reactionCount} reactions</span>
+      <span>🔁 ${p.sharesCount||0} shares</span>
+    </div>`;
+  document.getElementById('viewPostModal').classList.add('open');
+}
+function closeViewPost(){document.getElementById('viewPostModal').classList.remove('open');viewingPostId=null;}
+
+async function confirmDeletePost(){
+  if(!viewingPostId)return;
+  if(!confirm('Sigurado ka bang gusto mong tanggalin ang post na ito?'))return;
+  try{
+    await fetch(`${API}/posts/${viewingPostId}`,{method:'DELETE',headers:{'Authorization':'Bearer '+token}});
+    toast('Post deleted.');
+    closeViewPost();
+    loadMyPosts();
+  }catch(e){
+    toast('Failed to delete post.');
   }
 }
 
