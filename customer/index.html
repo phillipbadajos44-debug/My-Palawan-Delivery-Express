@@ -81,6 +81,17 @@ p, span, div { color: #1a1a1a; }
 .like-btn:hover { background: #fecaca; }
 .follow-btn { background: #dbeafe; color: #2563eb; }
 .follow-btn:hover { background: #bfdbfe; }
+.follow-btn.following{background:var(--gl);color:var(--gd);}
+.feed-card{background:#fff;border-radius:var(--r);box-shadow:var(--sh);margin:0 18px 14px;overflow:hidden;}
+.feed-card-header{display:flex;align-items:center;gap:10px;padding:12px 14px;}
+.feed-store-logo{width:36px;height:36px;border-radius:10px;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:18px;overflow:hidden;flex-shrink:0;}
+.feed-store-logo img{width:100%;height:100%;object-fit:cover;}
+.feed-store-name{font-weight:800;font-size:14px;color:var(--gd);}
+.feed-card-img{width:100%;max-height:280px;object-fit:cover;display:block;}
+.feed-caption{padding:10px 14px 4px;font-size:13.5px;color:var(--text);}
+.feed-actions{display:flex;gap:8px;padding:10px 14px 14px;}
+.feed-react-btn,.feed-share-btn{flex:1;background:var(--bg);border:none;border-radius:12px;padding:8px 0;font-size:13px;font-weight:700;color:var(--muted);cursor:pointer;}
+.feed-react-btn.active{background:var(--gl);color:var(--gd);}
 .store-description { background: #f8fafc; padding: 20px; border-radius: 12px; margin: 16px 0; border-left: 4px solid #0f5c2e; }
 .store-description strong { font-size: 16px; font-weight: 800; color: #0a0a0a; display: block; margin-bottom: 6px; }
 .store-description p { font-size: 16px; line-height: 1.7; color: #1a1a1a; margin: 6px 0 0 0; }
@@ -568,6 +579,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
   <!-- HOME -->
   <div id="page-home" class="page active">
     <div class="banner"><div class="banner-text"><h3 id="ai-greeting-title">Welcome!</h3><p id="ai-greeting-sub">Glad you're here today.</p></div><div class="banner-emoji">💚</div></div>
+    <div class="section-label" style="padding:14px 18px 6px"><h3>📣 Community Feed</h3></div>
+    <div id="community-feed"><div class="loading-state"><div class="spinner"></div><span>Loading feed…</span></div></div>
     <div class="filter-tabs">
       <div class="ftab active" onclick="filterHome('all',this)">All</div>
       <div class="ftab" onclick="filterHome('hot',this)">🔥 Hot</div>
@@ -913,6 +926,7 @@ function emo(n){if(!n)return'📦';const l=n.toLowerCase();for(const[k,e]of Obje
 
 // ── STATE ──
 let token=null,currentUser=null;
+let communityFeed=[];
 let pdQty=1,pdCurrentId=null;
 let products=[],cart=[],orders=[],notifications=[],favorites=[];
 let selectedPayment='cod',selectedStar=0,ratingOrderId=null;
@@ -1266,6 +1280,7 @@ async function enterApp(){
   }catch(e){favorites=[];}
   loadAiGreeting();
   await loadProducts();
+  loadCommunityFeed();
   loadOrders();loadNotifications();
   setInterval(loadOrders,10000);
   setInterval(loadNotifications,15000);
@@ -1565,8 +1580,7 @@ function openStoreModal(merchantId, merchantName) {
         
         <!-- SOCIAL BUTTONS -->
         <div class="store-social">
-          <button class="social-btn like-btn" onclick="toggleLikeStore(${merchant._id})">❤️ <span id="likeCount">0</span></button>
-          <button class="social-btn follow-btn" onclick="toggleFollowStore(${merchant._id})">➕ <span id="followCount">0</span> Follow</button>
+          <button class="social-btn follow-btn" id="followBtn" onclick="toggleFollowStore('${merchant._id}')">➕ <span id="followCount">0</span> Follow</button>
         </div>
         
         <!-- ABOUT THE STORE -->
@@ -1594,6 +1608,7 @@ function openStoreModal(merchantId, merchantName) {
       `;
       
       document.getElementById("store-content").innerHTML = storeHTML;
+      checkFollowStatus(merchantId);
       
       // Fetch store rating and reviews
       fetch(`/api/reviews/store/${merchantId}`)
@@ -2163,6 +2178,96 @@ function closeNotif(){document.getElementById('notifPanel').classList.remove('op
 async function markAllRead(){
   notifications.forEach(n=>n.unread=false);renderNotifs();
   try{await fetch(`${API}/notifications/read-all`,{method:'PUT',headers:{'Authorization':'Bearer '+token}});}catch(e){}
+}
+
+// ── COMMUNITY FEED ──
+async function loadCommunityFeed(){
+  const el=document.getElementById('community-feed');
+  if(!el)return;
+  try{
+    const r=await fetch(`${API}/posts/feed?limit=10`,{headers:{'Authorization':'Bearer '+token}});
+    const d=await r.json();
+    communityFeed=d.posts||[];
+  }catch(e){communityFeed=[];}
+  renderCommunityFeed();
+}
+
+function renderCommunityFeed(){
+  const el=document.getElementById('community-feed');
+  if(!el)return;
+  if(!communityFeed.length){el.innerHTML='<div class="loading-state"><div style="font-size:40px">📭</div><span>Wala pang posts. Mag-follow ng stores para makakita ng updates!</span></div>';return;}
+  const myId=currentUser?(currentUser.id||currentUser._id):null;
+  el.innerHTML=communityFeed.map(p=>{
+    const mine=(p.reactions||[]).find(r=>r.userId===myId);
+    const myReaction=mine?mine.type:null;
+    const img=(p.images&&p.images[0])?`<img src="${p.images[0]}" class="feed-card-img"/>`:'';
+    const logo=p.storeLogo?`<img src="${p.storeLogo}"/>`:'🏪';
+    return`<div class="feed-card">
+      <div class="feed-card-header">
+        <div class="feed-store-logo">${logo}</div>
+        <div class="feed-store-name">${p.merchantName||'Store'}</div>
+      </div>
+      ${img}
+      <div class="feed-caption">${p.caption||''}</div>
+      <div class="feed-actions">
+        <button class="feed-react-btn ${myReaction==='like'?'active':''}" onclick="reactToPost('${p._id}','like')">👍 ${p.reactions?p.reactions.length:0}</button>
+        <button class="feed-react-btn ${myReaction==='love'?'active':''}" onclick="reactToPost('${p._id}','love')">❤️</button>
+        <button class="feed-react-btn ${myReaction==='wow'?'active':''}" onclick="reactToPost('${p._id}','wow')">😮</button>
+        <button class="feed-share-btn" onclick="sharePost('${p._id}')">🔁 ${p.sharesCount||0}</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function reactToPost(postId,type){
+  try{
+    const r=await fetch(`${API}/posts/${postId}/react`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({type})});
+    const d=await r.json();
+    const post=communityFeed.find(p=>p._id===postId);
+    if(post)post.reactions=d.reactions;
+    renderCommunityFeed();
+  }catch(e){toast('Failed to react.');}
+}
+
+async function sharePost(postId){
+  try{
+    const r=await fetch(`${API}/posts/${postId}/share`,{method:'POST',headers:{'Authorization':'Bearer '+token}});
+    const d=await r.json();
+    const post=communityFeed.find(p=>p._id===postId);
+    if(post)post.sharesCount=d.sharesCount;
+    renderCommunityFeed();
+    toast('Shared! 🎉');
+  }catch(e){toast('Failed to share.');}
+}
+
+// ── FOLLOW ──
+async function toggleFollowStore(merchantId){
+  const btn=document.getElementById('followBtn');
+  const isFollowing=btn&&btn.classList.contains('following');
+  try{
+    if(isFollowing){
+      await fetch(`${API}/merchants/${merchantId}/follow`,{method:'DELETE',headers:{'Authorization':'Bearer '+token}});
+    }else{
+      await fetch(`${API}/merchants/${merchantId}/follow`,{method:'POST',headers:{'Authorization':'Bearer '+token}});
+    }
+    checkFollowStatus(merchantId);
+  }catch(e){toast('Failed to update follow status.');}
+}
+
+async function checkFollowStatus(merchantId){
+  const btn=document.getElementById('followBtn');
+  if(!btn)return;
+  try{
+    const r=await fetch(`${API}/merchants/${merchantId}/follow-status`,{headers:{'Authorization':'Bearer '+token}});
+    const d=await r.json();
+    if(d.isFollowing){
+      btn.classList.add('following');
+      btn.innerHTML=`✓ <span id="followCount">${d.followerCount||0}</span> Following`;
+    }else{
+      btn.classList.remove('following');
+      btn.innerHTML=`➕ <span id="followCount">${d.followerCount||0}</span> Follow`;
+    }
+  }catch(e){}
 }
 
 // ── PAGES ──
