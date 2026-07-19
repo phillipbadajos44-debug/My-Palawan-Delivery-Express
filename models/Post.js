@@ -22,6 +22,13 @@ const PostSchema = new mongoose.Schema({
     createdAt: { type: Date, default: Date.now }
   }],
 
+  comments: [{
+    userId: String,
+    userName: String,
+    text: String,
+    createdAt: { type: Date, default: Date.now }
+  }],
+
   sharesCount: { type: Number, default: 0 },
 
   isActive: { type: Boolean, default: true },

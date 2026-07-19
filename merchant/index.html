@@ -209,6 +209,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
 .post-composer-imgs img{width:64px;height:64px;object-fit:cover;border-radius:10px;}
 .post-view-img{width:100%;border-radius:14px;margin-bottom:12px;max-height:340px;object-fit:cover;background:var(--bg);}
 .post-reaction-row{display:flex;gap:14px;font-size:13px;color:var(--muted);margin:10px 0;font-weight:600;}
+.post-view-gallery{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;border-radius:14px;margin-bottom:12px;-webkit-overflow-scrolling:touch;}
+.post-view-gallery img{width:100%;flex:0 0 100%;scroll-snap-align:center;object-fit:cover;max-height:340px;background:var(--bg);}
+.post-view-img-count{text-align:center;font-size:11px;color:var(--muted);font-weight:700;margin:-6px 0 10px;}
+.post-comments-list{max-height:220px;overflow-y:auto;margin-top:6px;border-top:1px solid var(--bg);padding-top:8px;}
+.post-comment-item{padding:6px 0;font-size:13px;line-height:1.4;color:var(--text);}
+.post-comment-item b{color:var(--gd);}
 </style>
 </head>
 <body>
@@ -1180,15 +1186,22 @@ function openViewPost(id){
   const p=myPosts.find(x=>x._id===id);
   if(!p)return;
   viewingPostId=id;
-  const img=(p.images&&p.images[0])?`<img class="post-view-img" src="${p.images[0]}"/>`:'';
+  const imgs=p.images||[];
+  const gallery=imgs.length?`<div class="post-view-gallery">${imgs.map(src=>`<img src="${src}"/>`).join('')}</div>${imgs.length>1?`<div class="post-view-img-count">📷 ${imgs.length} photos — swipe to see all</div>`:''}`:'';
   const reactionCount=p.reactions?p.reactions.length:0;
+  const comments=p.comments||[];
+  const commentsHtml=comments.length
+    ?`<div class="post-comments-list">${comments.map(c=>`<div class="post-comment-item"><b>${c.userName||'Customer'}:</b> ${c.text}</div>`).join('')}</div>`
+    :`<div class="post-comments-list"><div class="post-comment-item" style="color:var(--muted)">Wala pang comments.</div></div>`;
   document.getElementById('post-view-body').innerHTML=`
-    ${img}
+    ${gallery}
     <div style="font-size:14px;color:var(--text);margin-bottom:8px">${p.caption||''}</div>
     <div class="post-reaction-row">
       <span>❤️ ${reactionCount} reactions</span>
+      <span>💬 ${comments.length} comments</span>
       <span>🔁 ${p.sharesCount||0} shares</span>
-    </div>`;
+    </div>
+    ${commentsHtml}`;
   document.getElementById('viewPostModal').classList.add('open');
 }
 function closeViewPost(){document.getElementById('viewPostModal').classList.remove('open');viewingPostId=null;}

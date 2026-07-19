@@ -1520,6 +1520,19 @@ app.delete('/api/posts/:id/react', auth(['customer', 'merchant']), async (req, r
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// Add a comment to a post (customer only)
+app.post('/api/posts/:id/comment', auth(['customer']), async (req, res) => {
+  try {
+    const { text } = req.body;
+    if (!text || !text.trim()) return res.status(400).json({ error: 'Comment cannot be empty' });
+    const post = await Post.findById(req.params.id);
+    if (!post) return res.status(404).json({ error: 'Post not found' });
+    post.comments.push({ userId: req.user.id, userName: req.user.name, text: text.trim() });
+    await post.save();
+    res.json({ comments: post.comments });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // Share a post (increments share count)
 app.post('/api/posts/:id/share', auth(['customer', 'merchant']), async (req, res) => {
   try {
