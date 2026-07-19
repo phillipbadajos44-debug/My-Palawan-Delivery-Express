@@ -7,6 +7,11 @@ const PostSchema = new mongoose.Schema({
   },
   merchantName: String,
   storeLogo: String,
+  authorRole: {
+    type: String,
+    enum: ['merchant', 'customer'],
+    default: 'merchant'
+  },
 
   caption: String,
   images: [String],
@@ -29,6 +34,7 @@ const PostSchema = new mongoose.Schema({
     createdAt: { type: Date, default: Date.now }
   }],
 
+  sharedBy: [String],
   sharesCount: { type: Number, default: 0 },
 
   isActive: { type: Boolean, default: true },

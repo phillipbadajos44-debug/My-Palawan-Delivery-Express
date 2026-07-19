@@ -111,6 +111,19 @@ p, span, div { color: #1a1a1a; }
 .comment-input-row{display:flex;gap:8px;}
 .comment-input-row input{flex:1;padding:10px 14px;border:1.5px solid #e5e7eb;border-radius:20px;font-size:13px;outline:none;font-family:inherit;}
 .comment-input-row button{background:var(--gm);color:#fff;border:none;border-radius:20px;padding:0 18px;font-weight:700;font-size:13px;cursor:pointer;}
+.posts-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:3px;padding:0 18px 8px;}
+.post-tile{position:relative;aspect-ratio:1/1;border-radius:8px;overflow:hidden;background:var(--bg);cursor:pointer;}
+.post-tile img{width:100%;height:100%;object-fit:cover;}
+.post-tile .pt-noimg{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:var(--muted);padding:6px;text-align:center;}
+.post-tile .pt-stats{position:absolute;bottom:4px;left:4px;right:4px;display:flex;gap:6px;font-size:10px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.6);font-weight:700;}
+.post-composer-imgs{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}
+.post-composer-imgs img{width:64px;height:64px;object-fit:cover;border-radius:10px;}
+.post-view-gallery{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;border-radius:14px;margin-bottom:12px;-webkit-overflow-scrolling:touch;}
+.post-view-gallery img{width:100%;flex:0 0 100%;scroll-snap-align:center;object-fit:cover;max-height:340px;background:var(--bg);}
+.post-view-img-count{text-align:center;font-size:11px;color:var(--muted);font-weight:700;margin:-6px 0 10px;}
+.post-comments-list{max-height:220px;overflow-y:auto;margin-top:6px;border-top:1px solid var(--bg);padding-top:8px;}
+.post-comment-item{padding:6px 0;font-size:13px;line-height:1.4;color:var(--text);}
+.post-comment-item b{color:var(--gd);}
 .store-description { background: #f8fafc; padding: 20px; border-radius: 12px; margin: 16px 0; border-left: 4px solid #0f5c2e; }
 .store-description strong { font-size: 16px; font-weight: 800; color: #0a0a0a; display: block; margin-bottom: 6px; }
 .store-description p { font-size: 16px; line-height: 1.7; color: #1a1a1a; margin: 6px 0 0 0; }
@@ -693,6 +706,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
       <div class="pf"><div class="pf-icon">✉️</div><div class="pf-info"><div class="pf-label">Email Address</div><div class="pf-value" id="af-email">—</div></div></div>
       <div class="pf"><div class="pf-icon">📍</div><div class="pf-info"><div class="pf-label">Delivery Address</div><div class="pf-value" id="af-address">—</div></div><div class="pf-edit" onclick="openEditProfile()">›</div></div>
     </div>
+    <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between;padding-right:18px">
+      <span>📸 My Posts</span>
+      <span style="font-size:12px;font-weight:800;color:var(--gm);cursor:pointer" onclick="openCreateCustomerPost()">+ New Post</span>
+    </div>
+    <div class="posts-grid" id="myCustomerPostsGrid"><div class="spinner"></div></div>
+    <div class="sec-title">🔁 Shared Posts</div>
+    <div class="posts-grid" id="mySharedPostsGrid"><div class="spinner"></div></div>
     <div class="sec-title">Settings</div>
     <div class="menu-item" onclick="openChangePassword()"><div class="mi-icon">🔒</div><div class="mi-label">Change Password</div><div class="mi-arr">›</div></div>
     <div class="menu-item" onclick="showPage('orders',document.querySelectorAll('.nav-item')[2])"><div class="mi-icon">📦</div><div class="mi-label">Order History</div><div class="mi-arr">›</div></div>
@@ -710,7 +730,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
     <button class="nav-item" onclick="showPage('grocery',this)"><div class="nav-icon">🛒</div><span class="nav-label">Grocery</span></button>
     <button class="nav-item" onclick="showPage('orders',this)"><div class="nav-icon">📦</div><span class="nav-label">Orders</span><span class="n-badge" id="ordersBadge"></span></button>
     <button class="nav-item" onclick="showPage('store',this);loadStores()"><div class="nav-icon">🏪</div><span class="nav-label">Store</span></button>
-    <button class="nav-item" onclick="showPage('account',this)"><div class="nav-icon">👤</div><span class="nav-label">Account</span></button>
+    <button class="nav-item" onclick="showPage('account',this);loadMyCustomerPosts();loadMySharedPosts();"><div class="nav-icon">👤</div><span class="nav-label">Account</span></button>
   </nav>
 </div>
 
@@ -756,6 +776,30 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
       <input type="text" id="commentInput" placeholder="Isulat ang komento mo..." onkeypress="if(event.key==='Enter')submitComment()"/>
       <button onclick="submitComment()">Send</button>
     </div>
+  </div>
+</div>
+
+<!-- CUSTOMER CREATE POST MODAL -->
+<div class="modal-bg" id="custCreatePostModal" onclick="if(event.target===this)closeCreateCustomerPost()">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">📸 New Post</div>
+    <div class="field"><label>Caption</label><textarea id="cust-post-caption" placeholder="Ano'ng bago?" style="height:80px;width:100%;padding:12px 14px;border:1.5px solid #e5e7eb;border-radius:12px;font-family:inherit;font-size:14px;outline:none;resize:none"></textarea></div>
+    <div class="upload-box" onclick="document.getElementById('custPostImgInput').click()">
+      <div id="cust-post-upload-label">📷 Tap to add photos (max 5)</div>
+    </div>
+    <input type="file" accept="image/*" multiple class="avatar-input" id="custPostImgInput" onchange="previewCustPostImages(this)"/>
+    <div class="post-composer-imgs" id="custPostImgPreview"></div>
+    <button class="modal-btn" onclick="submitCustomerPost()" id="cust-post-submit-btn">Post</button>
+  </div>
+</div>
+
+<!-- CUSTOMER VIEW POST MODAL -->
+<div class="modal-bg" id="custViewPostModal" onclick="if(event.target===this)closeViewCustomerPost()">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div id="cust-post-view-body"></div>
+    <button class="modal-btn" style="background:var(--red)" onclick="deleteCustomerPost()">🗑️ Delete Post</button>
   </div>
 </div>
 
@@ -974,6 +1018,7 @@ function emo(n){if(!n)return'📦';const l=n.toLowerCase();for(const[k,e]of Obje
 // ── STATE ──
 let token=null,currentUser=null;
 let communityFeed=[];
+let myCustomerPosts=[],mySharedPosts=[],pendingCustPostImages=[],viewingCustPostId=null;
 let pdQty=1,pdCurrentId=null;
 let products=[],cart=[],orders=[],notifications=[],favorites=[];
 let selectedPayment='cod',selectedStar=0,ratingOrderId=null;
@@ -2266,10 +2311,12 @@ function renderCommunityFeed(){
     const summary=reactionSummary(p);
     const commentCount=(p.comments||[]).length;
     const logo=p.storeLogo?`<img src="${p.storeLogo}"/>`:'🏪';
+    const isMerchantPost=p.authorRole!=='customer';
+    const headerClick=isMerchantPost?`onclick="openStoreModal('${p.merchantId}','${(p.merchantName||'Store').replace(/'/g,"\\'")}')"`:'';
     return`<div class="feed-card">
-      <div class="feed-card-header">
+      <div class="feed-card-header" ${headerClick} style="${isMerchantPost?'cursor:pointer':''}">
         <div class="feed-store-logo">${logo}</div>
-        <div class="feed-store-name">${p.merchantName||'Store'}</div>
+        <div class="feed-store-name">${p.merchantName||'Store'}${isMerchantPost?'':' <span style=\'font-weight:600;color:var(--muted)\'>· Customer</span>'}</div>
       </div>
       ${imgWrap}
       <div class="feed-caption">${p.caption||''}</div>
@@ -2400,6 +2447,142 @@ async function submitComment(){
     if(post){post.comments=d.comments;renderComments(post);}
     renderCommunityFeed();
   }catch(e){toast('Failed to send comment.');}
+}
+
+// ── MY POSTS (customer's own posts) ──
+async function loadMyCustomerPosts(){
+  const el=document.getElementById('myCustomerPostsGrid');
+  if(!el||!currentUser)return;
+  el.innerHTML='<div class="spinner"></div>';
+  try{
+    const id=currentUser.id||currentUser._id;
+    const r=await fetch(`${API}/posts/author/${id}`,{headers:{'Authorization':'Bearer '+token}});
+    myCustomerPosts=await r.json();
+    if(!Array.isArray(myCustomerPosts))myCustomerPosts=[];
+  }catch(e){myCustomerPosts=[];}
+  renderMyCustomerPosts();
+}
+
+function renderMyCustomerPosts(){
+  const el=document.getElementById('myCustomerPostsGrid');
+  if(!el)return;
+  if(!myCustomerPosts.length){el.innerHTML='<div class="empty-state"><div class="ei">📸</div><p>Wala ka pang posts.</p></div>';return;}
+  el.innerHTML=myCustomerPosts.map(p=>{
+    const img=(p.images&&p.images[0])?`<img src="${p.images[0]}"/>`:`<div class="pt-noimg">${(p.caption||'Post').slice(0,40)}</div>`;
+    return`<div class="post-tile" onclick="openViewCustomerPost('${p._id}')">
+      ${img}
+      <div class="pt-stats">❤️ ${p.reactions?p.reactions.length:0} · 🔁 ${p.sharesCount||0}</div>
+    </div>`;
+  }).join('');
+}
+
+async function loadMySharedPosts(){
+  const el=document.getElementById('mySharedPostsGrid');
+  if(!el||!currentUser)return;
+  el.innerHTML='<div class="spinner"></div>';
+  try{
+    const id=currentUser.id||currentUser._id;
+    const r=await fetch(`${API}/posts/shared/${id}`,{headers:{'Authorization':'Bearer '+token}});
+    mySharedPosts=await r.json();
+    if(!Array.isArray(mySharedPosts))mySharedPosts=[];
+  }catch(e){mySharedPosts=[];}
+  renderMySharedPosts();
+}
+
+function renderMySharedPosts(){
+  const el=document.getElementById('mySharedPostsGrid');
+  if(!el)return;
+  if(!mySharedPosts.length){el.innerHTML='<div class="empty-state"><div class="ei">🔁</div><p>Wala ka pang na-share na posts.</p></div>';return;}
+  el.innerHTML=mySharedPosts.map(p=>{
+    const img=(p.images&&p.images[0])?`<img src="${p.images[0]}"/>`:`<div class="pt-noimg">${(p.caption||'Post').slice(0,40)}</div>`;
+    return`<div class="post-tile" onclick="openGallery('${p._id}')">
+      ${img}
+      <div class="pt-stats">${p.merchantName||'Store'}</div>
+    </div>`;
+  }).join('');
+}
+
+function openCreateCustomerPost(){
+  document.getElementById('cust-post-caption').value='';
+  document.getElementById('custPostImgPreview').innerHTML='';
+  document.getElementById('cust-post-upload-label').textContent='📷 Tap to add photos (max 5)';
+  pendingCustPostImages=[];
+  document.getElementById('custCreatePostModal').classList.add('open');
+}
+function closeCreateCustomerPost(){document.getElementById('custCreatePostModal').classList.remove('open');}
+
+function previewCustPostImages(input){
+  pendingCustPostImages=Array.from(input.files||[]).slice(0,5);
+  document.getElementById('cust-post-upload-label').textContent=pendingCustPostImages.length?`✅ ${pendingCustPostImages.length} photo(s) selected`:'📷 Tap to add photos (max 5)';
+  const prev=document.getElementById('custPostImgPreview');
+  prev.innerHTML='';
+  pendingCustPostImages.forEach(f=>{
+    const r=new FileReader();
+    r.onload=ev=>{const img=document.createElement('img');img.src=ev.target.result;prev.appendChild(img);};
+    r.readAsDataURL(f);
+  });
+}
+
+async function submitCustomerPost(){
+  const caption=document.getElementById('cust-post-caption').value.trim();
+  if(!caption&&!pendingCustPostImages.length){toast('Maglagay ng caption o photo.');return;}
+  const btn=document.getElementById('cust-post-submit-btn');
+  btn.disabled=true;btn.textContent='Posting...';
+  try{
+    const r=await fetch(`${API}/posts`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({caption})});
+    const post=await r.json();
+    if(pendingCustPostImages.length){
+      const fd=new FormData();
+      pendingCustPostImages.forEach(f=>fd.append('images',f));
+      await fetch(`${API}/posts/${post._id}/image`,{method:'POST',headers:{'Authorization':'Bearer '+token},body:fd});
+    }
+    toast('Na-post na! 🎉');
+    closeCreateCustomerPost();
+    loadMyCustomerPosts();
+    loadCommunityFeed();
+  }catch(e){
+    toast('Failed to post. Try again.');
+  }finally{
+    btn.disabled=false;btn.textContent='Post';
+  }
+}
+
+function openViewCustomerPost(id){
+  const p=myCustomerPosts.find(x=>x._id===id);
+  if(!p)return;
+  viewingCustPostId=id;
+  const imgs=p.images||[];
+  const gallery=imgs.length?`<div class="post-view-gallery">${imgs.map(src=>`<img src="${src}"/>`).join('')}</div>${imgs.length>1?`<div class="post-view-img-count">📷 ${imgs.length} photos — swipe to see all</div>`:''}`:'';
+  const reactionCount=p.reactions?p.reactions.length:0;
+  const comments=p.comments||[];
+  const commentsHtml=comments.length
+    ?`<div class="post-comments-list">${comments.map(c=>`<div class="post-comment-item"><b>${c.userName||'User'}:</b> ${c.text}</div>`).join('')}</div>`
+    :`<div class="post-comments-list"><div class="post-comment-item" style="color:var(--muted)">Wala pang comments.</div></div>`;
+  document.getElementById('cust-post-view-body').innerHTML=`
+    ${gallery}
+    <div style="font-size:14px;color:var(--text);margin-bottom:8px">${p.caption||''}</div>
+    <div class="post-reaction-row">
+      <span>❤️ ${reactionCount} reactions</span>
+      <span>💬 ${comments.length} comments</span>
+      <span>🔁 ${p.sharesCount||0} shares</span>
+    </div>
+    ${commentsHtml}`;
+  document.getElementById('custViewPostModal').classList.add('open');
+}
+function closeViewCustomerPost(){document.getElementById('custViewPostModal').classList.remove('open');viewingCustPostId=null;}
+
+async function deleteCustomerPost(){
+  if(!viewingCustPostId)return;
+  if(!confirm('Sigurado ka bang gusto mong tanggalin ang post na ito?'))return;
+  try{
+    await fetch(`${API}/posts/${viewingCustPostId}`,{method:'DELETE',headers:{'Authorization':'Bearer '+token}});
+    toast('Post deleted.');
+    closeViewCustomerPost();
+    loadMyCustomerPosts();
+    loadCommunityFeed();
+  }catch(e){
+    toast('Failed to delete post.');
+  }
 }
 
 // ── FOLLOW ──

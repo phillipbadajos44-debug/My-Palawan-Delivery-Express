@@ -1421,13 +1421,23 @@ app.put('/api/products/:id/stock', auth(['merchant']), async (req, res) => {
 // ============================================================
 
 // Create a post (merchant)
-app.post('/api/posts', auth(['merchant']), async (req, res) => {
+app.post('/api/posts', auth(['merchant', 'customer']), async (req, res) => {
   try {
-    const merchant = await Merchant.findById(req.user.id);
+    let authorName, authorLogo;
+    if (req.user.role === 'merchant') {
+      const merchant = await Merchant.findById(req.user.id);
+      authorName = merchant?.storeName || req.user.storeName;
+      authorLogo = merchant?.storeLogo || '';
+    } else {
+      const customer = await Customer.findById(req.user.id);
+      authorName = customer?.name || req.user.name;
+      authorLogo = customer?.profilePic || '';
+    }
     const post = await Post.create({
       merchantId: req.user.id,
-      merchantName: merchant?.storeName || req.user.storeName,
-      storeLogo: merchant?.storeLogo || '',
+      merchantName: authorName,
+      storeLogo: authorLogo,
+      authorRole: req.user.role,
       caption: req.body.caption || ''
     });
     res.json(post);
@@ -1435,7 +1445,7 @@ app.post('/api/posts', auth(['merchant']), async (req, res) => {
 });
 
 // Upload images to a post (merchant, owns the post)
-app.post('/api/posts/:id/image', auth(['merchant']), (req, res) => {
+app.post('/api/posts/:id/image', auth(['merchant', 'customer']), (req, res) => {
   upload.array('images', 5)(req, res, async (err) => {
     if (err) return res.status(400).json({ error: err.message });
     if (!req.files || !req.files.length) return res.status(400).json({ error: 'No files uploaded' });
@@ -1482,8 +1492,24 @@ app.get('/api/posts/merchant/:merchantId', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// Delete a post (merchant, owns the post)
-app.delete('/api/posts/:id', auth(['merchant']), async (req, res) => {
+// Posts by a single author, merchant or customer (used on the customer's own profile page)
+app.get('/api/posts/author/:authorId', async (req, res) => {
+  try {
+    const posts = await Post.find({ merchantId: req.params.authorId, isActive: true }).sort('-createdAt');
+    res.json(posts);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Posts a customer has shared (used on the customer's own profile page)
+app.get('/api/posts/shared/:customerId', async (req, res) => {
+  try {
+    const posts = await Post.find({ sharedBy: req.params.customerId, isActive: true }).sort('-createdAt');
+    res.json(posts);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Delete a post (merchant or customer, owns the post)
+app.delete('/api/posts/:id', auth(['merchant', 'customer']), async (req, res) => {
   try {
     await Post.findOneAndDelete({ _id: req.params.id, merchantId: req.user.id });
     res.json({ success: true });
@@ -1536,8 +1562,11 @@ app.post('/api/posts/:id/comment', auth(['customer']), async (req, res) => {
 // Share a post (increments share count)
 app.post('/api/posts/:id/share', auth(['customer', 'merchant']), async (req, res) => {
   try {
-    const post = await Post.findByIdAndUpdate(req.params.id, { $inc: { sharesCount: 1 } }, { new: true });
+    const post = await Post.findById(req.params.id);
     if (!post) return res.status(404).json({ error: 'Post not found' });
+    if (!post.sharedBy.includes(req.user.id)) post.sharedBy.push(req.user.id);
+    post.sharesCount = post.sharedBy.length;
+    await post.save();
     res.json({ sharesCount: post.sharesCount });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
