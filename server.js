@@ -1440,6 +1440,17 @@ app.post('/api/posts', auth(['merchant', 'customer']), async (req, res) => {
       authorRole: req.user.role,
       caption: req.body.caption || ''
     });
+
+    const io = req.app.get('io');
+    if (io) io.emit('feed_new_post', post);
+
+    if (req.user.role === 'merchant') {
+      const followers = await Follow.find({ merchantId: req.user.id }).select('customerId');
+      followers.forEach(f => {
+        createNotification(f.customerId, 'customer', `📢 ${authorName} posted something new!`, (req.body.caption || '').slice(0, 80), 'new_post', post._id);
+      });
+    }
+
     res.json(post);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -1512,6 +1523,8 @@ app.get('/api/posts/shared/:customerId', async (req, res) => {
 app.delete('/api/posts/:id', auth(['merchant', 'customer']), async (req, res) => {
   try {
     await Post.findOneAndDelete({ _id: req.params.id, merchantId: req.user.id });
+    const io = req.app.get('io');
+    if (io) io.emit('post_deleted', { postId: req.params.id });
     res.json({ success: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -1525,9 +1538,17 @@ app.post('/api/posts/:id/react', auth(['customer', 'merchant']), async (req, res
     const post = await Post.findById(req.params.id);
     if (!post) return res.status(404).json({ error: 'Post not found' });
 
+    const hadReaction = post.reactions.some(r => r.userId === req.user.id);
     post.reactions = post.reactions.filter(r => r.userId !== req.user.id);
     post.reactions.push({ userId: req.user.id, userRole: req.user.role, type });
     await post.save();
+
+    if (!hadReaction && post.merchantId !== req.user.id) {
+      const icons = { like: '👍', love: '❤️', wow: '😮' };
+      createNotification(post.merchantId, post.authorRole, `${icons[type] || '👍'} New Reaction`, `${req.user.name} reacted to your post.`, 'reaction', post._id);
+    }
+    const io = req.app.get('io');
+    if (io) io.emit('post_updated', { postId: post._id, reactions: post.reactions, comments: post.comments, sharesCount: post.sharesCount });
 
     res.json({ reactions: post.reactions });
   } catch (e) { res.status(500).json({ error: e.message }); }
@@ -1555,6 +1576,28 @@ app.post('/api/posts/:id/comment', auth(['customer']), async (req, res) => {
     if (!post) return res.status(404).json({ error: 'Post not found' });
     post.comments.push({ userId: req.user.id, userName: req.user.name, text: text.trim() });
     await post.save();
+
+    if (post.merchantId !== req.user.id) {
+      createNotification(post.merchantId, post.authorRole, '💬 New Comment', `${req.user.name}: ${text.trim().slice(0, 80)}`, 'comment', post._id);
+    }
+    const io = req.app.get('io');
+    if (io) io.emit('post_updated', { postId: post._id, reactions: post.reactions, comments: post.comments, sharesCount: post.sharesCount });
+
+    res.json({ comments: post.comments });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Delete your own comment from a post
+app.delete('/api/posts/:id/comment/:commentId', auth(['customer']), async (req, res) => {
+  try {
+    const post = await Post.findById(req.params.id);
+    if (!post) return res.status(404).json({ error: 'Post not found' });
+    const comment = post.comments.id(req.params.commentId);
+    if (!comment || comment.userId !== req.user.id) return res.status(403).json({ error: 'Not your comment' });
+    comment.deleteOne();
+    await post.save();
+    const io = req.app.get('io');
+    if (io) io.emit('post_updated', { postId: post._id, reactions: post.reactions, comments: post.comments, sharesCount: post.sharesCount });
     res.json({ comments: post.comments });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -1567,6 +1610,8 @@ app.post('/api/posts/:id/share', auth(['customer', 'merchant']), async (req, res
     if (!post.sharedBy.includes(req.user.id)) post.sharedBy.push(req.user.id);
     post.sharesCount = post.sharedBy.length;
     await post.save();
+    const io = req.app.get('io');
+    if (io) io.emit('post_updated', { postId: post._id, reactions: post.reactions, comments: post.comments, sharesCount: post.sharesCount });
     res.json({ sharesCount: post.sharesCount });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });

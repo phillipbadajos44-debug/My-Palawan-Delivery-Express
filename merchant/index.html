@@ -556,6 +556,7 @@ let currentOrderFilter='all',currentProdFilter='all';
 let isStoreOpen=false;
 let editingProductId=null;
 let notifications=[];
+let socket=null;
 let salesData=[0,0,0,0,0,0,0];
 
 // ── SESSION ──
@@ -694,7 +695,10 @@ function enterApp(){
   document.getElementById('pendingScreen').classList.remove('active');
   document.getElementById('mainApp').classList.add('active');
   updateStoreUI();loadDashboard();loadMyProducts();
+  loadNotifications();
+  initSocket();
   setInterval(loadDashboard,8000);
+  setInterval(loadNotifications,20000);
 }
 
 function logout(){
@@ -1224,6 +1228,40 @@ function addNotif(text,emoji){
   notifications.unshift({text,emoji,time:'Just now',unread:true});
   renderNotifs();
 }
+
+async function loadNotifications(){
+  try{
+    const r=await fetch(`${API}/notifications`,{headers:{'Authorization':'Bearer '+token}});
+    const d=await r.json();
+    if(Array.isArray(d)){
+      const icons={order:'📦',follow:'🎉',reaction:'❤️',comment:'💬',new_post:'📢'};
+      notifications=d.map(n=>({...n,text:n.message||n.title,emoji:icons[n.type]||'🔔',time:new Date(n.createdAt).toLocaleTimeString(),unread:!n.isRead}));
+      renderNotifs();
+    }
+  }catch(e){}
+}
+
+function initSocket(){
+  if(typeof io==='undefined'||!token||!currentMerchant)return;
+  socket=io(API_URL);
+  socket.emit('join',{role:'merchant',userId:currentMerchant.id||currentMerchant._id});
+
+  socket.on('post_updated',(data)=>{
+    const post=myPosts.find(p=>p._id===data.postId);
+    if(post){
+      post.reactions=data.reactions;post.comments=data.comments;post.sharesCount=data.sharesCount;
+      renderMyPosts();
+      if(viewingPostId===data.postId)openViewPost(data.postId);
+    }
+  });
+
+  socket.on('post_deleted',(data)=>{
+    myPosts=myPosts.filter(p=>p._id!==data.postId);
+    renderMyPosts();
+  });
+
+  socket.on('merchant_new_order',()=>{loadDashboard();});
+}
 function renderNotifs(){
   const el=document.getElementById('notifList');
   if(!notifications.length){el.innerHTML=`<div class="notif-item"><div style="padding:20px;color:var(--muted);text-align:center;width:100%">No notifications yet</div></div>`;return;}
@@ -1238,5 +1276,6 @@ function toast(msg){const t=document.getElementById('toastEl');document.getEleme
 
 checkSession();
 </script>
+  <script src="https://my-palawan-delivery-express.onrender.com/socket.io/socket.io.js"></script>
 </body>
 </html>

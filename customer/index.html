@@ -124,6 +124,8 @@ p, span, div { color: #1a1a1a; }
 .post-comments-list{max-height:220px;overflow-y:auto;margin-top:6px;border-top:1px solid var(--bg);padding-top:8px;}
 .post-comment-item{padding:6px 0;font-size:13px;line-height:1.4;color:var(--text);}
 .post-comment-item b{color:var(--gd);}
+.feed-filter-tab{font-size:11px;font-weight:700;padding:5px 12px;border-radius:14px;background:var(--bg);color:var(--muted);cursor:pointer;}
+.feed-filter-tab.active{background:var(--gl);color:var(--gd);}
 .store-description { background: #f8fafc; padding: 20px; border-radius: 12px; margin: 16px 0; border-left: 4px solid #0f5c2e; }
 .store-description strong { font-size: 16px; font-weight: 800; color: #0a0a0a; display: block; margin-bottom: 6px; }
 .store-description p { font-size: 16px; line-height: 1.7; color: #1a1a1a; margin: 6px 0 0 0; }
@@ -611,8 +613,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
   <!-- HOME -->
   <div id="page-home" class="page active">
     <div class="banner"><div class="banner-text"><h3 id="ai-greeting-title">Welcome!</h3><p id="ai-greeting-sub">Glad you're here today.</p></div><div class="banner-emoji">💚</div></div>
-    <div class="section-label" style="padding:14px 18px 6px"><h3>📣 Community Feed</h3></div>
+    <div class="section-label" style="padding:14px 18px 6px;display:flex;align-items:center;justify-content:space-between">
+      <h3>📣 Community Feed</h3>
+      <div style="display:flex;gap:6px">
+        <span class="feed-filter-tab active" onclick="setFeedFilter('all',this)">All</span>
+        <span class="feed-filter-tab" onclick="setFeedFilter('following',this)">Following</span>
+      </div>
+    </div>
     <div id="community-feed"><div class="loading-state"><div class="spinner"></div><span>Loading feed…</span></div></div>
+    <div id="feedLoadMoreWrap" style="text-align:center;padding:4px 0 10px"></div>
     <div class="filter-tabs">
       <div class="ftab active" onclick="filterHome('all',this)">All</div>
       <div class="ftab" onclick="filterHome('hot',this)">🔥 Hot</div>
@@ -2273,15 +2282,41 @@ async function markAllRead(){
 }
 
 // ── COMMUNITY FEED ──
-async function loadCommunityFeed(){
+let feedFilter='all',feedPage=1,feedHasMore=false;
+
+async function loadCommunityFeed(reset){
+  if(reset===undefined)reset=true;
   const el=document.getElementById('community-feed');
   if(!el)return;
+  if(reset){feedPage=1;communityFeed=[];el.innerHTML='<div class="loading-state"><div class="spinner"></div><span>Loading feed…</span></div>';}
   try{
-    const r=await fetch(`${API}/posts/feed?limit=10`,{headers:{'Authorization':'Bearer '+token}});
+    const q=feedFilter==='following'?'&filter=following':'';
+    const r=await fetch(`${API}/posts/feed?limit=10&page=${feedPage}${q}`,{headers:{'Authorization':'Bearer '+token}});
     const d=await r.json();
-    communityFeed=d.posts||[];
-  }catch(e){communityFeed=[];}
+    const posts=d.posts||[];
+    communityFeed=reset?posts:[...communityFeed,...posts];
+    feedHasMore=feedPage<(d.pages||1);
+  }catch(e){if(reset)communityFeed=[];}
   renderCommunityFeed();
+  renderFeedLoadMore();
+}
+
+function setFeedFilter(f,el){
+  feedFilter=f;
+  document.querySelectorAll('.feed-filter-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  loadCommunityFeed(true);
+}
+
+function loadMoreFeed(){
+  feedPage++;
+  loadCommunityFeed(false);
+}
+
+function renderFeedLoadMore(){
+  const wrap=document.getElementById('feedLoadMoreWrap');
+  if(!wrap)return;
+  wrap.innerHTML=feedHasMore?'<button onclick="loadMoreFeed()" style="background:var(--bg);border:none;border-radius:20px;padding:8px 20px;font-size:12px;font-weight:700;color:var(--gd);cursor:pointer">Load more posts</button>':'';
 }
 
 function reactionSummary(p){
@@ -2310,7 +2345,7 @@ function renderCommunityFeed(){
     const [ricon,rlabel]=myReactionInfo(p);
     const summary=reactionSummary(p);
     const commentCount=(p.comments||[]).length;
-    const logo=p.storeLogo?`<img src="${p.storeLogo}"/>`:'🏪';
+    const logo=p.storeLogo?`<img src="${p.storeLogo}"/>`:(p.authorRole==='customer'?'👤':'🏪');
     const isMerchantPost=p.authorRole!=='customer';
     const headerClick=isMerchantPost?`onclick="openStoreModal('${p.merchantId}','${(p.merchantName||'Store').replace(/'/g,"\\'")}')"`:'';
     return`<div class="feed-card">
@@ -2433,7 +2468,18 @@ function closeComments(){document.getElementById('commentModal').classList.remov
 function renderComments(p){
   const list=document.getElementById('commentsList');
   const comments=(p&&p.comments)||[];
-  list.innerHTML=comments.length?comments.map(c=>`<div class="comment-item"><b>${c.userName||'User'}:</b> ${c.text}</div>`).join(''):'<div style="color:var(--muted);font-size:13px;padding:12px 0">Wala pang comments. Ikaw ang una!</div>';
+  const myId=currentUser?(currentUser.id||currentUser._id):null;
+  list.innerHTML=comments.length?comments.map(c=>`<div class="comment-item"><b>${c.userName||'User'}:</b> ${c.text}${c.userId===myId?`<span onclick="deleteOwnComment('${c._id}')" style="float:right;color:var(--red);cursor:pointer;font-size:12px;font-weight:700">Delete</span>`:''}</div>`).join(''):'<div style="color:var(--muted);font-size:13px;padding:12px 0">Wala pang comments. Ikaw ang una!</div>';
+}
+async function deleteOwnComment(commentId){
+  if(!activeCommentPostId)return;
+  try{
+    const r=await fetch(`${API}/posts/${activeCommentPostId}/comment/${commentId}`,{method:'DELETE',headers:{'Authorization':'Bearer '+token}});
+    const d=await r.json();
+    const post=communityFeed.find(p=>p._id===activeCommentPostId);
+    if(post){post.comments=d.comments;renderComments(post);}
+    renderCommunityFeed();
+  }catch(e){toast('Failed to delete comment.');}
 }
 async function submitComment(){
   const input=document.getElementById('commentInput');
@@ -2657,6 +2703,36 @@ function initSocket(){
         toast('🎉 Your order has been delivered!');
         loadOrders?.();
         loadNotifications?.();
+    });
+
+    socket.on('feed_new_post',(post)=>{
+        if(!communityFeed.find(p=>p._id===post._id)){
+            communityFeed.unshift(post);
+            renderCommunityFeed();
+        }
+    });
+
+    socket.on('post_updated',(data)=>{
+        [communityFeed,myCustomerPosts,mySharedPosts].forEach(arr=>{
+            const post=arr.find(p=>p._id===data.postId);
+            if(post){post.reactions=data.reactions;post.comments=data.comments;post.sharesCount=data.sharesCount;}
+        });
+        renderCommunityFeed();
+        renderMyCustomerPosts?.();
+        renderMySharedPosts?.();
+        if(activeCommentPostId===data.postId){
+            const p=communityFeed.find(x=>x._id===data.postId);
+            if(p)renderComments(p);
+        }
+    });
+
+    socket.on('post_deleted',(data)=>{
+        communityFeed=communityFeed.filter(p=>p._id!==data.postId);
+        myCustomerPosts=myCustomerPosts.filter(p=>p._id!==data.postId);
+        mySharedPosts=mySharedPosts.filter(p=>p._id!==data.postId);
+        renderCommunityFeed();
+        renderMyCustomerPosts?.();
+        renderMySharedPosts?.();
     });
 }
 // =====================
