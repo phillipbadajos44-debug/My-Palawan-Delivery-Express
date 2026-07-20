@@ -1697,6 +1697,29 @@ app.get('/api/customers/following', auth(['customer']), async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// Followers list with profile pics (for store profile page)
+app.get('/api/merchants/:id/followers-list', async (req, res) => {
+  try {
+    const follows = await Follow.find({ merchantId: req.params.id }).sort('-createdAt').limit(30);
+    const customerIds = follows.map(f => f.customerId);
+    const customers = await Customer.find({ _id: { $in: customerIds } }).select('name profilePic');
+    const list = follows.map(f => {
+      const c = customers.find(c => String(c._id) === f.customerId);
+      return { customerId: f.customerId, customerName: f.customerName, profilePic: c?.profilePic || '' };
+    });
+    res.json(list);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Total likes across all of a merchant's posts (for store profile page)
+app.get('/api/merchants/:id/total-likes', async (req, res) => {
+  try {
+    const posts = await Post.find({ merchantId: req.params.id, isActive: true }).select('reactions');
+    const totalLikes = posts.reduce((sum, p) => sum + (p.reactions?.length || 0), 0);
+    res.json({ totalLikes });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // ============================================================
 // ORDERS
 // ============================================================
