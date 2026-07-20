@@ -1770,6 +1770,7 @@ function openStoreModal(merchantId, merchantName) {
         <!-- SOCIAL BUTTONS -->
         <div class="store-social">
           <button class="social-btn follow-btn" id="followBtn" onclick="toggleFollowStore('${merchant._id}')">➕ <span id="followCount">0</span> Follow</button>
+          <button class="social-btn" onclick='startChat("${merchant._id}","merchant",${JSON.stringify(merchant.storeName || merchant.name)})'>💬 Message</button>
         </div>
         
         <!-- ABOUT THE STORE -->
