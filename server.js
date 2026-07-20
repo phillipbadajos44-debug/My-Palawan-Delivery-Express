@@ -179,7 +179,7 @@ const CustomerSchema = new mongoose.Schema({
     region: String, province: String, municipality: String, barangay: String,
     street: String, additionalInfo: String
   },
-  profilePic: String, favorites: [String], role: { type: String, default: 'customer' },
+  profilePic: String, coverPhoto: String, favorites: [String], role: { type: String, default: 'customer' },
   resetCode: String, resetCodeExpiry: Date,
   isActive: { type: Boolean, default: true }, createdAt: { type: Date, default: Date.now },
   lat: Number, lng: Number, isOnline: { type: Boolean, default: false },
@@ -759,13 +759,18 @@ app.delete('/api/customers/favorites/:productId', auth(['customer']), async (req
 
 // Profile pic upload
 app.post('/api/customers/upload-profile', auth(['customer']), (req, res) => {
-  req.uploadDir = 'profiles';
-  upload.single('image')(req, res, async (err) => {
+  upload.fields([{ name: 'profilePic' }, { name: 'coverPhoto' }])(req, res, async (err) => {
     if (err) return res.status(400).json({ error: err.message });
-    if (!req.file) return res.status(400).json({ error: 'No file' });
-    const url = `/uploads/profiles/${req.file.filename}`;
-    await Customer.findByIdAndUpdate(req.user.id, { profilePic: url });
-    res.json({ url });
+    try {
+      const updates = {};
+      if (req.files?.profilePic) updates.profilePic = (await uploadToCloudinary(req.files.profilePic[0].buffer, 'customer-profiles')).secure_url;
+      if (req.files?.coverPhoto) updates.coverPhoto = (await uploadToCloudinary(req.files.coverPhoto[0].buffer, 'customer-covers')).secure_url;
+      if (!Object.keys(updates).length) return res.status(400).json({ error: 'No file' });
+      await Customer.findByIdAndUpdate(req.user.id, updates);
+      res.json({ success: true, ...updates });
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
   });
 });
 

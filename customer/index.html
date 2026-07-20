@@ -456,13 +456,18 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
 .t-info h4{font-size:14px;font-weight:700;margin-bottom:2px;}
 .t-info p{font-size:12px;color:var(--muted);}
 /* PROFILE */
-.profile-hero{background:linear-gradient(135deg,var(--gd),var(--gm));padding:32px 18px 48px;text-align:center;}
-.avatar-wrap{position:relative;display:inline-block;margin-bottom:12px;}
+.profile-hero{position:relative;background:#fff;padding:0 0 48px;}
+.acct-cover-photo{width:100%;height:130px;background:linear-gradient(135deg,var(--gd),var(--gm));background-size:cover;background-position:center;position:relative;cursor:pointer;overflow:hidden;}
+.acct-cover-photo img{width:100%;height:100%;object-fit:cover;position:absolute;top:0;left:0;}
+.acct-cover-edit-btn{position:absolute;top:10px;right:10px;background:rgba(0,0,0,.45);color:#fff;font-size:11px;font-weight:700;padding:6px 10px;border-radius:20px;z-index:2;}
+.acct-header-row{display:flex;align-items:flex-end;gap:12px;padding:0 18px;margin-top:-34px;position:relative;z-index:1;}
+.acct-header-text{padding-bottom:8px;min-width:0;text-align:left;}
+.avatar-wrap{position:relative;display:inline-block;flex-shrink:0;}
 .avatar{width:88px;height:88px;border-radius:50%;background:rgba(255,255,255,.2);border:3px solid rgba(255,255,255,.5);display:flex;align-items:center;justify-content:center;font-size:40px;overflow:hidden;cursor:pointer;}
 .avatar img{width:100%;height:100%;object-fit:cover;}
 .avatar-edit{position:absolute;bottom:2px;right:2px;width:26px;height:26px;background:var(--gold);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;border:2px solid #fff;cursor:pointer;}
-.acct-display-name{color:#fff;font-size:20px;font-weight:800;}
-.acct-sub{color:var(--gl);font-size:12px;margin-top:4px;opacity:.85;}
+.acct-display-name{color:var(--gd);font-size:19px;font-weight:800;}
+.acct-sub{color:var(--muted);font-size:12px;margin-top:2px;}
 .profile-card{background:#fff;border-radius:20px;margin:-24px 16px 0;box-shadow:0 8px 32px rgba(15,92,46,.15);padding:20px;position:relative;z-index:1;}
 .pf{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid #f0faf4;}
 .pf:last-child{border-bottom:none;}
@@ -706,16 +711,25 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
   <!-- ACCOUNT -->
   <div id="page-account" class="page">
     <div class="profile-hero">
-      <div class="avatar-wrap">
-        <div class="avatar" onclick="document.getElementById('avatarInput').click()">
-          <span id="avatarEmoji">👤</span><img id="avatarImg" src="" style="display:none"/>
-        </div>
-        <div class="avatar-edit" onclick="document.getElementById('avatarInput').click()">✏️</div>
+      <div class="acct-cover-photo" id="acctCoverPhoto" onclick="document.getElementById('acctCoverInput').click()">
+        <img id="acctCoverPhotoImg" src="" style="display:none"/>
+        <div class="acct-cover-edit-btn">📷 Edit Cover</div>
       </div>
-      <div class="acct-display-name" id="acctDisplayName">My Account</div>
-      <div class="acct-sub">Customer · Palawan Delivery Express</div>
+      <div class="acct-header-row">
+        <div class="avatar-wrap">
+          <div class="avatar" onclick="document.getElementById('avatarInput').click()">
+            <span id="avatarEmoji">👤</span><img id="avatarImg" src="" style="display:none"/>
+          </div>
+          <div class="avatar-edit" onclick="document.getElementById('avatarInput').click()">✏️</div>
+        </div>
+        <div class="acct-header-text">
+          <div class="acct-display-name" id="acctDisplayName">My Account</div>
+          <div class="acct-sub">Customer · Palawan Delivery Express</div>
+        </div>
+      </div>
     </div>
     <input type="file" accept="image/*" class="avatar-input" id="avatarInput" onchange="handleAvatar(event)"/>
+    <input type="file" accept="image/*" class="avatar-input" id="acctCoverInput" onchange="handleAcctCoverPhoto(event)"/>
     <div class="profile-card">
       <div class="pf"><div class="pf-icon">👤</div><div class="pf-info"><div class="pf-label">Full Name</div><div class="pf-value" id="af-name">—</div></div><div class="pf-edit" onclick="openEditProfile()">›</div></div>
       <div class="pf"><div class="pf-icon">📱</div><div class="pf-info"><div class="pf-label">Phone Number</div><div class="pf-value" id="af-phone">—</div></div><div class="pf-edit" onclick="openEditProfile()">›</div></div>
@@ -1378,6 +1392,9 @@ async function enterApp(){
     const mr=await fetch(`${API}/customers/me`,{headers:{'Authorization':'Bearer '+token}});
     const me=await mr.json();
     favorites=(me.favorites||[]).map(String);
+    currentUser={...currentUser,profilePic:me.profilePic,coverPhoto:me.coverPhoto};
+    saveSession();
+    updateAccountUI();
   }catch(e){favorites=[];}
   loadAiGreeting();
   await loadProducts();
@@ -1485,6 +1502,15 @@ function updateAccountUI(){
   document.getElementById('af-phone').textContent=currentUser.phone||'—';
   document.getElementById('af-email').textContent=currentUser.email||'—';
   document.getElementById('af-address').textContent=currentUser.address||'—';
+  if(currentUser.profilePic){
+    document.getElementById('avatarImg').src=currentUser.profilePic;
+    document.getElementById('avatarImg').style.display='block';
+    document.getElementById('avatarEmoji').style.display='none';
+  }
+  if(currentUser.coverPhoto){
+    document.getElementById('acctCoverPhotoImg').src=currentUser.coverPhoto;
+    document.getElementById('acctCoverPhotoImg').style.display='block';
+  }
 }
 function openEditProfile(){
   document.getElementById('ep-name').value=currentUser.name||'';
@@ -1513,11 +1539,47 @@ async function changePassword(){
   try{const r=await fetch(`${API}/customers/password`,{method:'PUT',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({currentPassword:old,newPassword:nw})});const d=await r.json();if(d.success){document.getElementById('changePwModal').classList.remove('open');toast('Password changed!');}else showErr('pw-err',d.error||'Failed.');}
   catch(e){document.getElementById('changePwModal').classList.remove('open');toast('Password changed!');}
 }
-function handleAvatar(e){
+async function handleAvatar(e){
   const f=e.target.files[0];if(!f)return;
+  const img=document.getElementById('avatarImg');
+  const emoji=document.getElementById('avatarEmoji');
+  const prevSrc=img.src;
   const r=new FileReader();
-  r.onload=ev=>{const img=document.getElementById('avatarImg');img.src=ev.target.result;img.style.display='block';document.getElementById('avatarEmoji').style.display='none';toast('Photo updated!');};
+  r.onload=ev=>{img.src=ev.target.result;img.style.display='block';emoji.style.display='none';};
   r.readAsDataURL(f);
+  toast('Uploading photo...');
+  try{
+    const fd=new FormData();
+    fd.append('profilePic',f);
+    const res=await fetch(`${API}/customers/upload-profile`,{method:'POST',headers:{'Authorization':'Bearer '+token},body:fd});
+    const data=await res.json();
+    if(data.success&&data.profilePic){
+      img.src=data.profilePic;img.style.display='block';emoji.style.display='none';
+      currentUser.profilePic=data.profilePic;saveSession();
+      toast('Photo updated!');
+    }else{img.src=prevSrc;toast('Upload failed. Try again.');}
+  }catch(err){img.src=prevSrc;toast('Upload failed. Check connection.');}
+}
+
+async function handleAcctCoverPhoto(e){
+  const f=e.target.files[0];if(!f)return;
+  const img=document.getElementById('acctCoverPhotoImg');
+  const prevSrc=img.src;
+  const r=new FileReader();
+  r.onload=ev=>{img.src=ev.target.result;img.style.display='block';};
+  r.readAsDataURL(f);
+  toast('Uploading cover photo...');
+  try{
+    const fd=new FormData();
+    fd.append('coverPhoto',f);
+    const res=await fetch(`${API}/customers/upload-profile`,{method:'POST',headers:{'Authorization':'Bearer '+token},body:fd});
+    const data=await res.json();
+    if(data.success&&data.coverPhoto){
+      img.src=data.coverPhoto;img.style.display='block';
+      currentUser.coverPhoto=data.coverPhoto;saveSession();
+      toast('Cover photo updated!');
+    }else{img.src=prevSrc;toast('Upload failed. Try again.');}
+  }catch(err){img.src=prevSrc;toast('Upload failed. Check connection.');}
 }
 
 // ── PRODUCTS ──
