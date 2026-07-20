@@ -605,8 +605,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
     <div class="header-top">
       <div class="header-actions">
         <div class="icon-btn" onclick="toggleSearch()">🔍</div>
-        <div class="icon-btn" onclick="openNotif()">🔔<div class="icon-dot" id="notifDot"></div></div>
         <div class="icon-btn" onclick="openFavPanel()">❤️</div>
+        <div class="icon-btn" onclick="openNotif()">🔔<div class="icon-dot" id="notifDot"></div></div>
         <div class="icon-btn" onclick="openChatInbox()">💬<div class="icon-dot" id="chatDot" style="display:none"></div></div>
       </div>
     </div>
@@ -615,11 +615,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
       <input type="text" id="searchInput" placeholder="Search for products or services…" oninput="globalSearch(this.value)"/>
     </div>
     <div class="top-nav-icons">
-      <button class="nav-item" style="order:-1" onclick="showPage('account',this);loadMyCustomerPosts();loadMySharedPosts();"><div class="nav-icon">👤</div></button>
       <button class="nav-item active" onclick="showPage('home',this)"><div class="nav-icon">🏠</div></button>
       <button class="nav-item" onclick="showPage('grocery',this)"><div class="nav-icon">🛒</div></button>
-      <button class="nav-item" onclick="showPage('orders',this)"><div class="nav-icon">📦</div><span class="n-badge" id="ordersBadge"></span></button>
       <button class="nav-item" onclick="showPage('store',this);loadStores()"><div class="nav-icon">🏪</div></button>
+      <button class="nav-item" onclick="showPage('account',this);loadMyCustomerPosts();loadMySharedPosts();"><div class="nav-icon">👤</div></button>
     </div>
   </div>
 
@@ -653,7 +652,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
 
   <!-- GROCERY -->
   <div id="page-grocery" class="page">
-    <div style="padding:20px 18px 10px"><h2 style="font-size:21px;font-weight:800;color:var(--gd)">Shop by Category</h2><p style="color:var(--muted);font-size:13px;margin-top:3px">Pick a category to browse</p></div>
+    <div style="padding:20px 18px 10px;display:flex;align-items:center;justify-content:space-between">
+      <div><h2 style="font-size:21px;font-weight:800;color:var(--gd)">Shop by Category</h2><p style="color:var(--muted);font-size:13px;margin-top:3px">Pick a category to browse</p></div>
+      <button onclick="showPage('orders',this)" style="position:relative;background:var(--gl);color:var(--gd);border:none;border-radius:12px;padding:10px 14px;font-size:20px;cursor:pointer">📦<span class="n-badge" id="ordersBadge"></span></button>
+    </div>
     <div class="cat-grid" id="cat-grid"></div>
   </div>
 
@@ -676,7 +678,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
   <div id="page-store-detail" class="page">
     <div style="position:sticky;top:0;z-index:5;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.06)">
       <div style="display:flex;align-items:center;gap:10px;padding:14px 16px">
-        <span onclick="showPage('store',document.querySelectorAll('.nav-item')[4])" style="font-size:20px;cursor:pointer">←</span>
+        <span onclick="showPage('store',document.querySelectorAll('.nav-item')[2])" style="font-size:20px;cursor:pointer">←</span>
         <span style="font-weight:800;font-size:15px;color:var(--gd)" id="sd-headerName">Store</span>
       </div>
       <div style="display:flex">
@@ -826,7 +828,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
     <div class="posts-grid" id="mySharedPostsGrid"><div class="spinner"></div></div>
     <div class="sec-title">Settings</div>
     <div class="menu-item" onclick="openChangePassword()"><div class="mi-icon">🔒</div><div class="mi-label">Change Password</div><div class="mi-arr">›</div></div>
-    <div class="menu-item" onclick="showPage('orders',document.querySelectorAll('.nav-item')[2])"><div class="mi-icon">📦</div><div class="mi-label">Order History</div><div class="mi-arr">›</div></div>
+    <div class="menu-item" onclick="showPage('orders',null)"><div class="mi-icon">📦</div><div class="mi-label">Order History</div><div class="mi-arr">›</div></div>
     <div class="menu-item" onclick="openFavPanel()"><div class="mi-icon">❤️</div><div class="mi-label">My Favorites</div><div class="mi-arr">›</div></div>
     <div class="menu-item" onclick="openAddressesModal()"><div class="mi-icon">📍</div><div class="mi-label">Saved Addresses</div><div class="mi-arr">›</div></div>
     <div class="menu-item" onclick="openNotif()"><div class="mi-icon">🔔</div><div class="mi-label">Notifications</div><div class="mi-arr">›</div></div>
@@ -1615,6 +1617,8 @@ function updateAccountUI(){
     document.getElementById('acctCoverPhotoImg').src=currentUser.coverPhoto;
     document.getElementById('acctCoverPhotoImg').style.display='block';
   }
+  const avatarBtn=document.getElementById('headerAvatarBtn');
+  if(avatarBtn)avatarBtn.innerHTML=currentUser.profilePic?`<img src="${currentUser.profilePic}"/>`:'👤';
 }
 function openEditProfile(){
   document.getElementById('ep-name').value=currentUser.name||'';
@@ -2453,7 +2457,7 @@ const pricing=await getPricing(distanceKm,weightKg,total);
     directBuyItem=null;
     renderOrders();closeCheckout();
     toast('Order placed! Merchant will be notified 🎉');
-    setTimeout(()=>{showPage('orders',document.querySelectorAll('.nav-item')[2]);},1000);
+    setTimeout(()=>{showPage('orders',null);},1000);
     return;
   }
   const groups={};
@@ -2486,7 +2490,7 @@ const pricing=await getPricing(distanceKm,weightKg,total);
   renderOrders();
   cart=[];updateCartBadge();closeCheckout();
   toast('Order placed! Merchant will be notified 🎉');
-  setTimeout(()=>{showPage('orders',document.querySelectorAll('.nav-item')[2]);},1000);
+  setTimeout(()=>{showPage('orders',null);},1000);
 }
 
 function buyNow(id,name,price,btn,merchantId,merchantName){
