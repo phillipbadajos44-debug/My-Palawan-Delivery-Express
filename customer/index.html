@@ -687,19 +687,37 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
     </div>
 
     <div id="sd-panel-products">
-      <div class="store-header" id="sd-header"></div>
-      <div style="padding:0 18px">
-        <div class="store-social" id="sd-social"></div>
-        <div class="store-products-header">
-          <h3>🛍️ Products</h3>
-          <span class="product-count" id="sd-productCount">0 items</span>
+      <div id="sd-profileHeader" style="padding:20px 18px;display:flex;align-items:center;gap:16px">
+        <div id="sd-avatarWrap" style="width:74px;height:74px;border-radius:50%;overflow:hidden;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:32px;flex-shrink:0;border:2px solid #eee"></div>
+        <div style="flex:1;min-width:0;text-align:center">
+          <div style="font-weight:800;font-size:17px;color:var(--gd)" id="sd-profileName">Store</div>
+          <div style="display:flex;gap:8px;justify-content:center;margin-top:8px;flex-wrap:wrap" id="sd-social"></div>
+          <div style="font-size:12px;color:var(--muted);margin-top:6px" id="sd-likesRow">❤️ 0 likes</div>
         </div>
-        <div class="product-grid" id="sd-products"></div>
+      </div>
+      <div id="sd-bioRow" style="padding:0 18px 12px;font-size:13px;color:#444;line-height:1.5"></div>
+      <div id="sd-followersRow" style="padding:0 18px 14px;display:flex;gap:8px;overflow-x:auto"></div>
+
+      <div style="display:flex;border-top:1px solid #eee;border-bottom:1px solid #eee">
+        <div class="sd-subtab active" id="sd-subtab-all" onclick="switchStoreSubTab('all')" style="flex:1;text-align:center;padding:10px;font-size:12px;font-weight:700;color:var(--gd);border-bottom:2px solid var(--gm);cursor:pointer">All</div>
+        <div class="sd-subtab" id="sd-subtab-post" onclick="switchStoreSubTab('post')" style="flex:1;text-align:center;padding:10px;font-size:12px;font-weight:700;color:var(--muted);border-bottom:2px solid transparent;cursor:pointer">Post</div>
+        <div class="sd-subtab" id="sd-subtab-prod" onclick="switchStoreSubTab('prod')" style="flex:1;text-align:center;padding:10px;font-size:12px;font-weight:700;color:var(--muted);border-bottom:2px solid transparent;cursor:pointer">Products</div>
+      </div>
+
+      <div style="padding:0 18px">
+        <div id="sd-sub-all"></div>
+        <div id="sd-sub-post" style="display:none"></div>
+        <div id="sd-sub-prod" style="display:none">
+          <div class="store-products-header">
+            <h3>🛍️ Products</h3>
+            <span class="product-count" id="sd-productCount">0 items</span>
+          </div>
+          <div class="product-grid" id="sd-products"></div>
+        </div>
       </div>
     </div>
 
     <div id="sd-panel-info" style="display:none;padding:18px">
-      <div id="sd-description"></div>
       <div class="store-details-grid" id="sd-details"></div>
     </div>
 
@@ -1777,45 +1795,43 @@ let currentStoreConvoId=null;
 
 function openStoreDetail(merchantId, merchantName) {
   currentStoreMerchantId = merchantId;
+  currentStorePosts = [];
   showPage('store-detail');
   document.getElementById('sd-headerName').textContent = merchantName || 'Store';
-  document.getElementById('sd-header').innerHTML = `<div class="store-loading"><div class="spinner"></div><span>Loading store...</span></div>`;
+  document.getElementById('sd-profileName').textContent = merchantName || 'Store';
+  document.getElementById('sd-avatarWrap').innerHTML = '🏪';
+  document.getElementById('sd-bioRow').innerHTML = '';
+  document.getElementById('sd-followersRow').innerHTML = '';
+  document.getElementById('sd-likesRow').textContent = '❤️ 0 likes';
   switchStoreTab('products');
+  switchStoreSubTab('all');
 
   fetch(`${API}/merchants/${merchantId}`)
     .then(res => res.json())
     .then(merchant => {
       const items = products.filter(p => (p.merchantId || "") === merchantId);
-      document.getElementById('sd-headerName').textContent = merchant.storeName || merchant.name;
+      const displayName = merchant.storeName || merchant.name;
+      document.getElementById('sd-headerName').textContent = displayName;
+      document.getElementById('sd-profileName').textContent = displayName;
 
-      document.getElementById('sd-header').innerHTML = `
-        <div class="store-banner">
-          ${merchant.storeBanner ? `<img src="${merchant.storeBanner}" alt="Store Banner">` : `<div class="store-banner-placeholder"></div>`}
-        </div>
-        <div class="store-info-wrap">
-          <div class="store-logo-wrapper">
-            ${merchant.storeLogo ? `<img src="${merchant.storeLogo}" class="store-logo-lg">` : `<div class="store-logo-lg" style="background: linear-gradient(135deg, #0f5c2e, #16a34a); display:flex; align-items:center; justify-content:center; font-size:36px; color:#fff;">🏪</div>`}
-          </div>
-          <div class="store-details">
-            <h2 class="store-name-lg">${merchant.storeName || merchant.name}</h2>
-            <div class="store-meta">
-              <span class="store-status ${merchant.isOpen ? "open" : "closed"}">${merchant.isOpen ? "🟢 Open" : "🔴 Closed"}</span>
-            </div>
-          </div>
-        </div>
-      `;
+      document.getElementById('sd-avatarWrap').innerHTML = merchant.storeLogo
+        ? `<img src="${merchant.storeLogo}" style="width:100%;height:100%;object-fit:cover">`
+        : '🏪';
 
       document.getElementById('sd-social').innerHTML = `
         <button class="social-btn follow-btn" id="followBtn" onclick="toggleFollowStore('${merchant._id}')">➕ <span id="followCount">0</span> Follow</button>
-        <button class="social-btn" onclick='openStoreChatTab("${merchant._id}",${JSON.stringify(merchant.storeName || merchant.name)})'>💬 Message</button>
+        <button class="social-btn" onclick='openStoreChatTab("${merchant._id}",${JSON.stringify(displayName)})'>💬 Message</button>
       `;
+
+      document.getElementById('sd-bioRow').innerHTML = merchant.bio
+        ? merchant.bio.replace(/</g,'&lt;')
+        : '';
 
       document.getElementById('sd-productCount').textContent = `${items.length} items`;
       document.getElementById('sd-products').innerHTML = items.length ? items.map((p, i) => buildCard(p, i * 40)).join("") : `<div class="loading-state"><div style="font-size:48px">📭</div><span>No products available</span></div>`;
 
-      document.getElementById('sd-description').innerHTML = merchant.description ? `<div class="store-description">📝 <strong>About the Store</strong><p>${merchant.description}</p></div>` : "";
-
       document.getElementById('sd-details').innerHTML = `
+        ${merchant.description ? `<div class="store-description">📝 <strong>About the Store</strong><p>${merchant.description}</p></div>` : ""}
         ${merchant.phone ? `<div class="detail-item"><span class="detail-label">📞 Contact</span><span class="detail-value">${merchant.phone}</span></div>` : ""}
         ${merchant.email ? `<div class="detail-item"><span class="detail-label">📧 Email</span><span class="detail-value">${merchant.email}</span></div>` : ""}
         ${merchant.address ? `<div class="detail-item"><span class="detail-label">📍 Address</span><span class="detail-value">${merchant.address}</span></div>` : ""}
@@ -1826,23 +1842,84 @@ function openStoreDetail(merchantId, merchantName) {
       `;
 
       checkFollowStatus(merchantId);
-
-      fetch(`${API}/reviews/store/${merchantId}`)
-        .then(res => res.json())
-        .then(data => {
-          if (data.averageRating) {
-            const ratingEl = document.querySelector("#sd-header .store-meta");
-            if (ratingEl) {
-              ratingEl.innerHTML += `<span class="store-rating"> ⭐ ${data.averageRating.toFixed(1)} (${data.totalReviews} reviews)</span>`;
-            }
-          }
-        })
-        .catch(() => {});
+      loadStoreFollowers(merchantId);
+      loadStoreLikes(merchantId);
+      loadStorePosts(merchantId);
     })
     .catch(err => {
-      document.getElementById("sd-header").innerHTML = `<div class="loading-state"><div style="font-size:48px">❌</div><span>Failed to load store</span></div>`;
+      document.getElementById("sd-profileName").textContent = 'Failed to load';
       console.error("Error loading store:", err);
     });
+}
+
+async function loadStoreFollowers(merchantId){
+  try{
+    const r = await fetch(`${API}/merchants/${merchantId}/followers-list`);
+    const list = await r.json();
+    const row = document.getElementById('sd-followersRow');
+    if(!list.length){row.innerHTML='';return;}
+    row.innerHTML = list.map(f => `<div style="width:36px;height:36px;border-radius:50%;overflow:hidden;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;border:1.5px solid #fff;box-shadow:0 0 0 1px #eee" title="${(f.customerName||'').replace(/"/g,'')}">${f.profilePic?`<img src="${f.profilePic}" style="width:100%;height:100%;object-fit:cover">`:'👤'}</div>`).join('');
+  }catch(e){}
+}
+
+async function loadStoreLikes(merchantId){
+  try{
+    const r = await fetch(`${API}/merchants/${merchantId}/total-likes`);
+    const d = await r.json();
+    document.getElementById('sd-likesRow').textContent = `❤️ ${d.totalLikes||0} likes`;
+  }catch(e){}
+}
+
+let currentStorePosts = [];
+async function loadStorePosts(merchantId){
+  try{
+    const r = await fetch(`${API}/posts/merchant/${merchantId}`);
+    currentStorePosts = await r.json();
+    renderStorePosts();
+  }catch(e){
+    currentStorePosts = [];
+  }
+}
+
+function buildStorePostCard(p){
+  const imgs = p.images || [];
+  const imgWrap = imgs.length ? `<div class="feed-img-wrap" onclick="openGallery('${p._id}')"><img src="${imgs[0]}" class="feed-card-img"/>${imgs.length>1?`<div class="feed-img-badge">📷 ${imgs.length}</div>`:''}</div>` : '';
+  const summary = reactionSummary(p);
+  const commentCount = (p.comments||[]).length;
+  return `<div class="feed-card">
+    <div class="feed-caption">${p.caption||''}</div>
+    ${imgWrap}
+    ${(summary||commentCount)?`<div class="feed-summary-row"><span>${summary}</span><span>${commentCount?commentCount+' comment'+(commentCount>1?'s':''):''}</span></div>`:''}
+    <div class="feed-actions">
+      <div class="feed-action-btn react-btn" data-post="${p._id}">👍 Like</div>
+      <div class="feed-action-btn" onclick="openComments('${p._id}')">💬 Comment</div>
+      <div class="feed-action-btn" onclick="sharePost('${p._id}')">🔁 Share</div>
+    </div>
+  </div>`;
+}
+
+function renderStorePosts(){
+  const allEl = document.getElementById('sd-sub-all');
+  const postEl = document.getElementById('sd-sub-post');
+  if(!currentStorePosts.length){
+    const empty = '<div class="loading-state"><div style="font-size:40px">📭</div><span>No posts yet</span></div>';
+    allEl.innerHTML = empty;
+    postEl.innerHTML = empty;
+    return;
+  }
+  const html = currentStorePosts.map(buildStorePostCard).join('');
+  allEl.innerHTML = html;
+  postEl.innerHTML = html;
+}
+
+function switchStoreSubTab(tab){
+  document.querySelectorAll('.sd-subtab').forEach(t=>{t.style.color='var(--muted)';t.style.borderBottomColor='transparent';});
+  document.getElementById('sd-sub-all').style.display = tab==='all' ? 'block' : 'none';
+  document.getElementById('sd-sub-post').style.display = tab==='post' ? 'block' : 'none';
+  document.getElementById('sd-sub-prod').style.display = tab==='prod' ? 'block' : 'none';
+  const activeSub = document.getElementById('sd-subtab-'+tab);
+  activeSub.style.color = 'var(--gd)';
+  activeSub.style.borderBottomColor = 'var(--gm)';
 }
 
 function switchStoreTab(tab){

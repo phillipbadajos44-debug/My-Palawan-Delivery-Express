@@ -496,6 +496,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
     <div class="field"><label>Store Name</label><input id="ep-store" type="text"/></div>
     <div class="field"><label>Store Address</label><input id="ep-addr" type="text"/></div>
     <div class="field"><label>Store Description</label><textarea id="ep-desc" style="height:72px;width:100%;padding:12px 14px;border:1.5px solid #e5e7eb;border-radius:12px;font-family:inherit;font-size:14px;outline:none;resize:none"></textarea></div>
+    <div class="field"><label>Bio (shown on your profile)</label><textarea id="ep-bio" placeholder="Tell customers about you or your store…" style="height:60px;width:100%;padding:12px 14px;border:1.5px solid #e5e7eb;border-radius:12px;font-family:inherit;font-size:14px;outline:none;resize:none"></textarea></div>
     <button class="modal-btn" onclick="saveProfile()">Save Changes</button>
   </div>
 </div>
@@ -1045,6 +1046,7 @@ function openEditProfile(){
   document.getElementById('ep-store').value=currentMerchant.storeName||'';
   document.getElementById('ep-addr').value=currentMerchant.address||'';
   document.getElementById('ep-desc').value=currentMerchant.description||'';
+  document.getElementById('ep-bio').value=currentMerchant.bio||'';
   document.getElementById('editProfileModal').classList.add('open');
 }
 function closeEditProfile(){document.getElementById('editProfileModal').classList.remove('open');}
@@ -1054,9 +1056,10 @@ async function saveProfile(){
   const storeName=document.getElementById('ep-store').value.trim();
   const address=document.getElementById('ep-addr').value.trim();
   const description=document.getElementById('ep-desc').value.trim();
-  currentMerchant={...currentMerchant,name,phone,storeName,address,description};
+  const bio=document.getElementById('ep-bio').value.trim();
+  currentMerchant={...currentMerchant,name,phone,storeName,address,description,bio};
   saveSession();updateStoreUI();
-  try{await fetch(`${API}/merchants/me`,{method:'PUT',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({name,phone,storeName,address,description})});}catch(e){}
+  try{await fetch(`${API}/merchants/me`,{method:'PUT',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({name,phone,storeName,address,description,bio})});}catch(e){}
   closeEditProfile();toast('Profile updated!');
 }
 
