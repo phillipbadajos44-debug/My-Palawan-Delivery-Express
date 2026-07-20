@@ -692,7 +692,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
         <div style="flex:1;min-width:0;text-align:center">
           <div style="font-weight:800;font-size:17px;color:var(--gd)" id="sd-profileName">Store</div>
           <div style="display:flex;gap:8px;justify-content:center;margin-top:8px;flex-wrap:wrap" id="sd-social"></div>
-          <div style="font-size:12px;color:var(--muted);margin-top:6px" id="sd-likesRow">❤️ 0 likes</div>
+          <div style="display:flex;gap:14px;justify-content:center;margin-top:8px;font-size:12px;color:var(--muted)">
+            <span id="sd-followersCount" style="cursor:pointer;font-weight:700;color:var(--gd)" onclick="openFollowersList()">0 Followers</span>
+            <span id="sd-likesRow">❤️ 0 likes</span>
+          </div>
         </div>
       </div>
       <div id="sd-bioRow" style="padding:0 18px 12px;font-size:13px;color:#444;line-height:1.5"></div>
@@ -728,6 +731,24 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
         <button onclick="sendStoreChatMessage()" style="width:42px;height:42px;border-radius:50%;background:var(--gm);color:#fff;border:none;font-size:18px;flex-shrink:0;cursor:pointer">➤</button>
       </div>
     </div>
+  </div>
+
+  <!-- FOLLOWERS LIST (full page) -->
+  <div id="page-followers-list" class="page">
+    <div style="display:flex;align-items:center;gap:10px;padding:14px 16px;box-shadow:0 2px 8px rgba(0,0,0,.06)">
+      <span onclick="showPage('store-detail')" style="font-size:20px;cursor:pointer">←</span>
+      <span style="font-weight:800;font-size:15px;color:var(--gd)">Followers</span>
+    </div>
+    <div id="followersListBody" style="padding:8px 18px"></div>
+  </div>
+
+  <!-- CUSTOMER PUBLIC PROFILE (full page) -->
+  <div id="page-customer-profile" class="page">
+    <div style="display:flex;align-items:center;gap:10px;padding:14px 16px;box-shadow:0 2px 8px rgba(0,0,0,.06)">
+      <span onclick="showPage('followers-list')" style="font-size:20px;cursor:pointer">←</span>
+      <span style="font-weight:800;font-size:15px;color:var(--gd)">Profile</span>
+    </div>
+    <div id="cp-body" style="padding:20px 18px"></div>
   </div>
 
   <!-- SEARCH -->
@@ -1852,14 +1873,59 @@ function openStoreDetail(merchantId, merchantName) {
     });
 }
 
+let currentStoreFollowers=[];
+
 async function loadStoreFollowers(merchantId){
   try{
     const r = await fetch(`${API}/merchants/${merchantId}/followers-list`);
     const list = await r.json();
+    currentStoreFollowers = list;
     const row = document.getElementById('sd-followersRow');
     if(!list.length){row.innerHTML='';return;}
-    row.innerHTML = list.map(f => `<div style="width:36px;height:36px;border-radius:50%;overflow:hidden;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;border:1.5px solid #fff;box-shadow:0 0 0 1px #eee" title="${(f.customerName||'').replace(/"/g,'')}">${f.profilePic?`<img src="${f.profilePic}" style="width:100%;height:100%;object-fit:cover">`:'👤'}</div>`).join('');
+    row.innerHTML = list.map(f => `<div onclick="openCustomerProfile('${f.customerId}')" style="width:36px;height:36px;border-radius:50%;overflow:hidden;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;border:1.5px solid #fff;box-shadow:0 0 0 1px #eee;cursor:pointer" title="${(f.customerName||'').replace(/"/g,'')}">${f.profilePic?`<img src="${f.profilePic}" style="width:100%;height:100%;object-fit:cover">`:'👤'}</div>`).join('');
   }catch(e){}
+}
+
+function openFollowersList(){
+  showPage('followers-list');
+  renderFollowersList();
+}
+
+function renderFollowersList(){
+  const body = document.getElementById('followersListBody');
+  if(!currentStoreFollowers.length){
+    body.innerHTML = '<div class="fav-empty"><div class="ei">👥</div><h3>No Followers Yet</h3></div>';
+    return;
+  }
+  body.innerHTML = currentStoreFollowers.map(f => `<div onclick="openCustomerProfile('${f.customerId}')" style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid #f0faf4;cursor:pointer">
+    <div style="width:44px;height:44px;border-radius:50%;overflow:hidden;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">${f.profilePic?`<img src="${f.profilePic}" style="width:100%;height:100%;object-fit:cover">`:'👤'}</div>
+    <div style="font-size:14px;font-weight:700">${f.customerName||'User'}</div>
+  </div>`).join('');
+}
+
+async function openCustomerProfile(customerId){
+  showPage('customer-profile');
+  const body = document.getElementById('cp-body');
+  body.innerHTML = '<div class="loading-state"><div class="spinner"></div><span>Loading profile…</span></div>';
+  try{
+    const r = await fetch(`${API}/customers/${customerId}/public-profile`);
+    const p = await r.json();
+    body.innerHTML = `
+      <div style="text-align:center">
+        <div style="width:84px;height:84px;border-radius:50%;overflow:hidden;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:36px;margin:0 auto 12px;border:2px solid #eee">${p.profilePic?`<img src="${p.profilePic}" style="width:100%;height:100%;object-fit:cover">`:'👤'}</div>
+        <div style="font-weight:800;font-size:18px;color:var(--gd)">${p.name||'User'}</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:4px">${p.followingCount||0} Following · ${p.postCount||0} Posts</div>
+      </div>
+      <div class="store-details-grid" style="margin-top:20px">
+        ${p.phone ? `<div class="detail-item"><span class="detail-label">📞 Contact</span><span class="detail-value">${p.phone}</span></div>` : ""}
+        ${p.email ? `<div class="detail-item"><span class="detail-label">📧 Email</span><span class="detail-value">${p.email}</span></div>` : ""}
+        ${p.address ? `<div class="detail-item"><span class="detail-label">📍 Address</span><span class="detail-value">${p.address}</span></div>` : ""}
+      </div>
+      ${(!p.phone && !p.email && !p.address) ? `<div style="text-align:center;color:var(--muted);font-size:13px;margin-top:16px">This user's contact info is private</div>` : ""}
+    `;
+  }catch(e){
+    body.innerHTML = '<div class="loading-state"><div style="font-size:40px">❌</div><span>Failed to load profile</span></div>';
+  }
 }
 
 async function loadStoreLikes(merchantId){
@@ -3002,11 +3068,13 @@ async function checkFollowStatus(merchantId){
     const d=await r.json();
     if(d.isFollowing){
       btn.classList.add('following');
-      btn.innerHTML=`✓ <span id="followCount">${d.followerCount||0}</span> Following`;
+      btn.innerHTML=`✓ Following`;
     }else{
       btn.classList.remove('following');
-      btn.innerHTML=`➕ <span id="followCount">${d.followerCount||0}</span> Follow`;
+      btn.innerHTML=`➕ Follow`;
     }
+    const fc=document.getElementById('sd-followersCount');
+    if(fc)fc.textContent=`${d.followerCount||0} Followers`;
   }catch(e){}
 }
 
