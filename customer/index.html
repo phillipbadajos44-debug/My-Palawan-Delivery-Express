@@ -672,6 +672,46 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
     <div id="store-list" style="padding:0 18px 20px;display:grid;grid-template-columns:1fr 1fr;gap:12px"></div>
   </div>
 
+  <!-- STORE DETAIL (full page) -->
+  <div id="page-store-detail" class="page">
+    <div style="position:sticky;top:0;z-index:5;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.06)">
+      <div style="display:flex;align-items:center;gap:10px;padding:14px 16px">
+        <span onclick="showPage('store',document.querySelectorAll('.nav-item')[4])" style="font-size:20px;cursor:pointer">←</span>
+        <span style="font-weight:800;font-size:15px;color:var(--gd)" id="sd-headerName">Store</span>
+      </div>
+      <div style="display:flex">
+        <div class="sd-tab active" id="sd-tab-products" onclick="switchStoreTab('products')" style="flex:1;text-align:center;padding:10px;font-size:13px;font-weight:700;color:var(--gd);border-bottom:3px solid var(--gm);cursor:pointer">🛍️ Products</div>
+        <div class="sd-tab" id="sd-tab-info" onclick="switchStoreTab('info')" style="flex:1;text-align:center;padding:10px;font-size:13px;font-weight:700;color:var(--muted);border-bottom:3px solid transparent;cursor:pointer">ℹ️ Information</div>
+        <div class="sd-tab" id="sd-tab-chat" onclick="switchStoreTab('chat')" style="flex:1;text-align:center;padding:10px;font-size:13px;font-weight:700;color:var(--muted);border-bottom:3px solid transparent;cursor:pointer">💬 Chat</div>
+      </div>
+    </div>
+
+    <div id="sd-panel-products">
+      <div class="store-header" id="sd-header"></div>
+      <div style="padding:0 18px">
+        <div class="store-social" id="sd-social"></div>
+        <div class="store-products-header">
+          <h3>🛍️ Products</h3>
+          <span class="product-count" id="sd-productCount">0 items</span>
+        </div>
+        <div class="product-grid" id="sd-products"></div>
+      </div>
+    </div>
+
+    <div id="sd-panel-info" style="display:none;padding:18px">
+      <div id="sd-description"></div>
+      <div class="store-details-grid" id="sd-details"></div>
+    </div>
+
+    <div id="sd-panel-chat" style="display:none;flex-direction:column;height:calc(100vh - 110px)">
+      <div id="sd-chatMessages" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px;background:var(--bg)"></div>
+      <div style="padding:12px 14px;border-top:1px solid #eee;display:flex;gap:10px;align-items:center;background:#fff">
+        <input type="text" id="sd-chatInput" placeholder="Type a message…" style="flex:1;padding:12px 16px;border:1.5px solid #d1fae5;border-radius:20px;font-size:14px;font-family:inherit;outline:none" onkeydown="if(event.key==='Enter')sendStoreChatMessage()"/>
+        <button onclick="sendStoreChatMessage()" style="width:42px;height:42px;border-radius:50%;background:var(--gm);color:#fff;border:none;font-size:18px;flex-shrink:0;cursor:pointer">➤</button>
+      </div>
+    </div>
+  </div>
+
   <!-- SEARCH -->
   <div id="page-search" class="page">
     <div style="padding:20px 18px 10px"><h2 style="font-size:21px;font-weight:800;color:var(--gd)">Search Products</h2></div>
@@ -1644,7 +1684,7 @@ function openProductModal(id){
     <div class="modal-title" style="text-align:left;margin-top:12px">${p.name}</div>
     ${rating}
     <div class="card-price" style="font-size:20px;margin:8px 0">\u20b1${Number(p.price).toLocaleString()}</div>
-    ${p.merchantName?`<div style="font-size:13px;color:var(--gm);font-weight:700;cursor:pointer;margin-bottom:8px" onclick="closeProductModal();openStoreModal('${p.merchantId||''}','${(p.merchantName||'').replace(/'/g,"\\'")}')">\ud83c\udfea ${p.merchantName} \u203a</div>`:''}
+    ${p.merchantName?`<div style="font-size:13px;color:var(--gm);font-weight:700;cursor:pointer;margin-bottom:8px" onclick="closeProductModal();openStoreDetail('${p.merchantId||''}','${(p.merchantName||'').replace(/'/g,"\\'")}')">\ud83c\udfea ${p.merchantName} \u203a</div>`:''}
     <div style="font-size:13px;color:var(--muted);margin-bottom:6px">${stockTxt}</div>
     <div style="font-size:14px;color:var(--text);line-height:1.5;margin-bottom:16px">${p.description||'No description provided.'}</div>
     <div style="display:flex;align-items:center;justify-content:space-between;background:var(--bg);border-radius:12px;padding:10px 14px;margin-bottom:12px">
@@ -1720,7 +1760,7 @@ function renderStoreList(){
   grid.innerHTML=merchantsList.map((m,mi)=>{
     const banner=m.storeBanner?`<img src="${resolveMerchantImg(m.storeBanner)}" style="width:100%;height:100%;object-fit:cover" onerror="this.style.display='none'"/>`:'';
     const logo=m.storeLogo?`<img src="${resolveMerchantImg(m.storeLogo)}" style="width:100%;height:100%;object-fit:cover;border-radius:12px" onerror="this.style.display='none'"/>`:'🏪';
-    return `<div style="background:#fff;border-radius:16px;overflow:hidden;box-shadow:var(--sh);cursor:pointer" onclick="openStoreModal(merchantsList[${mi}]._id,merchantsList[${mi}].storeName||merchantsList[${mi}].name)">
+    return `<div style="background:#fff;border-radius:16px;overflow:hidden;box-shadow:var(--sh);cursor:pointer" onclick="openStoreDetail(merchantsList[${mi}]._id,merchantsList[${mi}].storeName||merchantsList[${mi}].name)">
       <div style="width:100%;height:70px;background:linear-gradient(135deg,var(--gd),var(--gm));display:flex;align-items:center;justify-content:center;position:relative">${banner}</div>
       <div style="padding:10px 10px 12px;position:relative">
         <div style="width:44px;height:44px;border-radius:12px;background:var(--bg);border:3px solid #fff;display:flex;align-items:center;justify-content:center;font-size:20px;overflow:hidden;margin-top:-32px;box-shadow:0 2px 8px rgba(0,0,0,.12)">${logo}</div>
@@ -1732,93 +1772,137 @@ function renderStoreList(){
   }).join('');
 }
 
-function openStoreModal(merchantId, merchantName) {
-  document.getElementById("store-content").innerHTML = `
-    <div class="store-loading">
-      <div class="spinner"></div>
-      <span>Loading store...</span>
-    </div>
-  `;
-  document.getElementById("storeModal").classList.add("open");
-  
+let currentStoreMerchantId=null;
+let currentStoreConvoId=null;
+
+function openStoreDetail(merchantId, merchantName) {
+  currentStoreMerchantId = merchantId;
+  showPage('store-detail');
+  document.getElementById('sd-headerName').textContent = merchantName || 'Store';
+  document.getElementById('sd-header').innerHTML = `<div class="store-loading"><div class="spinner"></div><span>Loading store...</span></div>`;
+  switchStoreTab('products');
+
   fetch(`${API}/merchants/${merchantId}`)
     .then(res => res.json())
     .then(merchant => {
       const items = products.filter(p => (p.merchantId || "") === merchantId);
-      
-      let storeHTML = `
-        <!-- STORE HEADER WITH BANNER -->
-        <div class="store-header">
-          <div class="store-banner">
-            ${merchant.storeBanner ? `<img src="${merchant.storeBanner}" alt="Store Banner">` : `<div class="store-banner-placeholder"></div>`}
+      document.getElementById('sd-headerName').textContent = merchant.storeName || merchant.name;
+
+      document.getElementById('sd-header').innerHTML = `
+        <div class="store-banner">
+          ${merchant.storeBanner ? `<img src="${merchant.storeBanner}" alt="Store Banner">` : `<div class="store-banner-placeholder"></div>`}
+        </div>
+        <div class="store-info-wrap">
+          <div class="store-logo-wrapper">
+            ${merchant.storeLogo ? `<img src="${merchant.storeLogo}" class="store-logo-lg">` : `<div class="store-logo-lg" style="background: linear-gradient(135deg, #0f5c2e, #16a34a); display:flex; align-items:center; justify-content:center; font-size:36px; color:#fff;">🏪</div>`}
           </div>
-          <div class="store-info-wrap">
-            <div class="store-logo-wrapper">
-              ${merchant.storeLogo ? `<img src="${merchant.storeLogo}" class="store-logo-lg">` : `<div class="store-logo-lg" style="background: linear-gradient(135deg, #0f5c2e, #16a34a); display:flex; align-items:center; justify-content:center; font-size:36px; color:#fff;">🏪</div>`}
-            </div>
-            <div class="store-details">
-              <h2 class="store-name-lg">${merchant.storeName || merchant.name}</h2>
-              <div class="store-meta">
-                <span class="store-status ${merchant.isOpen ? "open" : "closed"}">${merchant.isOpen ? "🟢 Open" : "🔴 Closed"}</span>
-                <span class="store-category">📂 ${merchant.businessType || "General"}</span>
-              </div>
-              <div class="store-location">📍 ${merchant.address || "Address not set"}</div>
+          <div class="store-details">
+            <h2 class="store-name-lg">${merchant.storeName || merchant.name}</h2>
+            <div class="store-meta">
+              <span class="store-status ${merchant.isOpen ? "open" : "closed"}">${merchant.isOpen ? "🟢 Open" : "🔴 Closed"}</span>
             </div>
           </div>
-        </div>
-        
-        <!-- SOCIAL BUTTONS -->
-        <div class="store-social">
-          <button class="social-btn follow-btn" id="followBtn" onclick="toggleFollowStore('${merchant._id}')">➕ <span id="followCount">0</span> Follow</button>
-          <button class="social-btn" onclick='startChat("${merchant._id}","merchant",${JSON.stringify(merchant.storeName || merchant.name)})'>💬 Message</button>
-        </div>
-        
-        <!-- ABOUT THE STORE -->
-        ${merchant.description ? `<div class="store-description">📝 <strong>About the Store</strong><p>${merchant.description}</p></div>` : ""}
-        
-        <!-- STORE DETAILS GRID -->
-        <div class="store-details-grid">
-          ${merchant.phone ? `<div class="detail-item"><span class="detail-label">📞 Contact</span><span class="detail-value">${merchant.phone}</span></div>` : ""}
-          ${merchant.email ? `<div class="detail-item"><span class="detail-label">📧 Email</span><span class="detail-value">${merchant.email}</span></div>` : ""}
-          ${merchant.address ? `<div class="detail-item"><span class="detail-label">📍 Address</span><span class="detail-value">${merchant.address}</span></div>` : ""}
-          ${merchant.businessType ? `<div class="detail-item"><span class="detail-label">🏷️ Business Type</span><span class="detail-value">${merchant.businessType}</span></div>` : ""}
-          ${merchant.productCategory ? `<div class="detail-item"><span class="detail-label">📂 Category</span><span class="detail-value">${merchant.productCategory}</span></div>` : ""}
-          ${merchant.dtiNumber ? `<div class="detail-item"><span class="detail-label">📋 DTI Number</span><span class="detail-value">${merchant.dtiNumber}</span></div>` : ""}
-          ${merchant.permitNumber ? `<div class="detail-item"><span class="detail-label">📄 Permit</span><span class="detail-value">${merchant.permitNumber}</span></div>` : ""}
-        </div>
-        
-        <!-- PRODUCTS SECTION -->
-        <div class="store-products-header">
-          <h3>🛍️ Products</h3>
-          <span class="product-count">${items.length} items</span>
-        </div>
-        <div class="product-grid">
-          ${items.length ? items.map((p, i) => buildCard(p, i * 40)).join("") : `<div class="loading-state"><div style="font-size:48px">📭</div><span>No products available</span></div>`}
         </div>
       `;
-      
-      document.getElementById("store-content").innerHTML = storeHTML;
+
+      document.getElementById('sd-social').innerHTML = `
+        <button class="social-btn follow-btn" id="followBtn" onclick="toggleFollowStore('${merchant._id}')">➕ <span id="followCount">0</span> Follow</button>
+        <button class="social-btn" onclick='openStoreChatTab("${merchant._id}",${JSON.stringify(merchant.storeName || merchant.name)})'>💬 Message</button>
+      `;
+
+      document.getElementById('sd-productCount').textContent = `${items.length} items`;
+      document.getElementById('sd-products').innerHTML = items.length ? items.map((p, i) => buildCard(p, i * 40)).join("") : `<div class="loading-state"><div style="font-size:48px">📭</div><span>No products available</span></div>`;
+
+      document.getElementById('sd-description').innerHTML = merchant.description ? `<div class="store-description">📝 <strong>About the Store</strong><p>${merchant.description}</p></div>` : "";
+
+      document.getElementById('sd-details').innerHTML = `
+        ${merchant.phone ? `<div class="detail-item"><span class="detail-label">📞 Contact</span><span class="detail-value">${merchant.phone}</span></div>` : ""}
+        ${merchant.email ? `<div class="detail-item"><span class="detail-label">📧 Email</span><span class="detail-value">${merchant.email}</span></div>` : ""}
+        ${merchant.address ? `<div class="detail-item"><span class="detail-label">📍 Address</span><span class="detail-value">${merchant.address}</span></div>` : ""}
+        ${merchant.businessType ? `<div class="detail-item"><span class="detail-label">🏷️ Business Type</span><span class="detail-value">${merchant.businessType}</span></div>` : ""}
+        ${merchant.productCategory ? `<div class="detail-item"><span class="detail-label">📂 Category</span><span class="detail-value">${merchant.productCategory}</span></div>` : ""}
+        ${merchant.dtiNumber ? `<div class="detail-item"><span class="detail-label">📋 DTI Number</span><span class="detail-value">${merchant.dtiNumber}</span></div>` : ""}
+        ${merchant.permitNumber ? `<div class="detail-item"><span class="detail-label">📄 Permit</span><span class="detail-value">${merchant.permitNumber}</span></div>` : ""}
+      `;
+
       checkFollowStatus(merchantId);
-      
-      // Fetch store rating and reviews
+
       fetch(`${API}/reviews/store/${merchantId}`)
         .then(res => res.json())
         .then(data => {
           if (data.averageRating) {
-            const ratingEl = document.querySelector(".store-meta");
+            const ratingEl = document.querySelector("#sd-header .store-meta");
             if (ratingEl) {
-              ratingEl.innerHTML += `<span class="store-rating">⭐ ${data.averageRating.toFixed(1)} (${data.totalReviews} reviews)</span>`;
+              ratingEl.innerHTML += `<span class="store-rating"> ⭐ ${data.averageRating.toFixed(1)} (${data.totalReviews} reviews)</span>`;
             }
           }
         })
         .catch(() => {});
     })
     .catch(err => {
-      document.getElementById("store-content").innerHTML = `<div class="loading-state"><div style="font-size:48px">❌</div><span>Failed to load store</span></div>`;
+      document.getElementById("sd-header").innerHTML = `<div class="loading-state"><div style="font-size:48px">❌</div><span>Failed to load store</span></div>`;
       console.error("Error loading store:", err);
     });
 }
-function closeStoreModal(){document.getElementById('storeModal').classList.remove('open');}
+
+function switchStoreTab(tab){
+  document.querySelectorAll('.sd-tab').forEach(t=>{t.classList.remove('active');t.style.color='var(--muted)';t.style.borderBottomColor='transparent';});
+  document.getElementById('sd-panel-products').style.display=tab==='products'?'block':'none';
+  document.getElementById('sd-panel-info').style.display=tab==='info'?'block':'none';
+  document.getElementById('sd-panel-chat').style.display=tab==='chat'?'flex':'none';
+  const activeTab=document.getElementById('sd-tab-'+tab);
+  activeTab.classList.add('active');
+  activeTab.style.color='var(--gd)';
+  activeTab.style.borderBottomColor='var(--gm)';
+}
+
+async function openStoreChatTab(merchantId, merchantName){
+  switchStoreTab('chat');
+  document.getElementById('sd-chatMessages').innerHTML='<div class="loading-state"><div class="spinner"></div><span>Loading…</span></div>';
+  try{
+    const r=await fetch(`${API}/chat/start`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({targetId:merchantId,targetRole:'merchant',targetName:merchantName})});
+    const convo=await r.json();
+    currentStoreConvoId=convo._id;
+    await loadStoreChatMessages();
+  }catch(e){
+    document.getElementById('sd-chatMessages').innerHTML='<div class="loading-state"><div style="font-size:40px">❌</div><span>Failed to load chat</span></div>';
+  }
+}
+
+async function loadStoreChatMessages(){
+  if(!currentStoreConvoId)return;
+  try{
+    const r=await fetch(`${API}/chat/${currentStoreConvoId}/messages`,{headers:{'Authorization':'Bearer '+token}});
+    const msgs=await r.json();
+    renderStoreChatMessages(msgs);
+  }catch(e){
+    document.getElementById('sd-chatMessages').innerHTML='<div class="loading-state"><div style="font-size:40px">❌</div><span>Failed to load</span></div>';
+  }
+}
+
+function renderStoreChatMessages(msgs){
+  const list=document.getElementById('sd-chatMessages');
+  const me=currentUser.id||currentUser._id;
+  if(!msgs.length){list.innerHTML='<div class="fav-empty"><div class="ei">👋</div><h3>Say hello!</h3></div>';return;}
+  list.innerHTML=msgs.map(m=>{
+    const mine=m.senderId===me;
+    return `<div style="align-self:${mine?'flex-end':'flex-start'};max-width:75%">
+      <div style="background:${mine?'var(--gm)':'#fff'};color:${mine?'#fff':'#222'};padding:10px 14px;border-radius:16px;${mine?'border-bottom-right-radius:4px':'border-bottom-left-radius:4px'};font-size:14px;box-shadow:var(--sh)">${(m.text||'').replace(/</g,'&lt;')}</div>
+    </div>`;
+  }).join('');
+  list.scrollTop=list.scrollHeight;
+}
+
+async function sendStoreChatMessage(){
+  const input=document.getElementById('sd-chatInput');
+  const text=input.value.trim();
+  if(!text||!currentStoreConvoId)return;
+  input.value='';
+  try{
+    await fetch(`${API}/chat/${currentStoreConvoId}/messages`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({text})});
+    await loadStoreChatMessages();
+  }catch(e){toast('Message failed to send');}
+}
 
 function buildCard(p,delay=0,compact=false){
   const id=p._id||p.id;
@@ -1830,7 +1914,7 @@ function buildCard(p,delay=0,compact=false){
   return`<div class="product-card" style="animation-delay:${delay}ms${compact?';min-width:148px;max-width:148px':''}" onclick="openProductModal('${id}')">
     <div class="card-img">${emo(p.name)}${imgHtml}${badgeHTML(p._tags||[])}
       <div class="fav-btn" onclick="event.stopPropagation();toggleFav('${id}',this)">${favIcon}</div>
-      ${p.merchantName?`<div class="merchant-tag" onclick="event.stopPropagation();openStoreModal('${p.merchantId||''}','${(p.merchantName||'').replace(/'/g,"\\'")}')">🏪 ${p.merchantName}</div>`:''}
+      ${p.merchantName?`<div class="merchant-tag" onclick="event.stopPropagation();openStoreDetail('${p.merchantId||''}','${(p.merchantName||'').replace(/'/g,"\\'")}')">🏪 ${p.merchantName}</div>`:''}
     </div>
     <div class="card-body">
       <div class="card-name">${p.name}</div>
@@ -2535,7 +2619,7 @@ function renderCommunityFeed(){
     const commentCount=(p.comments||[]).length;
     const logo=p.storeLogo?`<img src="${p.storeLogo}"/>`:(p.authorRole==='customer'?'👤':'🏪');
     const isMerchantPost=p.authorRole!=='customer';
-    const headerClick=isMerchantPost?`onclick="openStoreModal('${p.merchantId}','${(p.merchantName||'Store').replace(/'/g,"\\'")}')"`:'';
+    const headerClick=isMerchantPost?`onclick="openStoreDetail('${p.merchantId}','${(p.merchantName||'Store').replace(/'/g,"\\'")}')"`:'';
     return`<div class="feed-card">
       <div class="feed-card-header" ${headerClick} style="${isMerchantPost?'cursor:pointer':''}">
         <div class="feed-store-logo">${logo}</div>
