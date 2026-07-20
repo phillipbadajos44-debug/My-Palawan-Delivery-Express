@@ -388,6 +388,37 @@ const Notification = mongoose.model('Notification', NotificationSchema);
 const Review = mongoose.model('Review', ReviewSchema);
 const Audit = mongoose.model('Audit', AuditSchema);
 const Message = mongoose.model('Message', MessageSchema);
+
+// ============================================================
+// DIRECT CHAT (customer <-> merchant <-> rider, any combination)
+// ============================================================
+const ConversationSchema = new mongoose.Schema({
+  participants: [{
+    userId: String,
+    role: String,
+    name: String
+  }],
+  participantKey: { type: String, unique: true, index: true },
+  lastMessage: String,
+  lastMessageAt: { type: Date, default: Date.now },
+  createdAt: { type: Date, default: Date.now }
+});
+
+const ChatMessageSchema = new mongoose.Schema({
+  conversationId: { type: mongoose.Schema.Types.ObjectId, ref: 'Conversation', index: true },
+  senderId: String, senderRole: String, senderName: String,
+  text: String,
+  isRead: { type: Boolean, default: false },
+  createdAt: { type: Date, default: Date.now }
+});
+
+const Conversation = mongoose.model('Conversation', ConversationSchema);
+const ChatMessage = mongoose.model('ChatMessage', ChatMessageSchema);
+
+function buildParticipantKey(a, b) {
+  const arr = [`${a.role}:${a.userId}`, `${b.role}:${b.userId}`].sort();
+  return arr.join('__');
+}
 const RemittanceSchema = new mongoose.Schema({
   orderId: String, riderId: String, riderName: String,
   merchantId: String, merchantName: String,
@@ -1991,6 +2022,85 @@ app.post('/api/messages/:orderId', auth(['customer', 'merchant', 'rider']), asyn
       senderId: req.user.id, senderRole: req.user.role, senderName: req.user.name,
       text: text.trim()
     });
+    res.json(message);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ============================================================
+// DIRECT CHAT (any role <-> any role)
+// ============================================================
+
+// Start or get existing conversation with another user
+app.post('/api/chat/start', auth(['customer', 'merchant', 'rider']), async (req, res) => {
+  try {
+    const { targetId, targetRole, targetName } = req.body;
+    if (!targetId || !targetRole) return res.status(400).json({ error: 'targetId and targetRole required' });
+
+    const me = { userId: req.user.id, role: req.user.role, name: req.user.name };
+    const other = { userId: targetId, role: targetRole, name: targetName || '' };
+    const key = buildParticipantKey(me, other);
+
+    let convo = await Conversation.findOne({ participantKey: key });
+    if (!convo) {
+      convo = await Conversation.create({
+        participants: [me, other],
+        participantKey: key,
+        lastMessage: '',
+        lastMessageAt: new Date()
+      });
+    }
+    res.json(convo);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// List my conversations
+app.get('/api/chat/conversations', auth(['customer', 'merchant', 'rider']), async (req, res) => {
+  try {
+    const convos = await Conversation.find({ 'participants.userId': req.user.id })
+      .sort('-lastMessageAt');
+    res.json(convos);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Get messages in a conversation
+app.get('/api/chat/:conversationId/messages', auth(['customer', 'merchant', 'rider']), async (req, res) => {
+  try {
+    const convo = await Conversation.findById(req.params.conversationId);
+    if (!convo) return res.status(404).json({ error: 'Conversation not found' });
+    const isParticipant = convo.participants.some(p => p.userId === req.user.id);
+    if (!isParticipant) return res.status(403).json({ error: 'Not a participant' });
+
+    const messages = await ChatMessage.find({ conversationId: req.params.conversationId }).sort('createdAt');
+    res.json(messages);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Send a message in a conversation
+app.post('/api/chat/:conversationId/messages', auth(['customer', 'merchant', 'rider']), async (req, res) => {
+  try {
+    const { text } = req.body;
+    if (!text || !text.trim()) return res.status(400).json({ error: 'Message text required' });
+
+    const convo = await Conversation.findById(req.params.conversationId);
+    if (!convo) return res.status(404).json({ error: 'Conversation not found' });
+    const isParticipant = convo.participants.some(p => p.userId === req.user.id);
+    if (!isParticipant) return res.status(403).json({ error: 'Not a participant' });
+
+    const message = await ChatMessage.create({
+      conversationId: req.params.conversationId,
+      senderId: req.user.id, senderRole: req.user.role, senderName: req.user.name,
+      text: text.trim()
+    });
+
+    convo.lastMessage = text.trim();
+    convo.lastMessageAt = new Date();
+    await convo.save();
+
+    const otherParticipants = convo.participants.filter(p => p.userId !== req.user.id);
+    otherParticipants.forEach(p => {
+      if (io) io.to(`${p.role}:${p.userId}`).emit('chat_message', message);
+    });
+
     res.json(message);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
