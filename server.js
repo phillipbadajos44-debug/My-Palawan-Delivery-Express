@@ -180,6 +180,7 @@ const CustomerSchema = new mongoose.Schema({
     street: String, additionalInfo: String
   },
   profilePic: String, coverPhoto: String, favorites: [String], role: { type: String, default: 'customer' },
+  privacy: { phone: { type: String, default: 'private' }, email: { type: String, default: 'private' }, address: { type: String, default: 'private' } },
   resetCode: String, resetCodeExpiry: Date,
   isActive: { type: Boolean, default: true }, createdAt: { type: Date, default: Date.now },
   lat: Number, lng: Number, isOnline: { type: Boolean, default: false },
@@ -191,6 +192,7 @@ const MerchantSchema = new mongoose.Schema({
   password: String, storeName: String, businessType: String, address: String,
   lat: Number, lng: Number,
   productCategory: String, description: String, bio: String, dtiNumber: String,
+  privacy: { phone: { type: String, default: 'private' }, email: { type: String, default: 'private' }, address: { type: String, default: 'public' } },
   permitNumber: String, mayorPermit: String, tin: String,
   documents: { govId: String, businessPermit: String, storeFront: String },
   storeLogo: String, storeBanner: String, isOpen: { type: Boolean, default: true },
@@ -700,6 +702,32 @@ app.get('/api/customers/me', auth(['customer']), async (req, res) => {
   try {
     const c = await Customer.findById(req.user.id).select('-password');
     res.json(c);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Public profile view of a customer (privacy-filtered)
+app.get('/api/customers/:id/public-profile', async (req, res) => {
+  try {
+    const c = await Customer.findById(req.params.id).select('name profilePic coverPhoto phone email address privacy createdAt');
+    if (!c) return res.status(404).json({ error: 'Customer not found' });
+    const privacy = c.privacy || {};
+    const profile = {
+      _id: c._id,
+      name: c.name,
+      profilePic: c.profilePic || '',
+      coverPhoto: c.coverPhoto || '',
+      phone: privacy.phone === 'public' ? c.phone : null,
+      email: privacy.email === 'public' ? c.email : null,
+      address: privacy.address === 'public' ? c.address : null,
+      memberSince: c.createdAt
+    };
+    const [followingCount, postCount] = await Promise.all([
+      Follow.countDocuments({ customerId: req.params.id }),
+      Post.countDocuments({ merchantId: req.params.id, isActive: true })
+    ]);
+    profile.followingCount = followingCount;
+    profile.postCount = postCount;
+    res.json(profile);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -2468,9 +2496,14 @@ app.get('/api/merchants-list', async (req, res) => {
 app.get('/api/merchants/:id', async (req, res) => {
   try {
     const merchant = await Merchant.findById(req.params.id)
-      .select('storeName name phone email address lat lng productCategory businessType description storeLogo storeBanner isOpen status dtiNumber permitNumber tin createdAt');
+      .select('storeName name phone email address lat lng productCategory businessType description bio storeLogo storeBanner isOpen status dtiNumber permitNumber tin privacy createdAt');
     if (!merchant) return res.status(404).json({ error: 'Merchant not found' });
-    res.json(merchant);
+    const m = merchant.toObject();
+    const privacy = m.privacy || {};
+    if (privacy.phone !== 'public') m.phone = null;
+    if (privacy.email !== 'public') m.email = null;
+    if (privacy.address !== 'public') m.address = null;
+    res.json(m);
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
