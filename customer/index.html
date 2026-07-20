@@ -1717,7 +1717,7 @@ function openStoreModal(merchantId, merchantName) {
   `;
   document.getElementById("storeModal").classList.add("open");
   
-  fetch(`/api/merchants/${merchantId}`)
+  fetch(`${API}/merchants/${merchantId}`)
     .then(res => res.json())
     .then(merchant => {
       const items = products.filter(p => (p.merchantId || "") === merchantId);
@@ -1776,7 +1776,7 @@ function openStoreModal(merchantId, merchantName) {
       checkFollowStatus(merchantId);
       
       // Fetch store rating and reviews
-      fetch(`/api/reviews/store/${merchantId}`)
+      fetch(`${API}/reviews/store/${merchantId}`)
         .then(res => res.json())
         .then(data => {
           if (data.averageRating) {
