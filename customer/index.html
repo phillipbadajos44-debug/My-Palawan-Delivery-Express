@@ -367,6 +367,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
 .banner-emoji{font-size:48px;}
 /* CATEGORIES */
 .cat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;padding:12px 18px 16px;}
+.cat-toggle-btn{display:flex;align-items:center;justify-content:space-between;margin:8px 18px 0;padding:14px 16px;background:#fff;border-radius:14px;box-shadow:var(--sh);cursor:pointer;font-weight:800;color:var(--gd);font-size:15px;}
 .cat-card{background:#fff;border-radius:16px;box-shadow:var(--sh);padding:16px 10px 14px;display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;transition:transform .15s;animation:fadeUp .3s ease both;}
 .cat-card:hover{transform:translateY(-2px);}
 .cat-emoji{font-size:30px;}
@@ -653,10 +654,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
   <!-- GROCERY -->
   <div id="page-grocery" class="page">
     <div style="padding:20px 18px 10px;display:flex;align-items:center;justify-content:space-between">
-      <div><h2 style="font-size:21px;font-weight:800;color:var(--gd)">Shop by Category</h2><p style="color:var(--muted);font-size:13px;margin-top:3px">Pick a category to browse</p></div>
+      <div><h2 style="font-size:21px;font-weight:800;color:var(--gd)">Grocery</h2><p style="color:var(--muted);font-size:13px;margin-top:3px">Browse categories and products</p></div>
       <button onclick="showPage('orders',this)" style="position:relative;background:var(--gl);color:var(--gd);border:none;border-radius:12px;padding:10px 14px;font-size:20px;cursor:pointer">📦<span class="n-badge" id="ordersBadge"></span></button>
     </div>
-    <div class="cat-grid" id="cat-grid"></div>
+    <div class="cat-toggle-btn" id="catToggleBtn" onclick="toggleCatSection()">
+      <span>Category</span>
+    </div>
+    <div class="cat-grid" id="cat-grid" style="display:none"></div>
+    <div class="sec-title" style="padding:16px 18px 8px;font-weight:800;color:var(--gd)">All Products</div>
+    <div class="product-grid" id="grocery-all-products" style="padding:0 18px 20px"></div>
   </div>
 
   <!-- CATEGORY -->
@@ -2088,7 +2094,7 @@ async function loadProducts(){
     const arr=Array.isArray(d)?d:(d.products||[]);
     products=arr.map((p,i)=>({...p,_tags:tagP(p,i)}));
   }catch{products=[];}
-  renderHome();renderCats();
+  renderHome();renderCats();renderGroceryAllProducts();
 }
 
 function showEmpty(){
@@ -2117,13 +2123,23 @@ function matchesCat(p,cat){
   if(!p.category)return cat.kw.some(k=>p.name.toLowerCase().includes(k));
   return false;
 }
+let catSectionOpen=false;
+function toggleCatSection(){
+  catSectionOpen=!catSectionOpen;
+  document.getElementById('cat-grid').style.display=catSectionOpen?'grid':'none';
+}
 function renderCats(){
   document.getElementById('cat-grid').innerHTML=CATS.map((c,i)=>{
     const count=products.filter(p=>matchesCat(p,c)).length;
     return`<div class="cat-card" style="animation-delay:${i*40}ms" onclick="openCat('${c.name}','${c.emoji}')">
-      <div class="cat-emoji">${c.emoji}</div><div class="cat-name">${c.name}</div>
+      <div class="cat-name">${c.name}</div>
       <div class="cat-count">${count} item${count!==1?'s':''}</div></div>`;
   }).join('');
+}
+function renderGroceryAllProducts(){
+  const grid=document.getElementById('grocery-all-products');
+  if(!grid)return;
+  grid.innerHTML=products.length?products.map((p,i)=>buildCard(p,i*30)).join(''):'<div class="loading-state"><div style="font-size:48px">📭</div><span>No products yet</span></div>';
 }
 function openCat(name,emoji){
   const cat=CATS.find(c=>c.name===name);
