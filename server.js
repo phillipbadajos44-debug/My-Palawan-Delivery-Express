@@ -190,7 +190,7 @@ const MerchantSchema = new mongoose.Schema({
   name: String, phone: String, email: { type: String, unique: true },
   password: String, storeName: String, businessType: String, address: String,
   lat: Number, lng: Number,
-  productCategory: String, description: String, dtiNumber: String,
+  productCategory: String, description: String, bio: String, dtiNumber: String,
   permitNumber: String, mayorPermit: String, tin: String,
   documents: { govId: String, businessPermit: String, storeFront: String },
   storeLogo: String, storeBanner: String, isOpen: { type: Boolean, default: true },
