@@ -13,3 +13,11 @@ old_*
 *_block.txt
 save_profile.txt
 merchant_location.txt
+*.backup
+*.backup-*
+server.js.backup
+create_admin.js
+create_admin.py
+patch_server.py
+sample.jpg
+test.txt
