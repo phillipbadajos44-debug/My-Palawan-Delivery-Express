@@ -607,6 +607,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
         <div class="icon-btn" onclick="toggleSearch()">🔍</div>
         <div class="icon-btn" onclick="openNotif()">🔔<div class="icon-dot" id="notifDot"></div></div>
         <div class="icon-btn" onclick="openFavPanel()">❤️</div>
+        <div class="icon-btn" onclick="openChatInbox()">💬<div class="icon-dot" id="chatDot" style="display:none"></div></div>
       </div>
     </div>
     <div class="search-wrap" id="searchWrap">
@@ -1010,6 +1011,29 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
 <div class="side-panel" id="favPanel">
   <div class="sp-header"><h3>❤️ My Favorites</h3><span class="sp-close" onclick="closeFavPanel()">✕</span></div>
   <div id="favList" style="padding:16px"></div>
+</div>
+
+<!-- CHAT INBOX PANEL -->
+<div class="side-panel" id="chatInboxPanel">
+  <div class="sp-header"><h3>💬 Messages</h3><span class="sp-close" onclick="closeChatInbox()">✕</span></div>
+  <div id="chatConvoList" style="padding:16px"></div>
+</div>
+
+<!-- CHAT WINDOW (full screen) -->
+<div id="chatWindow" style="display:none;position:fixed;inset:0;background:#fff;z-index:2000;flex-direction:column">
+  <div style="background:linear-gradient(135deg,var(--gd),var(--gm));padding:16px 18px;display:flex;align-items:center;gap:12px;color:#fff">
+    <span onclick="closeChatWindow()" style="font-size:22px;cursor:pointer">←</span>
+    <div style="width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:18px" id="chatWindowAvatar">👤</div>
+    <div style="flex:1;min-width:0">
+      <div style="font-weight:800;font-size:15px" id="chatWindowName">Chat</div>
+      <div style="font-size:11px;opacity:.85" id="chatWindowRole"></div>
+    </div>
+  </div>
+  <div id="chatMessagesList" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px;background:var(--bg)"></div>
+  <div style="padding:12px 14px;border-top:1px solid #eee;display:flex;gap:10px;align-items:center;background:#fff">
+    <input type="text" id="chatMsgInput" placeholder="Type a message…" style="flex:1;padding:12px 16px;border:1.5px solid #d1fae5;border-radius:20px;font-size:14px;font-family:inherit;outline:none" onkeydown="if(event.key==='Enter')sendChatMessage()"/>
+    <button onclick="sendChatMessage()" style="width:42px;height:42px;border-radius:50%;background:var(--gm);color:#fff;border:none;font-size:18px;flex-shrink:0;cursor:pointer">➤</button>
+  </div>
 </div>
 
 <div class="toast" id="toastEl">✅ <span id="toastMsg"></span></div>
@@ -1928,6 +1952,105 @@ function openFavPanel(){
 }
 function closeFavPanel(){document.getElementById('favPanel').classList.remove('open');}
 
+// ── CHAT ──
+let chatConvos=[];
+let activeChatConvoId=null;
+let activeChatOther=null;
+
+async function openChatInbox(){
+  document.getElementById('chatInboxPanel').classList.add('open');
+  document.getElementById('chatDot').style.display='none';
+  await loadChatConvos();
+}
+function closeChatInbox(){document.getElementById('chatInboxPanel').classList.remove('open');}
+
+async function loadChatConvos(){
+  const list=document.getElementById('chatConvoList');
+  list.innerHTML='<div class="loading-state"><div class="spinner"></div><span>Loading…</span></div>';
+  try{
+    const r=await fetch(`${API}/chat/conversations`,{headers:{'Authorization':'Bearer '+token}});
+    chatConvos=await r.json();
+    renderChatConvos();
+  }catch(e){
+    list.innerHTML='<div class="loading-state"><div style="font-size:40px">❌</div><span>Failed to load messages</span></div>';
+  }
+}
+
+function renderChatConvos(){
+  const list=document.getElementById('chatConvoList');
+  if(!chatConvos.length){list.innerHTML='<div class="fav-empty"><div class="ei">💬</div><h3>No Messages Yet</h3><p>Start a chat from a store or profile</p></div>';return;}
+  list.innerHTML=chatConvos.map(c=>{
+    const me=currentUser.id||currentUser._id;
+    const other=c.participants.find(p=>p.userId!==me)||{};
+    return `<div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid #f0faf4;cursor:pointer" onclick='openChatWindow(${JSON.stringify(c._id)},${JSON.stringify(other)})'>
+      <div style="width:44px;height:44px;border-radius:50%;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">👤</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:14px;font-weight:700">${other.name||'User'}</div>
+        <div style="font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${(c.lastMessage||'No messages yet')}</div>
+      </div>
+      <div style="font-size:10px;color:var(--muted);text-transform:capitalize">${other.role||''}</div>
+    </div>`;
+  }).join('');
+}
+
+async function startChat(targetId,targetRole,targetName){
+  try{
+    const r=await fetch(`${API}/chat/start`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({targetId,targetRole,targetName})});
+    const convo=await r.json();
+    openChatWindow(convo._id,{userId:targetId,role:targetRole,name:targetName});
+  }catch(e){toast('Could not start chat');}
+}
+
+async function openChatWindow(conversationId,other){
+  activeChatConvoId=conversationId;
+  activeChatOther=other;
+  document.getElementById('chatWindowName').textContent=other.name||'User';
+  document.getElementById('chatWindowRole').textContent=(other.role||'').charAt(0).toUpperCase()+(other.role||'').slice(1);
+  document.getElementById('chatWindow').style.display='flex';
+  document.getElementById('chatInboxPanel').classList.remove('open');
+  await loadChatMessages();
+}
+function closeChatWindow(){
+  document.getElementById('chatWindow').style.display='none';
+  activeChatConvoId=null;activeChatOther=null;
+}
+
+async function loadChatMessages(){
+  const list=document.getElementById('chatMessagesList');
+  list.innerHTML='<div class="loading-state"><div class="spinner"></div><span>Loading…</span></div>';
+  try{
+    const r=await fetch(`${API}/chat/${activeChatConvoId}/messages`,{headers:{'Authorization':'Bearer '+token}});
+    const msgs=await r.json();
+    renderChatMessages(msgs);
+  }catch(e){
+    list.innerHTML='<div class="loading-state"><div style="font-size:40px">❌</div><span>Failed to load</span></div>';
+  }
+}
+
+function renderChatMessages(msgs){
+  const list=document.getElementById('chatMessagesList');
+  const me=currentUser.id||currentUser._id;
+  if(!msgs.length){list.innerHTML='<div class="fav-empty"><div class="ei">👋</div><h3>Say hello!</h3></div>';return;}
+  list.innerHTML=msgs.map(m=>{
+    const mine=m.senderId===me;
+    return `<div style="align-self:${mine?'flex-end':'flex-start'};max-width:75%">
+      <div style="background:${mine?'var(--gm)':'#fff'};color:${mine?'#fff':'#222'};padding:10px 14px;border-radius:16px;${mine?'border-bottom-right-radius:4px':'border-bottom-left-radius:4px'};font-size:14px;box-shadow:var(--sh)">${(m.text||'').replace(/</g,'&lt;')}</div>
+    </div>`;
+  }).join('');
+  list.scrollTop=list.scrollHeight;
+}
+
+async function sendChatMessage(){
+  const input=document.getElementById('chatMsgInput');
+  const text=input.value.trim();
+  if(!text||!activeChatConvoId)return;
+  input.value='';
+  try{
+    await fetch(`${API}/chat/${activeChatConvoId}/messages`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({text})});
+    await loadChatMessages();
+  }catch(e){toast('Message failed to send');}
+}
+
 // ── CART ──
 function updateCartBadge(){const b=document.getElementById('cartBadge');const n=cart.reduce((s,i)=>s+i.qty,0);if(n>0){b.style.display='flex';b.textContent=n;}else b.style.display='none';}
 function openCart(){document.getElementById('cartDrawer').classList.add('open');document.getElementById('overlay').classList.add('open');renderCart();}
@@ -2774,6 +2897,15 @@ function initSocket(){
         toast('🎉 Your order has been delivered!');
         loadOrders?.();
         loadNotifications?.();
+    });
+
+    socket.on('chat_message',(msg)=>{
+        if(activeChatConvoId && msg.conversationId===activeChatConvoId){
+            loadChatMessages();
+        } else {
+            document.getElementById('chatDot').style.display='block';
+            toast(`💬 New message from ${msg.senderName||'someone'}`);
+        }
     });
 
     socket.on('feed_new_post',(post)=>{
