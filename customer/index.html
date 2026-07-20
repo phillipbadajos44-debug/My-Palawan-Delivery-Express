@@ -2730,6 +2730,8 @@ function showPage(page,btn){
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   if(btn)btn.classList.add('active');
   if(page!=='category')localStorage.setItem('pde_cust_page',page);
+  const cartBtn=document.getElementById('floatingCartBtn');
+  if(cartBtn)cartBtn.style.display=(page==='grocery'||page==='category'||page==='search')?'flex':'none';
   history.pushState({app:'customer',page},'','');
 }
 
