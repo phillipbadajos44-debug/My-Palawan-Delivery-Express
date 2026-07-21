@@ -2786,7 +2786,10 @@ function renderCommunityFeed(){
     const [ricon,rlabel]=myReactionInfo(p);
     const summary=reactionSummary(p);
     const commentCount=(p.comments||[]).length;
-    const logo=p.storeLogo?`<img src="${p.storeLogo}"/>`:(p.authorRole==='customer'?'👤':'🏪');
+    const profilePic = (p.author && p.author.profile_picture_url) || p.storeLogo || '';
+const logo = profilePic
+  ? `<img src="${profilePic}" onerror="this.style.display='none'; this.parentNode.innerHTML='👤'"/>`
+  : (p.authorRole==='customer'?'👤':'🏪');
     const isMerchantPost=p.authorRole!=='customer';
     const headerClick=isMerchantPost?`onclick="openStoreDetail('${p.merchantId}','${(p.merchantName||'Store').replace(/'/g,"\\'")}')"`:'';
     return`<div class="feed-card">
