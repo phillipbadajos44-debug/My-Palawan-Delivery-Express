@@ -1549,10 +1549,21 @@ app.get('/api/posts/feed', auth(['customer', 'merchant']), async (req, res) => {
       query.merchantId = { $in: follows.map(f => f.merchantId) };
     }
 
-    const posts = await Post.find(query)
+    let posts = await Post.find(query)
       .sort('-createdAt')
       .limit(Number(limit))
-      .skip((page - 1) * limit);
+      .skip((page - 1) * limit)
+      .lean();
+
+    posts = posts.map(post => ({
+      ...post,
+      author: {
+        name: post.merchantName || 'User',
+        profile_picture_url: post.storeLogo
+          ? `${req.protocol}://${req.get('host')}${post.storeLogo}`
+          : null
+      }
+    }));
 
     const total = await Post.countDocuments(query);
     res.json({ posts, total, pages: Math.ceil(total / limit) });
