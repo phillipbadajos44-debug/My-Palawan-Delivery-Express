@@ -785,8 +785,14 @@ app.get('/api/customers/greeting', auth(['customer']), async (req, res) => {
 
 app.put('/api/customers/me', auth(['customer']), async (req, res) => {
   try {
-    const { name, phone, address, addresses } = req.body;
-    const c = await Customer.findByIdAndUpdate(req.user.id, { name, phone, address, addresses }, { new: true }).select('-password');
+    const { name, phone, address, addresses, privacy } = req.body;
+    const update = { name, phone, address, addresses };
+    if (privacy) {
+      if (privacy.phone) update['privacy.phone'] = privacy.phone;
+      if (privacy.email) update['privacy.email'] = privacy.email;
+      if (privacy.address) update['privacy.address'] = privacy.address;
+    }
+    const c = await Customer.findByIdAndUpdate(req.user.id, update, { new: true }).select('-password');
     res.json(c);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -896,7 +902,14 @@ app.get('/api/merchants/me', auth(['merchant']), async (req, res) => {
 
 app.put('/api/merchants/me', auth(['merchant']), async (req, res) => {
   try {
-    const m = await Merchant.findByIdAndUpdate(req.user.id, req.body, { new: true }).select('-password');
+    const { privacy, ...rest } = req.body;
+    const update = { ...rest };
+    if (privacy) {
+      if (privacy.phone) update['privacy.phone'] = privacy.phone;
+      if (privacy.email) update['privacy.email'] = privacy.email;
+      if (privacy.address) update['privacy.address'] = privacy.address;
+    }
+    const m = await Merchant.findByIdAndUpdate(req.user.id, update, { new: true }).select('-password');
     res.json(m);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
