@@ -533,6 +533,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
 .empty-page{text-align:center;padding:60px 24px;color:var(--muted);}
 .empty-page .ep-icon{font-size:56px;margin-bottom:14px;}
 .empty-page h3{font-size:18px;font-weight:700;color:var(--text);margin-bottom:8px;}
+.priv-slider::before{content:'';position:absolute;height:18px;width:18px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.2s;}
+.priv-slider.on{background:var(--gm);}
+.priv-slider.on::before{transform:translateX(20px);}
 </style>
 </head>
 <body>
@@ -1071,6 +1074,32 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
     <div class="field"><label>Full Name</label><input id="ep-name" type="text" placeholder="Juan dela Cruz"/></div>
     <div class="field"><label>Phone Number</label><input id="ep-phone" type="tel" placeholder="09171234567"/></div>
     <div class="field"><label>Delivery Address</label><input id="ep-address" type="text" placeholder="Brgy. San Jose, Puerto Princesa"/></div>
+
+    <div style="margin-top:16px;padding-top:14px;border-top:1px solid #eee">
+      <div style="font-size:13px;font-weight:800;color:var(--gd);margin-bottom:10px">🔒 Privacy Settings</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0">
+        <span style="font-size:13px;color:#444">Show Phone Number</span>
+        <label style="position:relative;display:inline-block;width:44px;height:24px">
+          <input type="checkbox" id="ep-privacy-phone" style="opacity:0;width:0;height:0">
+          <span class="priv-slider" onclick="togglePrivacySwitch('ep-privacy-phone',this)" style="position:absolute;cursor:pointer;inset:0;background:#ccc;border-radius:24px;transition:.2s"></span>
+        </label>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0">
+        <span style="font-size:13px;color:#444">Show Email</span>
+        <label style="position:relative;display:inline-block;width:44px;height:24px">
+          <input type="checkbox" id="ep-privacy-email" style="opacity:0;width:0;height:0">
+          <span class="priv-slider" onclick="togglePrivacySwitch('ep-privacy-email',this)" style="position:absolute;cursor:pointer;inset:0;background:#ccc;border-radius:24px;transition:.2s"></span>
+        </label>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0">
+        <span style="font-size:13px;color:#444">Show Address</span>
+        <label style="position:relative;display:inline-block;width:44px;height:24px">
+          <input type="checkbox" id="ep-privacy-address" style="opacity:0;width:0;height:0">
+          <span class="priv-slider" onclick="togglePrivacySwitch('ep-privacy-address',this)" style="position:absolute;cursor:pointer;inset:0;background:#ccc;border-radius:24px;transition:.2s"></span>
+        </label>
+      </div>
+    </div>
+
     <button class="modal-btn" onclick="saveProfile()">Save Changes</button>
   </div>
 </div>
@@ -1626,10 +1655,25 @@ function updateAccountUI(){
   const avatarBtn=document.getElementById('headerAvatarBtn');
   if(avatarBtn)avatarBtn.innerHTML=currentUser.profilePic?`<img src="${currentUser.profilePic}"/>`:'👤';
 }
+function setPrivacySwitch(id,isOn){
+  const input=document.getElementById(id);
+  const slider=input.nextElementSibling;
+  input.checked=isOn;
+  slider.classList.toggle('on',isOn);
+}
+function togglePrivacySwitch(id,slider){
+  const input=document.getElementById(id);
+  input.checked=!input.checked;
+  slider.classList.toggle('on',input.checked);
+}
 function openEditProfile(){
   document.getElementById('ep-name').value=currentUser.name||'';
   document.getElementById('ep-phone').value=currentUser.phone||'';
   document.getElementById('ep-address').value=currentUser.address||'';
+  const priv=currentUser.privacy||{};
+  setPrivacySwitch('ep-privacy-phone',priv.phone==='public');
+  setPrivacySwitch('ep-privacy-email',priv.email==='public');
+  setPrivacySwitch('ep-privacy-address',priv.address==='public');
   document.getElementById('editProfileModal').classList.add('open');
 }
 function closeEditProfile(){document.getElementById('editProfileModal').classList.remove('open');}
@@ -1637,9 +1681,14 @@ async function saveProfile(){
   const name=document.getElementById('ep-name').value.trim();
   const phone=document.getElementById('ep-phone').value.trim();
   const address=document.getElementById('ep-address').value.trim();
-  currentUser={...currentUser,name,phone,address};
+  const privacy={
+    phone: document.getElementById('ep-privacy-phone').checked?'public':'private',
+    email: document.getElementById('ep-privacy-email').checked?'public':'private',
+    address: document.getElementById('ep-privacy-address').checked?'public':'private'
+  };
+  currentUser={...currentUser,name,phone,address,privacy};
   localStorage.setItem('pde_cust_user',JSON.stringify(currentUser));
-  try{await fetch(`${API}/customers/me`,{method:'PUT',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({name,phone,address})});}catch(e){}
+  try{await fetch(`${API}/customers/me`,{method:'PUT',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({name,phone,address,privacy})});}catch(e){}
   updateAccountUI();closeEditProfile();toast('Profile updated!');
 }
 function openChangePassword(){document.getElementById('changePwModal').classList.add('open');}
@@ -1847,8 +1896,8 @@ function openStoreDetail(merchantId, merchantName) {
       document.getElementById('sd-headerName').textContent = displayName;
       document.getElementById('sd-profileName').textContent = displayName;
 
-    document.getElementById('sd-avatarWrap').innerHTML = merchant.storeLogo ? `<img src="${merchant.storeLogo}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">` : '🏪';
-        ? `<img src="${merchant.storeLogo}" style="width:100%;height:100%;object-fit:cover">`
+      document.getElementById('sd-avatarWrap').innerHTML = merchant.storeLogo
+        ? `<img src="${merchant.storeLogo}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`
         : '🏪';
 
       document.getElementById('sd-coverWrap').innerHTML = merchant.storeBanner
