@@ -193,6 +193,7 @@ const MerchantSchema = new mongoose.Schema({
   lat: Number, lng: Number,
   productCategory: String, description: String, bio: String, dtiNumber: String,
   privacy: { phone: { type: String, default: 'private' }, email: { type: String, default: 'private' }, address: { type: String, default: 'public' } },
+  linkedCustomerId: String,
   permitNumber: String, mayorPermit: String, tin: String,
   documents: { govId: String, businessPermit: String, storeFront: String },
   storeLogo: String, storeBanner: String, isOpen: { type: Boolean, default: true },
@@ -212,6 +213,7 @@ const RiderSchema = new mongoose.Schema({
   documents: { govId: String, license: String, orcr: String, clearance: String },
   profilePic: String, isOnline: { type: Boolean, default: false },
   status: { type: String, default: 'pending' }, role: { type: String, default: 'rider' },
+  linkedCustomerId: String,
   isActive: { type: Boolean, default: true }, rating: { type: Number, default: 0 },
   totalDeliveries: { type: Number, default: 0 }, totalEarnings: { type: Number, default: 0 },
   wallet: { type: Number, default: 0 }, totalEarningsAmount: { type: Number, default: 0 },
@@ -415,6 +417,19 @@ const ChatMessageSchema = new mongoose.Schema({
 });
 
 const Conversation = mongoose.model('Conversation', ConversationSchema);
+
+// ============================================================
+// SECURE ACCOUNT SWITCHING (customer <-> merchant/rider)
+// ============================================================
+const SwitchTokenSchema = new mongoose.Schema({
+  code: { type: String, required: true, unique: true, index: true },
+  fromUserId: String, fromRole: String,
+  targetUserId: String, targetRole: String,
+  used: { type: Boolean, default: false },
+  expiresAt: { type: Date, required: true },
+  createdAt: { type: Date, default: Date.now }
+});
+const SwitchToken = mongoose.model('SwitchToken', SwitchTokenSchema);
 const ChatMessage = mongoose.model('ChatMessage', ChatMessageSchema);
 
 function buildParticipantKey(a, b) {
@@ -451,6 +466,131 @@ const auth = (roles = []) => (req, res, next) => {
     req.user = decoded; next();
   } catch { res.status(401).json({ error: 'Invalid token' }); }
 };
+
+// ============================================================
+// ACCOUNT LINKING (secure customer <-> merchant/rider switch)
+// ============================================================
+
+// Check what accounts are linked to the current user
+app.get('/api/account-link/status', auth(['customer', 'merchant', 'rider']), async (req, res) => {
+  try {
+    let customerId = null;
+    if (req.user.role === 'customer') customerId = req.user.id;
+    else customerId = req.user.linkedCustomerId || null;
+
+    if (!customerId) {
+      return res.json({ customerId: null, merchant: null, rider: null });
+    }
+
+    const [merchant, rider] = await Promise.all([
+      Merchant.findOne({ linkedCustomerId: customerId }).select('status name storeName'),
+      Rider.findOne({ linkedCustomerId: customerId }).select('status name')
+    ]);
+
+    res.json({
+      customerId,
+      merchant: merchant ? { exists: true, status: merchant.status } : { exists: false },
+      rider: rider ? { exists: true, status: rider.status } : { exists: false }
+    });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Request a one-time switch token to move to another linked account
+app.post('/api/account-link/request-switch', auth(['customer', 'merchant', 'rider']), async (req, res) => {
+  try {
+    const { targetRole } = req.body;
+    if (!['customer', 'merchant', 'rider'].includes(targetRole)) return res.status(400).json({ error: 'Invalid targetRole' });
+    if (targetRole === req.user.role) return res.status(400).json({ error: 'Already on that role' });
+
+    let customerId = req.user.role === 'customer' ? req.user.id : req.user.linkedCustomerId;
+    if (!customerId) return res.status(403).json({ error: 'No linked customer account' });
+
+    let targetUserId = null, targetUserRole = targetRole;
+
+    if (targetRole === 'customer') {
+      const c = await Customer.findById(customerId).select('_id isActive');
+      if (!c || !c.isActive) return res.status(404).json({ error: 'Customer account not found' });
+      targetUserId = c._id.toString();
+    } else if (targetRole === 'merchant') {
+      const m = await Merchant.findOne({ linkedCustomerId: customerId }).select('_id status');
+      if (!m) return res.status(404).json({ error: 'No merchant account linked', needsApply: true });
+      if (m.status !== 'approved') return res.status(403).json({ error: `Merchant account is ${m.status}`, status: m.status });
+      targetUserId = m._id.toString();
+    } else if (targetRole === 'rider') {
+      const r = await Rider.findOne({ linkedCustomerId: customerId }).select('_id status');
+      if (!r) return res.status(404).json({ error: 'No rider account linked', needsApply: true });
+      if (r.status !== 'approved') return res.status(403).json({ error: `Rider account is ${r.status}`, status: r.status });
+      targetUserId = r._id.toString();
+    }
+
+    const code = crypto.randomBytes(24).toString('hex');
+    await SwitchToken.create({
+      code,
+      fromUserId: req.user.id, fromRole: req.user.role,
+      targetUserId, targetRole: targetUserRole,
+      expiresAt: new Date(Date.now() + 60 * 1000) // 60 seconds
+    });
+
+    await Audit.create({ action: 'account_switch_requested', userId: req.user.id, userRole: req.user.role, details: `Switch to ${targetRole}` }).catch(() => {});
+
+    res.json({ code });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Exchange a one-time switch code for a real session token (called by target app before login)
+app.post('/api/account-link/exchange', async (req, res) => {
+  try {
+    const { code } = req.body;
+    if (!code) return res.status(400).json({ error: 'Code required' });
+
+    const record = await SwitchToken.findOne({ code });
+    if (!record) return res.status(404).json({ error: 'Invalid code' });
+    if (record.used) return res.status(410).json({ error: 'Code already used' });
+    if (record.expiresAt < new Date()) return res.status(410).json({ error: 'Code expired' });
+
+    record.used = true;
+    await record.save();
+
+    let user, token;
+    if (record.targetRole === 'customer') {
+      user = await Customer.findById(record.targetUserId).select('-password');
+      if (!user) return res.status(404).json({ error: 'Customer not found' });
+      token = jwt.sign({ id: user._id, role: 'customer', name: user.name }, JWT_SECRET, { expiresIn: '30d' });
+    } else if (record.targetRole === 'merchant') {
+      user = await Merchant.findById(record.targetUserId).select('-password');
+      if (!user) return res.status(404).json({ error: 'Merchant not found' });
+      token = jwt.sign({ id: user._id, role: 'merchant', name: user.name, storeName: user.storeName, linkedCustomerId: user.linkedCustomerId }, JWT_SECRET, { expiresIn: '30d' });
+    } else if (record.targetRole === 'rider') {
+      user = await Rider.findById(record.targetUserId).select('-password');
+      if (!user) return res.status(404).json({ error: 'Rider not found' });
+      token = jwt.sign({ id: user._id, role: 'rider', name: user.name, linkedCustomerId: user.linkedCustomerId }, JWT_SECRET, { expiresIn: '30d' });
+    } else {
+      return res.status(400).json({ error: 'Invalid target role' });
+    }
+
+    await Audit.create({ action: 'account_switch_completed', userId: user._id.toString(), userRole: record.targetRole, details: `Switched from ${record.fromRole}` }).catch(() => {});
+
+    res.json({ token, user, role: record.targetRole });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Generate a short-lived link code so a customer applying as merchant/rider gets auto-linked
+app.post('/api/account-link/generate-apply-link', auth(['customer']), async (req, res) => {
+  try {
+    const { targetRole } = req.body;
+    if (!['merchant', 'rider'].includes(targetRole)) return res.status(400).json({ error: 'Invalid targetRole' });
+
+    const code = crypto.randomBytes(24).toString('hex');
+    await SwitchToken.create({
+      code,
+      fromUserId: req.user.id, fromRole: 'customer',
+      targetUserId: null, targetRole: 'apply-' + targetRole,
+      expiresAt: new Date(Date.now() + 15 * 60 * 1000) // 15 minutes
+    });
+
+    res.json({ code });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
 
 // ── NOTIFICATION HELPER ──
 const PushSubscriptionSchema = new mongoose.Schema({
@@ -848,13 +988,23 @@ app.post('/api/merchants/apply', (req, res) => {
     try {
       const {
         name, phone, email, password, storeName, businessType, address,
-        productCategory, description, dtiNumber, permitNumber, mayorPermit, tin
+        productCategory, description, dtiNumber, permitNumber, mayorPermit, tin, linkCode
       } = req.body;
 
       const existsMerchant = await Merchant.findOne({ email });
       const existsApplication = await Application.findOne({ "data.email": email, type: "merchant" });
       if (existsMerchant || existsApplication) {
         return res.status(400).json({ error: "Email already registered or application already submitted" });
+      }
+
+      let linkedCustomerId = null;
+      if (linkCode) {
+        const linkRecord = await SwitchToken.findOne({ code: linkCode, targetRole: 'apply-merchant', used: false });
+        if (linkRecord && linkRecord.expiresAt > new Date()) {
+          linkedCustomerId = linkRecord.fromUserId;
+          linkRecord.used = true;
+          await linkRecord.save();
+        }
       }
 
       const hashed = await bcrypt.hash(password, 10);
@@ -871,7 +1021,7 @@ app.post('/api/merchants/apply', (req, res) => {
         data: {
           fullName: name, name, phone, email, password: hashed,
           storeName, businessType, address, productCategory, description,
-          dtiNumber, permitNumber, mayorPermit, tin,
+          dtiNumber, permitNumber, mayorPermit, tin, linkedCustomerId,
           documents: { govId: govIdUrl, businessPermit: businessPermitPhotoUrl, storeFront: storeFrontPhotoUrl }
         },
         status: "pending"
@@ -949,11 +1099,21 @@ app.post('/api/riders/apply', (req, res) => {
   upload.fields([{ name: 'licensePhoto', maxCount: 1 }, { name: 'orcrPhoto', maxCount: 1 }, { name: 'clearancePhoto', maxCount: 1 }])(req, res, async (err) => {
     if (err) return res.status(400).json({ error: err.message });
     try {
-      const { name, fullName, email, phone, address, vehicleType, vehicleModel, plateNumber, licenseNumber, password } = req.body;
+      const { name, fullName, email, phone, address, vehicleType, vehicleModel, plateNumber, licenseNumber, password, linkCode } = req.body;
       const finalName = fullName || name;
 
       const exists = await Rider.findOne({ email });
       if (exists) return res.status(400).json({ error: 'Email already registered' });
+
+      let linkedCustomerId = null;
+      if (linkCode) {
+        const linkRecord = await SwitchToken.findOne({ code: linkCode, targetRole: 'apply-rider', used: false });
+        if (linkRecord && linkRecord.expiresAt > new Date()) {
+          linkedCustomerId = linkRecord.fromUserId;
+          linkRecord.used = true;
+          await linkRecord.save();
+        }
+      }
 
       const hashed = await bcrypt.hash(password, 10);
 
@@ -966,7 +1126,7 @@ app.post('/api/riders/apply', (req, res) => {
 
       const rider = await Rider.create({
         name: finalName, email, phone, address, vehicleType, vehicleModel, plateNumber, licenseNumber,
-        password: hashed, status: 'pending',
+        password: hashed, status: 'pending', linkedCustomerId,
         documents: { license: licenseUrl, orcr: orcrUrl, clearance: clearanceUrl }
       });
 
@@ -1212,6 +1372,7 @@ app.put('/api/admin/applications/:id', auth(['admin']), async (req, res) => {
               permitNumber: appData.data.permitNumber,
               mayorPermit: appData.data.mayorPermit,
               tin: appData.data.tin,
+              linkedCustomerId: appData.data.linkedCustomerId || null,
               status: 'approved',
               isActive: true
             }
