@@ -1289,7 +1289,30 @@ let selectedPayment='cod',selectedStar=0,ratingOrderId=null;
 let searchFilter='all',orderFilter='all';
 
 // ── SESSION ──
-function checkSession(){
+async function checkSession(){
+  const params = new URLSearchParams(window.location.search);
+  const switchCode = params.get('switchCode');
+  if(switchCode){
+    window.history.replaceState({}, document.title, window.location.pathname);
+    try{
+      const r = await fetch(`${API}/account-link/exchange`,{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({code: switchCode})
+      });
+      const d = await r.json();
+      if(r.ok && d.token){
+        token=d.token; currentUser=d.user;
+        localStorage.setItem('pde_cust_token',token);
+        localStorage.setItem('pde_cust_user',JSON.stringify(currentUser));
+        document.getElementById('splashScreen').style.display='none';
+        enterApp();
+        initSocket();
+        return;
+      }
+    }catch(e){}
+  }
+
   const saved=localStorage.getItem('pde_cust_token');
   const savedUser=localStorage.getItem('pde_cust_user');
   if(saved&&savedUser){

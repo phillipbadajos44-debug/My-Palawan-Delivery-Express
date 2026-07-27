@@ -475,6 +475,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
     <div class="sec-title">Settings</div>
     <div class="menu-item" onclick="openEditProfile()"><div class="mi-icon">✏️</div><div class="mi-label">Edit Profile</div><div class="mi-arr">›</div></div>
     <div class="menu-item"><div class="mi-icon">🔒</div><div class="mi-label">Change Password</div><div class="mi-arr">›</div></div>
+    <div class="menu-item" onclick="switchToCustomer()"><div class="mi-icon">🛍️</div><div class="mi-label">Switch to Customer</div><div class="mi-arr">›</div></div>
     <div class="menu-item" onclick="logout()"><div class="mi-icon">🚪</div><div class="mi-label" style="color:var(--red)">Log Out</div><div class="mi-arr">›</div></div>
     <div style="height:24px"></div>
   </div>
@@ -590,7 +591,28 @@ let socket=null;
 let salesData=[0,0,0,0,0,0,0];
 
 // ── SESSION ──
-function checkSession(){
+async function checkSession(){
+  const params = new URLSearchParams(window.location.search);
+  const switchCode = params.get('switchCode');
+  if(switchCode){
+    window.history.replaceState({}, document.title, window.location.pathname);
+    try{
+      const r = await fetch(`${API}/account-link/exchange`,{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({code: switchCode})
+      });
+      const d = await r.json();
+      if(r.ok && d.token){
+        token=d.token; currentMerchant=d.user;
+        saveSession();
+        if(currentMerchant.status==='pending')showPending();
+        else enterApp();
+        return;
+      }
+    }catch(e){}
+  }
+
   const t=localStorage.getItem('pde_merch_token');
   const u=localStorage.getItem('pde_merch_user');
   if(t&&u){token=t;currentMerchant=JSON.parse(u);
@@ -693,7 +715,8 @@ try {
       dtiNumber: dti,
       permitNumber: permit,
       mayorPermit: mayor,
-      tin
+      tin,
+      linkCode: new URLSearchParams(window.location.search).get('linkCode') || localStorage.getItem('pde_pending_linkCode') || null
     })
   });
     const data = await res.json();
@@ -737,6 +760,26 @@ function logout(){
   document.getElementById('mainApp').classList.remove('active');
   document.getElementById('pendingScreen').classList.remove('active');
   document.getElementById('authScreen').style.display='flex';
+}
+
+const CUSTOMER_APP_URL = 'https://my-palawan-delivery-express-customer1.onrender.com';
+async function switchToCustomer(){
+  toast('Switching account…');
+  try{
+    const r = await fetch(`${API}/account-link/request-switch`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+      body: JSON.stringify({targetRole:'customer'})
+    });
+    const d = await r.json();
+    if(!r.ok){
+      toast(d.error || 'Could not switch account.');
+      return;
+    }
+    window.location.href = `${CUSTOMER_APP_URL}/?switchCode=${d.code}`;
+  }catch(e){
+    toast('Failed to switch account.');
+  }
 }
 
 function updateStoreUI(){
@@ -1326,6 +1369,8 @@ function closeNotif(){document.getElementById('notifPanel').classList.remove('op
 
 function toast(msg){const t=document.getElementById('toastEl');document.getElementById('toastMsg').textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2800);}
 
+const _lc = new URLSearchParams(window.location.search).get('linkCode');
+if(_lc) localStorage.setItem('pde_pending_linkCode', _lc);
 checkSession();
 </script>
   <script src="https://my-palawan-delivery-express.onrender.com/socket.io/socket.io.js"></script>
