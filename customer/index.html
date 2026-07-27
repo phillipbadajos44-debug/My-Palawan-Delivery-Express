@@ -1160,12 +1160,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
 
     <div class="sec-title" style="margin-top:0">👤 Switch Account</div>
     <div class="menu-item" style="background:#f0faf4"><div class="mi-icon">🛍️</div><div class="mi-label">Customer (Current)</div></div>
-    <div class="menu-item" onclick="window.location.href='https://my-palawan-delivery-express-merchant1.onrender.com'"><div class="mi-icon">🏪</div><div class="mi-label">Switch to Merchant</div><div class="mi-arr">›</div></div>
-    <div class="menu-item" onclick="window.location.href='https://my-palawan-delivery-express-rider1.onrender.com'"><div class="mi-icon">🏍️</div><div class="mi-label">Switch to Rider</div><div class="mi-arr">›</div></div>
+    <div class="menu-item" onclick="switchAccountTo('merchant')"><div class="mi-icon">🏪</div><div class="mi-label">Switch to Merchant</div><div class="mi-arr">›</div></div>
+    <div class="menu-item" onclick="switchAccountTo('rider')"><div class="mi-icon">🏍️</div><div class="mi-label">Switch to Rider</div><div class="mi-arr">›</div></div>
 
     <div class="sec-title">➕ Get Started</div>
-    <div class="menu-item" onclick="window.location.href='https://my-palawan-delivery-express-merchant1.onrender.com'"><div class="mi-icon">🏪</div><div class="mi-label">Apply as Merchant</div><div class="mi-arr">›</div></div>
-    <div class="menu-item" onclick="window.location.href='https://my-palawan-delivery-express-rider1.onrender.com'"><div class="mi-icon">🏍️</div><div class="mi-label">Apply as Rider</div><div class="mi-arr">›</div></div>
+    <div class="menu-item" onclick="applyAs('merchant')"><div class="mi-icon">🏪</div><div class="mi-label">Apply as Merchant</div><div class="mi-arr">›</div></div>
+    <div class="menu-item" onclick="applyAs('rider')"><div class="mi-icon">🏍️</div><div class="mi-label">Apply as Rider</div><div class="mi-arr">›</div></div>
 
     <div class="sec-title">⚙️ Account Settings</div>
     <div class="menu-item" onclick="closeMainMenu();showPage('account',document.querySelectorAll('.icon-btn')[0]);loadMyCustomerPosts();loadMySharedPosts();"><div class="mi-icon">👤</div><div class="mi-label">My Account</div><div class="mi-arr">›</div></div>
@@ -2377,6 +2377,59 @@ function openHelpModal(){document.getElementById('helpModal').classList.add('ope
 function closeHelpModal(){document.getElementById('helpModal').classList.remove('open');}
 function openTermsModal(){document.getElementById('termsModal').classList.add('open');}
 function closeTermsModal(){document.getElementById('termsModal').classList.remove('open');}
+
+// ── SECURE ACCOUNT SWITCH ──
+const MERCHANT_APP_URL = 'https://my-palawan-delivery-express-merchant1.onrender.com';
+const RIDER_APP_URL = 'https://my-palawan-delivery-express-rider1.onrender.com';
+
+async function switchAccountTo(targetRole){
+  closeMainMenu();
+  toast('Checking account…');
+  try{
+    const r = await fetch(`${API}/account-link/request-switch`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+      body: JSON.stringify({targetRole})
+    });
+    const d = await r.json();
+    if(!r.ok){
+      if(d.needsApply){
+        toast(`No ${targetRole} account yet. Redirecting to apply…`);
+        setTimeout(()=>applyAs(targetRole), 1200);
+      }else if(d.status){
+        toast(`Your ${targetRole} account is ${d.status}.`);
+      }else{
+        toast(d.error || 'Could not switch account.');
+      }
+      return;
+    }
+    const targetUrl = targetRole==='merchant' ? MERCHANT_APP_URL : RIDER_APP_URL;
+    window.location.href = `${targetUrl}/?switchCode=${d.code}`;
+  }catch(e){
+    toast('Failed to switch account.');
+  }
+}
+
+async function applyAs(targetRole){
+  closeMainMenu();
+  try{
+    const r = await fetch(`${API}/account-link/generate-apply-link`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+      body: JSON.stringify({targetRole})
+    });
+    const d = await r.json();
+    const targetUrl = targetRole==='merchant' ? MERCHANT_APP_URL : RIDER_APP_URL;
+    if(d.code){
+      window.location.href = `${targetUrl}/?linkCode=${d.code}`;
+    }else{
+      window.location.href = targetUrl;
+    }
+  }catch(e){
+    const targetUrl = targetRole==='merchant' ? MERCHANT_APP_URL : RIDER_APP_URL;
+    window.location.href = targetUrl;
+  }
+}
 
 async function loadChatConvos(){
   const list=document.getElementById('chatConvoList');
