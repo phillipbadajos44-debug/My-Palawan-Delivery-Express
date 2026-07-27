@@ -1536,6 +1536,7 @@ async function enterApp(){
     updateAccountUI();
   }catch(e){favorites=[];}
   loadAiGreeting();
+  loadStores();
   await loadProducts();
   loadCommunityFeed();
   loadOrders();loadNotifications();
@@ -2823,6 +2824,11 @@ function myReactionInfo(p){
   return mine?map[mine.type]:['👍','Like'];
 }
 
+function getMerchantLogoHtml(merchantId,fallbackEmoji){
+  const m=(typeof merchantsList!=='undefined'?merchantsList:[]).find(x=>x._id===merchantId);
+  if(m&&m.storeLogo)return '<img src="'+resolveMerchantImg(m.storeLogo)+'" style="width:100%;height:100%;object-fit:cover;border-radius:inherit"/>';
+  return fallbackEmoji;
+}
 function renderCommunityFeed(){
   const el=document.getElementById('community-feed');
   if(!el)return;
