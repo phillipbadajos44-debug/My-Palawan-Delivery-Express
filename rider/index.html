@@ -338,7 +338,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
       <div class="pf"><div class="pf-icon">🔢</div><div class="pf-info"><div class="pf-label">Plate Number</div><div class="pf-value" id="pf-plate">—</div></div></div>
       <div class="pf"><div class="pf-icon">⭐</div><div class="pf-info"><div class="pf-label">Rating</div><div class="pf-value"><div class="rating-stars">⭐⭐⭐⭐⭐</div><span style="font-size:14px;font-weight:700">4.9 / 5.0</span></div></div></div>
     </div>
-    <div style="padding:18px 18px 0">
+    <div style="padding:18px 18px 0;display:flex;flex-direction:column;gap:10px">
+      <button style="width:100%;padding:14px;background:#e0f2fe;color:#0369a1;border:none;border-radius:14px;font-size:15px;font-weight:700;cursor:pointer" onclick="switchToCustomer()">🛍️ Switch to Customer</button>
       <button style="width:100%;padding:14px;background:#fee2e2;color:#991b1b;border:none;border-radius:14px;font-size:15px;font-weight:700;cursor:pointer" onclick="logout()">🚪 Log Out</button>
     </div>
     <div style="height:24px"></div>
@@ -413,7 +414,30 @@ let availableOrders=[],activeDeliveries=[],completedDeliveries=[];
 let totalEarned=0;
 let proofFile=null;
 
-function checkSession(){
+async function checkSession(){
+  const params = new URLSearchParams(window.location.search);
+  const switchCode = params.get('switchCode');
+  if(switchCode){
+    window.history.replaceState({}, document.title, window.location.pathname);
+    try{
+      const r = await fetch(`${API}/account-link/exchange`,{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({code: switchCode})
+      });
+      const d = await r.json();
+      if(r.ok && d.token){
+        token=d.token; currentRider=d.user;
+        localStorage.setItem('pde_rider_token',token);
+        localStorage.setItem('pde_rider_user',JSON.stringify(currentRider));
+        document.getElementById('splashScreen').style.display='none';
+        if(currentRider.status==='pending')showPending();
+        else enterApp();
+        return;
+      }
+    }catch(e){}
+  }
+
   const t=localStorage.getItem('pde_rider_token');
   const u=localStorage.getItem('pde_rider_user');
   if(t&&u){
@@ -423,6 +447,8 @@ function checkSession(){
     else enterApp();
     return;
   }
+  const _lc = new URLSearchParams(window.location.search).get('linkCode');
+  if(_lc) localStorage.setItem('pde_pending_linkCode', _lc);
   setTimeout(()=>{
     document.getElementById('splashScreen').style.display='none';
     goScreen('welcomeScreen');
@@ -695,6 +721,8 @@ async function submitWizardApply(){
   if(wizardFiles.licensePhoto)formData.append('licensePhoto',wizardFiles.licensePhoto);
   if(wizardFiles.orcrPhoto)formData.append('orcrPhoto',wizardFiles.orcrPhoto);
   if(wizardFiles.clearancePhoto)formData.append('clearancePhoto',wizardFiles.clearancePhoto);
+  const _linkCode = new URLSearchParams(window.location.search).get('linkCode') || localStorage.getItem('pde_pending_linkCode');
+  if(_linkCode)formData.append('linkCode',_linkCode);
 
   try{
     const res=await fetch(`${API}/riders/apply`,{method:'POST',body:formData});
@@ -812,6 +840,26 @@ function logout(){
   document.getElementById('mainApp').classList.remove('active');
   document.getElementById('pendingScreen').classList.remove('active');
   goScreen('welcomeScreen');
+}
+
+const CUSTOMER_APP_URL = 'https://my-palawan-delivery-express-customer1.onrender.com';
+async function switchToCustomer(){
+  toast('Switching account…');
+  try{
+    const r = await fetch(`${API}/account-link/request-switch`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+      body: JSON.stringify({targetRole:'customer'})
+    });
+    const d = await r.json();
+    if(!r.ok){
+      toast(d.error || 'Could not switch account.');
+      return;
+    }
+    window.location.href = `${CUSTOMER_APP_URL}/?switchCode=${d.code}`;
+  }catch(e){
+    toast('Failed to switch account.');
+  }
 }
 
 function updateRiderUI(){
