@@ -607,11 +607,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
 <div class="app" id="mainApp">
   <div class="header">
     <div class="header-top">
+      <div class="icon-btn" onclick="showPage('account',this);loadMyCustomerPosts();loadMySharedPosts();">👤</div>
       <div class="header-actions">
-        <div class="icon-btn" onclick="toggleSearch()">🔍</div>
-        <div class="icon-btn" onclick="openFavPanel()">❤️</div>
-        <div class="icon-btn" onclick="openNotif()">🔔<div class="icon-dot" id="notifDot"></div></div>
         <div class="icon-btn" onclick="openChatInbox()">💬<div class="icon-dot" id="chatDot" style="display:none"></div></div>
+        <div class="icon-btn" onclick="openNotif()">🔔<div class="icon-dot" id="notifDot"></div></div>
       </div>
     </div>
     <div class="search-wrap" id="searchWrap">
@@ -620,9 +619,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
     </div>
     <div class="top-nav-icons">
       <button class="nav-item active" onclick="showPage('home',this)"><div class="nav-icon">🏠</div></button>
-      <button class="nav-item" onclick="showPage('grocery',this)"><div class="nav-icon">🛒</div></button>
       <button class="nav-item" onclick="showPage('store',this);loadStores()"><div class="nav-icon">🏪</div></button>
-      <button class="nav-item" onclick="showPage('account',this);loadMyCustomerPosts();loadMySharedPosts();"><div class="nav-icon">👤</div></button>
+      <button class="nav-item" onclick="showPage('grocery',this)"><div class="nav-icon">🛒</div></button>
     </div>
   </div>
 
