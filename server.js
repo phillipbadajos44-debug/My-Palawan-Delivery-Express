@@ -159,10 +159,13 @@ app.use('/uploads', express.static('uploads'));
 const storage = multer.memoryStorage();
 const upload = multer({
   storage,
-  limits: { fileSize: 5 * 1024 * 1024 },
+  limits: { fileSize: 15 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
-    const allowed = /jpeg|jpg|png|gif|pdf/;
-    cb(null, allowed.test(path.extname(file.originalname).toLowerCase()));
+    const allowedExt = /jpeg|jpg|png|gif|pdf/;
+    const allowedMime = /^image\/(jpeg|jpg|png|gif|webp|heic|heif)$/i;
+    const extOk = allowedExt.test(path.extname(file.originalname).toLowerCase());
+    const mimeOk = allowedMime.test(file.mimetype) || file.mimetype === 'application/pdf';
+    cb(null, extOk || mimeOk);
   }
 });
 
@@ -388,6 +391,135 @@ const Merchant = mongoose.model('Merchant', MerchantSchema);
 const Rider = mongoose.model('Rider', RiderSchema);
 const Product = mongoose.model('Product', ProductSchema);
 const Order = mongoose.model('Order', OrderSchema);
+
+// ============================================================
+// ERRAND / PABILI SERVICE
+// ============================================================
+const ErrandSchema = new mongoose.Schema({
+  customerId: String, customerName: String, customerPhone: String,
+  customerAddress: String, customerLat: Number, customerLng: Number,
+  description: { type: String, required: true },
+  budget: { type: Number, default: 0 },
+  notes: String,
+  riderId: String, riderName: String,
+  actualCost: { type: Number, default: 0 },
+  deliveryFee: { type: Number, default: 60 },
+  serviceFee: { type: Number, default: 0 },
+  total: { type: Number, default: 0 },
+  paymentMethod: { type: String, default: 'cod' },
+  status: { type: String, default: 'pending' }, // pending, accepted, purchasing, delivering, completed, cancelled
+  statusHistory: [{ status: String, time: Date, note: String }],
+  proofOfPurchase: String,
+  rating: Number, review: String,
+  date: { type: Date, default: Date.now }
+});
+const Errand = mongoose.model('Errand', ErrandSchema);
+
+// Customer creates an errand/pabili request
+app.post('/api/errands', auth(['customer']), async (req, res) => {
+  try {
+    const { description, budget, notes, customerAddress, customerLat, customerLng } = req.body;
+    if (!description || !customerAddress) return res.status(400).json({ error: 'description and customerAddress required' });
+
+    const customer = await Customer.findById(req.user.id).select('name phone');
+    const errand = await Errand.create({
+      customerId: req.user.id,
+      customerName: customer?.name || req.user.name,
+      customerPhone: customer?.phone || '',
+      customerAddress, customerLat, customerLng,
+      description, budget: budget || 0, notes: notes || '',
+      status: 'pending',
+      statusHistory: [{ status: 'pending', time: new Date() }]
+    });
+
+    if (io) io.emit('errand_created', errand);
+    res.json(errand);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Customer's own errands
+app.get('/api/errands/my', auth(['customer']), async (req, res) => {
+  try {
+    const errands = await Errand.find({ customerId: req.user.id }).sort('-date');
+    res.json(errands);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Rider - list available (pending, unassigned) errands
+app.get('/api/errands/available', auth(['rider']), async (req, res) => {
+  try {
+    const errands = await Errand.find({ status: 'pending' }).sort('-date');
+    res.json(errands);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Rider - my accepted errands
+app.get('/api/errands/my-deliveries', auth(['rider']), async (req, res) => {
+  try {
+    const errands = await Errand.find({ riderId: req.user.id, status: { $nin: ['completed', 'cancelled'] } }).sort('-date');
+    res.json(errands);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Rider accepts an errand
+app.put('/api/errands/:id/accept', auth(['rider']), async (req, res) => {
+  try {
+    const errand = await Errand.findById(req.params.id);
+    if (!errand) return res.status(404).json({ error: 'Errand not found' });
+    if (errand.status !== 'pending') return res.status(400).json({ error: 'Errand already taken' });
+
+    const rider = await Rider.findById(req.user.id).select('name');
+    errand.riderId = req.user.id;
+    errand.riderName = rider?.name || req.user.name;
+    errand.status = 'accepted';
+    errand.statusHistory.push({ status: 'accepted', time: new Date() });
+    await errand.save();
+
+    if (io) {
+      io.to(`customer:${errand.customerId}`).emit('errand_updated', errand);
+      io.emit('errand_taken', { errandId: errand._id });
+    }
+    res.json(errand);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Rider updates errand status (purchasing, delivering, completed) + actual cost on completion
+app.put('/api/errands/:id/status', auth(['rider']), async (req, res) => {
+  try {
+    const { status, actualCost, note } = req.body;
+    const errand = await Errand.findById(req.params.id);
+    if (!errand) return res.status(404).json({ error: 'Errand not found' });
+    if (errand.riderId !== req.user.id) return res.status(403).json({ error: 'Not your errand' });
+
+    errand.status = status;
+    if (status === 'completed') {
+      errand.actualCost = actualCost || errand.actualCost;
+      errand.total = (errand.actualCost || 0) + (errand.deliveryFee || 0) + (errand.serviceFee || 0);
+    }
+    errand.statusHistory.push({ status, time: new Date(), note: note || '' });
+    await errand.save();
+
+    if (io) io.to(`customer:${errand.customerId}`).emit('errand_updated', errand);
+    res.json(errand);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Customer cancels a pending errand
+app.put('/api/errands/:id/cancel', auth(['customer']), async (req, res) => {
+  try {
+    const errand = await Errand.findById(req.params.id);
+    if (!errand) return res.status(404).json({ error: 'Errand not found' });
+    if (errand.customerId !== req.user.id) return res.status(403).json({ error: 'Not your errand' });
+    if (!['pending', 'accepted'].includes(errand.status)) return res.status(400).json({ error: 'Cannot cancel at this stage' });
+
+    errand.status = 'cancelled';
+    errand.statusHistory.push({ status: 'cancelled', time: new Date() });
+    await errand.save();
+
+    if (errand.riderId && io) io.to(`rider:${errand.riderId}`).emit('errand_updated', errand);
+    res.json(errand);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
 const Notification = mongoose.model('Notification', NotificationSchema);
 const Review = mongoose.model('Review', ReviewSchema);
 const Audit = mongoose.model('Audit', AuditSchema);
