@@ -255,7 +255,7 @@ pricingSnapshot: { type: Object, default: {} },
   paymentStatus: { type: String, default: 'pending' },
   status: { type: String, default: 'pending' },
   statusHistory: [{ status: String, time: Date, note: String }],
-  proofOfPickup: String, proofOfDelivery: String, rating: Number, review: String,
+  proofOfPickup: String, proofOfDelivery: String, rating: Number, review: String, reviewPhotos: { type: [String], default: [] },
   estimatedDelivery: Date, deliveredAt: Date,
   offeredRiderId: String, offerExpiresAt: Date, excludedRiderIds: { type: [String], default: [] },
   date: { type: Date, default: Date.now }
@@ -2186,7 +2186,7 @@ app.post('/api/orders/:id/payment', auth(['customer', 'admin']), async (req, res
 // ============================================================
 app.post('/api/reviews', auth(['customer']), async (req, res) => {
   try {
-    const { orderId, merchantId, productId, rating, review } = req.body;
+    const { orderId, merchantId, productId, rating, review, photos } = req.body;
 
     const rev = await Review.create({
       orderId,
@@ -2195,7 +2195,8 @@ app.post('/api/reviews', auth(['customer']), async (req, res) => {
       merchantId,
       productId,
       rating,
-      review
+      review,
+      photos: Array.isArray(photos) ? photos : []
     });
 
     // Update product rating
@@ -2209,7 +2210,7 @@ app.post('/api/reviews', auth(['customer']), async (req, res) => {
     }
 
     // Update order rating
-    await Order.findByIdAndUpdate(orderId, { rating, review });
+    await Order.findByIdAndUpdate(orderId, { rating, review, reviewPhotos: rev.photos });
 
     res.json(rev);
 
@@ -2217,6 +2218,22 @@ app.post('/api/reviews', auth(['customer']), async (req, res) => {
     res.status(500).json({ error: e.message });
   }
 });
+
+// Upload photo(s) for a review (customer uploads what they received)
+app.post('/api/reviews/upload', auth(['customer']), (req, res) => {
+  upload.array('images', 5)(req, res, async (err) => {
+    if (err) return res.status(400).json({ error: err.message });
+    if (!req.files || !req.files.length) return res.status(400).json({ error: 'No files uploaded' });
+    try {
+      const results = await Promise.all(req.files.map(f => uploadToCloudinary(f.buffer, 'reviews')));
+      const urls = results.map(r => r.secure_url);
+      res.json({ urls });
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+});
+
 app.get('/api/reviews/:productId', async (req, res) => {
   try { res.json(await Review.find({ productId: req.params.productId }).sort('-createdAt').limit(20)); } catch (e) { res.status(500).json({ error: e.message }); }
 });

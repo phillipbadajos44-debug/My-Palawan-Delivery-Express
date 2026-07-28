@@ -1013,7 +1013,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
     <div class="field" style="margin-top:8px"><label>Review (optional)</label>
       <textarea class="review-input" id="reviewText" placeholder="Tell us about your experience…"></textarea>
     </div>
-    <button class="modal-btn" onclick="submitRating()">Submit Rating</button>
+    <div class="field" style="margin-top:8px">
+      <label>Add Photos (optional)</label>
+      <input type="file" id="reviewPhotoInput" accept="image/*" multiple capture="environment" style="display:none" onchange="handleReviewPhotos(this.files)">
+      <button type="button" onclick="document.getElementById('reviewPhotoInput').click()" style="width:100%;padding:10px;border:1.5px dashed #d1d5db;border-radius:12px;background:#fafafa;color:var(--muted);font-size:13px;font-weight:600;">📷 Add photo of what you received</button>
+      <div id="reviewPhotoPreview" style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;"></div>
+    </div>
+    <button class="modal-btn" onclick="submitRating()" id="submitRatingBtn">Submit Rating</button>
   </div>
 </div>
 
@@ -1969,6 +1975,7 @@ async function loadProductReviews(id){
         <span style="font-size:12px;color:#f5a623">${'\u2b50'.repeat(rv.rating||0)}</span>
       </div>
       ${rv.review?`<div style="font-size:13px;color:var(--text);margin-top:4px">${rv.review}</div>`:''}
+      ${Array.isArray(rv.photos)&&rv.photos.length?`<div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">${rv.photos.map(u=>`<img src="${u}" style="width:56px;height:56px;object-fit:cover;border-radius:8px;border:1px solid #e5e7eb;cursor:pointer" onclick="window.open('${u}','_blank')">`).join('')}</div>`:''}
     </div>`).join('');
   }catch(e){
     const el=document.getElementById('pd-reviews');
@@ -2893,15 +2900,44 @@ function toggleFaq(el){
   if(!wasOpen)item.classList.add('open');
 }
 
-function openRating(orderId){ratingOrderId=orderId;selectedStar=0;renderStars();document.getElementById('reviewText').value='';document.getElementById('ratingModal').classList.add('open');}
+let reviewPhotoFiles=[];
+function openRating(orderId){ratingOrderId=orderId;selectedStar=0;renderStars();document.getElementById('reviewText').value='';reviewPhotoFiles=[];renderReviewPhotoPreview();document.getElementById('reviewPhotoInput').value='';document.getElementById('ratingModal').classList.add('open');}
 function closeRating(){document.getElementById('ratingModal').classList.remove('open');}
 function setStar(n){selectedStar=n;renderStars();}
 function renderStars(){document.querySelectorAll('.star').forEach((s,i)=>{s.textContent=i<selectedStar?'⭐':'☆';s.classList.toggle('lit',i<selectedStar);});}
+function handleReviewPhotos(fileList){
+  const newFiles=Array.from(fileList||[]).slice(0,5-reviewPhotoFiles.length);
+  reviewPhotoFiles=[...reviewPhotoFiles,...newFiles].slice(0,5);
+  renderReviewPhotoPreview();
+}
+function removeReviewPhoto(idx){reviewPhotoFiles.splice(idx,1);renderReviewPhotoPreview();}
+function renderReviewPhotoPreview(){
+  const el=document.getElementById('reviewPhotoPreview');
+  if(!el)return;
+  el.innerHTML=reviewPhotoFiles.map((f,i)=>`
+    <div style="position:relative;width:64px;height:64px;">
+      <img src="${URL.createObjectURL(f)}" style="width:64px;height:64px;object-fit:cover;border-radius:10px;border:1px solid #e5e7eb;">
+      <button type="button" onclick="removeReviewPhoto(${i})" style="position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;background:#ef4444;color:#fff;border:none;font-size:12px;line-height:20px;padding:0;">✕</button>
+    </div>`).join('');
+}
 async function submitRating(){
   if(!selectedStar){toast('Please select a star rating');return;}
   const review=document.getElementById('reviewText').value;
-  try{await fetch(`${API}/reviews`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({orderId:ratingOrderId,rating:selectedStar,review})});}catch(e){}
+  const btn=document.getElementById('submitRatingBtn');
+  if(btn){btn.disabled=true;btn.textContent='Submitting…';}
+  let photos=[];
+  try{
+    if(reviewPhotoFiles.length){
+      const fd=new FormData();
+      reviewPhotoFiles.forEach(f=>fd.append('images',f));
+      const upRes=await fetch(`${API}/reviews/upload`,{method:'POST',headers:{'Authorization':'Bearer '+token},body:fd});
+      const upData=await upRes.json();
+      photos=upData.urls||[];
+    }
+  }catch(e){toast('Photo upload failed, submitting review without photos');}
+  try{await fetch(`${API}/reviews`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({orderId:ratingOrderId,rating:selectedStar,review,photos})});}catch(e){}
   const o=orders.find(x=>x.id===ratingOrderId);if(o)o.rating=selectedStar;
+  if(btn){btn.disabled=false;btn.textContent='Submit Rating';}
   closeRating();renderOrders();toast('Thank you for your rating! ⭐');
 }
 
