@@ -625,6 +625,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
       <button class="nav-item active" onclick="showPage('home',this)"><div class="nav-icon">🏠</div></button>
       <button class="nav-item" onclick="showPage('store',this);loadStores()"><div class="nav-icon">🏪</div></button>
       <button class="nav-item" onclick="showPage('grocery',this)"><div class="nav-icon">🛒</div></button>
+      <button class="nav-item" onclick="showPage('rides',this)"><div class="nav-icon">🛵</div></button>
       <button class="nav-item" onclick="openMainMenu()"><div class="nav-icon">☰</div></button>
     </div>
   </div>
@@ -700,7 +701,62 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
     </div>
   </div>
 
-  <div id="page-store" class="page">
+  <div id="page-rides" class="page">
+    <div style="padding:20px 18px 10px"><h2 style="font-size:21px;font-weight:800;color:var(--gd)">🛵 Rides &amp; Errands</h2><p style="font-size:13px;color:var(--muted);margin-top:2px">Book a ride, request a pabili, or find a trip</p></div>
+
+    <div style="padding:0 18px 8px">
+      <div style="background:linear-gradient(135deg,var(--gd),var(--gm));border-radius:18px;padding:20px;color:#fff;position:relative;overflow:hidden;opacity:.6">
+        <div style="font-size:28px">🏍️</div>
+        <div style="font-weight:800;font-size:17px;margin-top:6px">Book a Ride</div>
+        <div style="font-size:13px;opacity:.9;margin-top:2px">Point-to-point rides, cash payment</div>
+        <div style="margin-top:10px;font-size:12px;font-weight:700;background:rgba(255,255,255,.2);display:inline-block;padding:4px 10px;border-radius:10px">🚧 Coming Soon</div>
+      </div>
+    </div>
+
+    <div style="padding:12px 18px 8px">
+      <div style="background:#fff;border:1.5px solid #e5e7eb;border-radius:18px;padding:20px;cursor:pointer" onclick="openPabiliPage()">
+        <div style="font-size:28px">🛍️</div>
+        <div style="font-weight:800;font-size:17px;margin-top:6px;color:var(--gd)">Pabili / Errand</div>
+        <div style="font-size:13px;color:var(--muted);margin-top:2px">Ask a rider to buy something for you</div>
+        <div style="margin-top:10px;font-size:12px;font-weight:700;color:var(--gm)">Request now →</div>
+      </div>
+    </div>
+
+    <div style="padding:12px 18px 8px">
+      <div style="background:linear-gradient(135deg,var(--gd),var(--gm));border-radius:18px;padding:20px;color:#fff;position:relative;overflow:hidden;opacity:.6">
+        <div style="font-size:28px">🚐</div>
+        <div style="font-weight:800;font-size:17px;margin-top:6px">Trip Marketplace</div>
+        <div style="font-size:13px;opacity:.9;margin-top:2px">Find van/car trips going your way</div>
+        <div style="margin-top:10px;font-size:12px;font-weight:700;background:rgba(255,255,255,.2);display:inline-block;padding:4px 10px;border-radius:10px">🚧 Coming Soon</div>
+      </div>
+    </div>
+    <div style="height:24px"></div>
+  </div>
+
+  <!-- PABILI / ERRAND -->
+  <div id="page-pabili" class="page">
+    <div style="padding:16px 18px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--bg)">
+      <span style="font-size:20px;cursor:pointer" onclick="showPage('rides',document.querySelectorAll('.nav-item')[3])">←</span>
+      <h2 style="font-size:18px;font-weight:800;color:var(--gd)">🛍️ Pabili / Errand</h2>
+    </div>
+
+    <div style="padding:16px 18px">
+      <div class="sec-title" style="padding:0 0 8px">New Request</div>
+      <div class="field"><label>What do you need bought?</label><textarea id="pab-desc" placeholder="e.g. 2 kg rice, 1 dozen eggs, cough syrup from Mercury Drug…" style="height:80px;width:100%;padding:12px 14px;border:1.5px solid #e5e7eb;border-radius:12px;font-family:inherit;font-size:14px;outline:none;resize:none"></textarea></div>
+      <div class="field"><label>Estimated Budget (₱)</label><input id="pab-budget" type="number" placeholder="500"/></div>
+      <div class="field"><label>Delivery Address</label><input id="pab-address" type="text" placeholder="Your address"/></div>
+      <div class="field"><label>Additional Notes (optional)</label><input id="pab-notes" type="text" placeholder="e.g. call me when at the store"/></div>
+      <button class="modal-btn" onclick="submitPabiliRequest()">📤 Submit Request</button>
+    </div>
+
+    <div style="padding:8px 18px">
+      <div class="sec-title" style="padding:16px 0 8px">My Requests</div>
+      <div id="pabiliMyList"><div class="spinner"></div></div>
+    </div>
+    <div style="height:24px"></div>
+  </div>
+
+    <div id="page-store" class="page">
     <div style="padding:20px 18px 10px"><h2 style="font-size:21px;font-weight:800;color:var(--gd)">Stores</h2><p style="font-size:13px;color:var(--muted);margin-top:2px">Browse merchants and their products</p></div>
     <div id="store-list" style="padding:0 18px 20px;display:grid;grid-template-columns:1fr 1fr;gap:12px"></div>
   </div>
@@ -2932,6 +2988,7 @@ async function submitRating(){
       reviewPhotoFiles.forEach(f=>fd.append('images',f));
       const upRes=await fetch(`${API}/reviews/upload`,{method:'POST',headers:{'Authorization':'Bearer '+token},body:fd});
       const upData=await upRes.json();
+      if(upData.error){toast('Photo upload failed: '+upData.error);if(btn){btn.disabled=false;btn.textContent='Submit Rating';}return;}
       photos=upData.urls||[];
     }
   }catch(e){toast('Photo upload failed, submitting review without photos');}
@@ -3468,6 +3525,81 @@ function toggleSearch(){
   if(wrap.classList.contains('show'))setTimeout(()=>document.getElementById('searchInput').focus(),80);
 }
 
+// ── PABILI / ERRAND ──
+let myPabiliList = [];
+
+function openPabiliPage(){
+  showPage('pabili', document.querySelectorAll('.nav-item')[3]);
+  loadMyPabili();
+}
+
+async function submitPabiliRequest(){
+  const description = document.getElementById('pab-desc').value.trim();
+  const budget = Number(document.getElementById('pab-budget').value) || 0;
+  const customerAddress = document.getElementById('pab-address').value.trim();
+  const notes = document.getElementById('pab-notes').value.trim();
+
+  if(!description || !customerAddress){
+    toast('Please fill in the request and delivery address.');
+    return;
+  }
+
+  try{
+    const r = await fetch(`${API}/errands`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json','Authorization':'Bearer '+token},
+      body: JSON.stringify({ description, budget, customerAddress, notes })
+    });
+    const d = await r.json();
+    if(!r.ok){ toast(d.error || 'Failed to submit request.'); return; }
+
+    document.getElementById('pab-desc').value = '';
+    document.getElementById('pab-budget').value = '';
+    document.getElementById('pab-address').value = '';
+    document.getElementById('pab-notes').value = '';
+    toast('✅ Pabili request submitted!');
+    loadMyPabili();
+  }catch(e){ toast('Failed to submit request.'); }
+}
+
+async function loadMyPabili(){
+  try{
+    const r = await fetch(`${API}/errands/my`, { headers:{'Authorization':'Bearer '+token} });
+    myPabiliList = await r.json();
+    renderMyPabili();
+  }catch(e){}
+}
+
+function renderMyPabili(){
+  const el = document.getElementById('pabiliMyList');
+  if(!myPabiliList.length){
+    el.innerHTML = `<div style="padding:20px;color:var(--muted);text-align:center">No requests yet</div>`;
+    return;
+  }
+  const statusLabels = {
+    pending: '⏳ Waiting for rider', accepted: '🛵 Rider assigned',
+    purchasing: '🛍️ Purchasing items', delivering: '🚚 On the way',
+    completed: '✅ Completed', cancelled: '❌ Cancelled'
+  };
+  el.innerHTML = myPabiliList.map(p => `
+    <div style="background:#fff;border:1.5px solid #e5e7eb;border-radius:14px;padding:14px;margin-bottom:10px">
+      <div style="font-size:14px;font-weight:700;color:var(--gd)">${statusLabels[p.status]||p.status}</div>
+      <div style="font-size:13px;color:#444;margin-top:4px">${p.description}</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:6px">Budget: ₱${p.budget||0}${p.riderName?' · Rider: '+p.riderName:''}</div>
+      ${p.status==='completed'?`<div style="font-size:12px;color:var(--gm);font-weight:700;margin-top:4px">Total: ₱${p.total||0}</div>`:''}
+      ${(p.status==='pending')?`<div style="margin-top:8px;font-size:12px;color:#ef4444;font-weight:700;cursor:pointer" onclick="cancelPabili('${p._id}')">Cancel Request</div>`:''}
+    </div>
+  `).join('');
+}
+
+async function cancelPabili(id){
+  try{
+    await fetch(`${API}/errands/${id}/cancel`, { method:'PUT', headers:{'Authorization':'Bearer '+token} });
+    toast('Request cancelled.');
+    loadMyPabili();
+  }catch(e){ toast('Failed to cancel.'); }
+}
+
 // ── INIT ──
 favorites=[];
 checkSession();
@@ -3498,6 +3630,12 @@ function initSocket(){
         toast('🎉 Your order has been delivered!');
         loadOrders?.();
         loadNotifications?.();
+    });
+
+    socket.on('errand_updated',(errand)=>{
+        const labels={accepted:'🛵 A rider accepted your pabili request!',purchasing:'🛍️ Your rider is purchasing your items',delivering:'🚚 Your pabili is on the way!',completed:'✅ Your pabili was delivered!',cancelled:'❌ Your pabili was cancelled'};
+        if(labels[errand.status]) toast(labels[errand.status]);
+        if(typeof loadMyPabili==='function') loadMyPabili();
     });
 
     socket.on('chat_message',(msg)=>{
