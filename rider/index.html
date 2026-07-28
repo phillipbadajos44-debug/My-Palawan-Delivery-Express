@@ -296,6 +296,19 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
     </div>
   </div>
 
+  <!-- PABILI -->
+  <div id="page-pabili" class="page">
+    <div class="section-title">🛍️ Available Pabili Requests</div>
+    <div class="orders-wrap" id="pabili-available-wrap">
+      <div class="empty-state"><div class="ei">🛍️</div><p>No pabili requests right now</p></div>
+    </div>
+
+    <div class="section-title">🚚 My Pabili Deliveries</div>
+    <div class="orders-wrap" id="pabili-mine-wrap">
+      <div class="empty-state"><div class="ei">📦</div><p>No active pabili deliveries</p></div>
+    </div>
+  </div>
+
   <!-- HISTORY -->
   <div id="page-history" class="page">
     <div class="section-title">📋 Delivery History</div>
@@ -354,6 +367,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
   <nav class="bottom-nav">
     <button class="nav-item active" onclick="showPage('home',this)"><div class="nav-icon">🏠</div><span class="nav-label">Home</span><span class="n-badge" id="availBadge"></span></button>
     <button class="nav-item" onclick="showPage('active',this)"><div class="nav-icon">🚀</div><span class="nav-label">Active</span><span class="n-badge" id="activeBadge"></span></button>
+    <button class="nav-item" onclick="showPage('pabili',this);loadAvailablePabili();loadMyPabiliDeliveries();"><div class="nav-icon">🛍️</div><span class="nav-label">Pabili</span><span class="n-badge" id="pabiliBadge"></span></button>
     <button class="nav-item" onclick="showPage('history',this);loadHistory()"><div class="nav-icon">📋</div><span class="nav-label">History</span></button>
     <button class="nav-item" onclick="showPage('remit',this);loadRemittances()"><div class="nav-icon">💸</div><span class="nav-label">Remit</span></button>
     <button class="nav-item" onclick="showPage('account',this)"><div class="nav-icon">👤</div><span class="nav-label">Account</span></button>
@@ -1345,6 +1359,13 @@ function initSocket(){
       }
       loadChatConvos();
     });
+
+    socket.on('errand_created', () => {
+      if(typeof loadAvailablePabili==='function') loadAvailablePabili();
+    });
+    socket.on('errand_taken', () => {
+      if(typeof loadAvailablePabili==='function') loadAvailablePabili();
+    });
 }
 // =====================
 
@@ -1444,7 +1465,98 @@ async function sendChatMessage(){
   }catch(e){ toast('Failed to send message.'); }
 }
 
+// ── PABILI / ERRAND ──
+let availablePabili = [];
+let myPabiliDeliveries = [];
+
+async function loadAvailablePabili(){
+  try{
+    const r = await fetch(`${API}/errands/available`, { headers:{'Authorization':'Bearer '+token} });
+    availablePabili = await r.json();
+    renderAvailablePabili();
+    const badge = document.getElementById('pabiliBadge');
+    if(badge) badge.textContent = availablePabili.length ? availablePabili.length : '';
+  }catch(e){}
+}
+
+function renderAvailablePabili(){
+  const el = document.getElementById('pabili-available-wrap');
+  if(!availablePabili.length){
+    el.innerHTML = `<div class="empty-state"><div class="ei">🛍️</div><p>No pabili requests right now</p></div>`;
+    return;
+  }
+  el.innerHTML = availablePabili.map(p => `
+    <div style="background:#fff;border:1.5px solid #e5e7eb;border-radius:14px;padding:14px;margin-bottom:10px">
+      <div style="font-size:13px;color:#444">${p.description}</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:6px">💰 Budget: ₱${p.budget||0}</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:2px">📍 ${p.customerAddress}</div>
+      ${p.notes?`<div style="font-size:12px;color:var(--muted);margin-top:2px">📝 ${p.notes}</div>`:''}
+      <button style="margin-top:10px;width:100%;padding:10px;background:var(--gm);color:#fff;border:none;border-radius:10px;font-weight:700;cursor:pointer" onclick="acceptPabili('${p._id}')">Accept Request</button>
+    </div>
+  `).join('');
+}
+
+async function acceptPabili(id){
+  try{
+    const r = await fetch(`${API}/errands/${id}/accept`, { method:'PUT', headers:{'Authorization':'Bearer '+token} });
+    const d = await r.json();
+    if(!r.ok){ toast(d.error || 'Could not accept.'); return; }
+    toast('✅ Pabili accepted!');
+    loadAvailablePabili();
+    loadMyPabiliDeliveries();
+  }catch(e){ toast('Failed to accept.'); }
+}
+
+async function loadMyPabiliDeliveries(){
+  try{
+    const r = await fetch(`${API}/errands/my-deliveries`, { headers:{'Authorization':'Bearer '+token} });
+    myPabiliDeliveries = await r.json();
+    renderMyPabiliDeliveries();
+  }catch(e){}
+}
+
+function renderMyPabiliDeliveries(){
+  const el = document.getElementById('pabili-mine-wrap');
+  if(!myPabiliDeliveries.length){
+    el.innerHTML = `<div class="empty-state"><div class="ei">📦</div><p>No active pabili deliveries</p></div>`;
+    return;
+  }
+  const nextStatus = { accepted:'purchasing', purchasing:'delivering', delivering:'completed' };
+  const nextLabel = { accepted:'🛍️ Start Purchasing', purchasing:'🚚 Start Delivering', delivering:'✅ Mark Delivered' };
+  el.innerHTML = myPabiliDeliveries.map(p => `
+    <div style="background:#fff;border:1.5px solid #e5e7eb;border-radius:14px;padding:14px;margin-bottom:10px">
+      <div style="font-size:13px;color:#444">${p.description}</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:6px">💰 Budget: ₱${p.budget||0}</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:2px">📍 ${p.customerAddress}</div>
+      <div style="font-size:12px;font-weight:700;color:var(--gm);margin-top:6px">Status: ${p.status}</div>
+      ${nextStatus[p.status]?`<button style="margin-top:10px;width:100%;padding:10px;background:var(--gm);color:#fff;border:none;border-radius:10px;font-weight:700;cursor:pointer" onclick="advancePabili('${p._id}','${nextStatus[p.status]}')">${nextLabel[p.status]}</button>`:''}
+    </div>
+  `).join('');
+}
+
+async function advancePabili(id, status){
+  let actualCost = null;
+  if(status === 'completed'){
+    const input = prompt('Enter the actual amount spent on items (₱):');
+    if(input === null) return;
+    actualCost = Number(input) || 0;
+  }
+  try{
+    const body = { status };
+    if(actualCost !== null) body.actualCost = actualCost;
+    const r = await fetch(`${API}/errands/${id}/status`, {
+      method:'PUT',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+      body: JSON.stringify(body)
+    });
+    if(!r.ok){ toast('Failed to update status.'); return; }
+    toast('Status updated!');
+    loadMyPabiliDeliveries();
+  }catch(e){ toast('Failed to update status.'); }
+}
+
 setInterval(()=>{if(isOnline)pollActiveDeliveries();},8000);
+setInterval(()=>{if(isOnline)loadAvailablePabili();},10000);
 setInterval(()=>{if(isOnline)pollOffer();},1500);
 </script>
 
