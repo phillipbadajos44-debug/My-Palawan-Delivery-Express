@@ -392,6 +392,37 @@ const Rider = mongoose.model('Rider', RiderSchema);
 const Product = mongoose.model('Product', ProductSchema);
 const Order = mongoose.model('Order', OrderSchema);
 
+const RemittanceSchema = new mongoose.Schema({
+  orderId: String, riderId: String, riderName: String,
+  merchantId: String, merchantName: String,
+  productAmount: Number, deliveryFee: Number,
+  totalCashCollected: Number, riderEarnings: Number,
+  companyEarnings: Number, amountToRemit: Number,
+  status: { type: String, default: 'pending' },
+  remittedAt: Date, verifiedAt: Date,
+  createdAt: { type: Date, default: Date.now }
+});
+const PayoutSchema = new mongoose.Schema({
+  merchantId: String, merchantName: String, amount: Number,
+  status: { type: String, default: 'pending' },
+  requestedAt: { type: Date, default: Date.now },
+  approvedAt: Date, paidAt: Date
+});
+const Remittance = mongoose.model('Remittance', RemittanceSchema);
+const Payout = mongoose.model('Payout', PayoutSchema);
+
+
+// ── AUTH MIDDLEWARE ──
+const auth = (roles = []) => (req, res, next) => {
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) return res.status(401).json({ error: 'No token' });
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    if (roles.length && !roles.includes(decoded.role)) return res.status(403).json({ error: 'Forbidden' });
+    req.user = decoded; next();
+  } catch { res.status(401).json({ error: 'Invalid token' }); }
+};
+
 // ============================================================
 // ERRAND / PABILI SERVICE
 // ============================================================
@@ -568,36 +599,6 @@ function buildParticipantKey(a, b) {
   const arr = [`${a.role}:${a.userId}`, `${b.role}:${b.userId}`].sort();
   return arr.join('__');
 }
-const RemittanceSchema = new mongoose.Schema({
-  orderId: String, riderId: String, riderName: String,
-  merchantId: String, merchantName: String,
-  productAmount: Number, deliveryFee: Number,
-  totalCashCollected: Number, riderEarnings: Number,
-  companyEarnings: Number, amountToRemit: Number,
-  status: { type: String, default: 'pending' },
-  remittedAt: Date, verifiedAt: Date,
-  createdAt: { type: Date, default: Date.now }
-});
-const PayoutSchema = new mongoose.Schema({
-  merchantId: String, merchantName: String, amount: Number,
-  status: { type: String, default: 'pending' },
-  requestedAt: { type: Date, default: Date.now },
-  approvedAt: Date, paidAt: Date
-});
-const Remittance = mongoose.model('Remittance', RemittanceSchema);
-const Payout = mongoose.model('Payout', PayoutSchema);
-
-
-// ── AUTH MIDDLEWARE ──
-const auth = (roles = []) => (req, res, next) => {
-  const token = req.headers.authorization?.split(' ')[1];
-  if (!token) return res.status(401).json({ error: 'No token' });
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET);
-    if (roles.length && !roles.includes(decoded.role)) return res.status(403).json({ error: 'Forbidden' });
-    req.user = decoded; next();
-  } catch { res.status(401).json({ error: 'Invalid token' }); }
-};
 
 // ============================================================
 // ACCOUNT LINKING (secure customer <-> merchant/rider switch)
