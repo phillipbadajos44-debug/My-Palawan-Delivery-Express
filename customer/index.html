@@ -2900,8 +2900,8 @@ function toggleFaq(el){
   if(!wasOpen)item.classList.add('open');
 }
 
-let reviewPhotoFiles=[];
-function openRating(orderId){ratingOrderId=orderId;selectedStar=0;renderStars();document.getElementById('reviewText').value='';reviewPhotoFiles=[];renderReviewPhotoPreview();document.getElementById('reviewPhotoInput').value='';document.getElementById('ratingModal').classList.add('open');}
+let reviewPhotoFiles=[];let ratingProductId=null,ratingMerchantId=null;
+function openRating(orderId){ratingOrderId=orderId;selectedStar=0;renderStars();document.getElementById('reviewText').value='';reviewPhotoFiles=[];renderReviewPhotoPreview();document.getElementById('reviewPhotoInput').value='';const o=orders.find(x=>x.id===orderId);ratingProductId=(o&&o.items&&o.items[0]&&o.items[0].id)||null;ratingMerchantId=(o&&o.merchantId)||null;document.getElementById('ratingModal').classList.add('open');}
 function closeRating(){document.getElementById('ratingModal').classList.remove('open');}
 function setStar(n){selectedStar=n;renderStars();}
 function renderStars(){document.querySelectorAll('.star').forEach((s,i)=>{s.textContent=i<selectedStar?'⭐':'☆';s.classList.toggle('lit',i<selectedStar);});}
@@ -2935,7 +2935,7 @@ async function submitRating(){
       photos=upData.urls||[];
     }
   }catch(e){toast('Photo upload failed, submitting review without photos');}
-  try{await fetch(`${API}/reviews`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({orderId:ratingOrderId,rating:selectedStar,review,photos})});}catch(e){}
+  try{await fetch(`${API}/reviews`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({orderId:ratingOrderId,productId:ratingProductId,merchantId:ratingMerchantId,rating:selectedStar,review,photos})});}catch(e){}
   const o=orders.find(x=>x.id===ratingOrderId);if(o)o.rating=selectedStar;
   if(btn){btn.disabled=false;btn.textContent='Submit Rating';}
   closeRating();renderOrders();toast('Thank you for your rating! ⭐');
