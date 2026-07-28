@@ -1280,6 +1280,17 @@ const EM={rice:'🍚',bigas:'🍚',vegetable:'🥦',gulay:'🥦',fish:'🐟',isd
 function emo(n){if(!n)return'📦';const l=n.toLowerCase();for(const[k,e]of Object.entries(EM))if(l.includes(k))return e;return'📦';}
 
 // ── STATE ──
+window.addEventListener('error', function(e){
+  let box = document.getElementById('jsErrorBox');
+  if(!box){
+    box = document.createElement('div');
+    box.id = 'jsErrorBox';
+    box.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#dc2626;color:#fff;padding:14px;font-size:12px;font-family:monospace;z-index:99999;white-space:pre-wrap;max-height:50vh;overflow-y:auto;';
+    document.body.appendChild(box);
+  }
+  box.textContent += 'ERROR: ' + e.message + '\n  at ' + e.filename + ':' + e.lineno + ':' + e.colno + '\n\n';
+});
+
 let token=null,currentUser=null;
 let communityFeed=[];
 let myCustomerPosts=[],mySharedPosts=[],pendingCustPostImages=[],viewingCustPostId=null;
