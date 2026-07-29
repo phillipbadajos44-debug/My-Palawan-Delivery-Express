@@ -1381,7 +1381,8 @@ function initSocket(){
       if(typeof loadAvailablePabili==='function') loadAvailablePabili();
     });
 
-    socket.on('ride_created', () => {
+    socket.on('ride_created', (ride) => {
+      if(isOnline) toast(`🏍️ New ride request! You'll earn ₱${ride.riderEarnings||ride.fare||0}`);
       if(typeof loadAvailableRides==='function') loadAvailableRides();
     });
     socket.on('ride_taken', () => {
@@ -1600,6 +1601,7 @@ function renderAvailableRides(){
     <div style="background:#fff;border:1.5px solid #e5e7eb;border-radius:14px;padding:14px;margin-bottom:10px">
       <div style="font-size:13px;color:#444">📍 ${r.pickupAddress}</div>
       <div style="font-size:13px;color:#444;margin-top:2px">🏁 ${r.dropoffAddress}</div>
+      <div style="font-size:14px;font-weight:800;color:#16a34a;margin-top:6px">💰 You'll earn: ₱${r.riderEarnings||r.fare||0}${r.distanceKm?' · '+r.distanceKm+' km':''}</div>
       ${r.notes?`<div style="font-size:12px;color:var(--muted);margin-top:4px">📝 ${r.notes}</div>`:''}
       <button style="margin-top:10px;width:100%;padding:10px;background:var(--gm);color:#fff;border:none;border-radius:10px;font-weight:700;cursor:pointer" onclick="acceptRide('${r._id}')">Accept Ride</button>
     </div>
@@ -1637,7 +1639,8 @@ function renderMyTrips(){
     <div style="background:#fff;border:1.5px solid #e5e7eb;border-radius:14px;padding:14px;margin-bottom:10px">
       <div style="font-size:13px;color:#444">📍 ${r.pickupAddress}</div>
       <div style="font-size:13px;color:#444;margin-top:2px">🏁 ${r.dropoffAddress}</div>
-      <div style="font-size:12px;font-weight:700;color:var(--gm);margin-top:6px">Status: ${r.status}</div>
+      <div style="font-size:14px;font-weight:800;color:#16a34a;margin-top:6px">💰 You'll earn: ₱${r.riderEarnings||r.fare||0}</div>
+      <div style="font-size:12px;font-weight:700;color:var(--gm);margin-top:4px">Status: ${r.status}</div>
       ${nextStatus[r.status]?`<button style="margin-top:10px;width:100%;padding:10px;background:var(--gm);color:#fff;border:none;border-radius:10px;font-weight:700;cursor:pointer" onclick="advanceRide('${r._id}','${nextStatus[r.status]}')">${nextLabel[r.status]}</button>`:''}
     </div>
   `).join('');
