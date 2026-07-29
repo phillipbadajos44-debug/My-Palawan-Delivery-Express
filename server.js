@@ -456,6 +456,9 @@ const RideSchema = new mongoose.Schema({
   dropoffAddress: { type: String, required: true },
   dropoffLat: Number, dropoffLng: Number,
   notes: String,
+  distanceKm: { type: Number, default: 0 },
+  fare: { type: Number, default: 0 },
+  riderEarnings: { type: Number, default: 0 },
   riderId: String, riderName: String, riderPhone: String,
   status: { type: String, default: 'pending' }, // pending, accepted, arrived, ongoing, completed, cancelled
   statusHistory: [{ status: String, time: Date, note: String }],
@@ -464,11 +467,38 @@ const RideSchema = new mongoose.Schema({
 });
 const Ride = mongoose.model('Ride', RideSchema);
 
+// Ride fare formula (cash, rider keeps full fare)
+function calculateRideFare(distanceKm) {
+  const baseFare = 30;
+  const perKm = 12;
+  const minimumFare = 30;
+  let fare = baseFare + (distanceKm * perKm);
+  if (fare < minimumFare) fare = minimumFare;
+  fare = Math.round(fare);
+  return { fare, riderEarnings: fare };
+}
+
 // Customer books a ride
 app.post('/api/rides', auth(['customer']), async (req, res) => {
   try {
-    const { pickupAddress, pickupLat, pickupLng, dropoffAddress, dropoffLat, dropoffLng, notes } = req.body;
+    let { pickupAddress, pickupLat, pickupLng, dropoffAddress, dropoffLat, dropoffLng, notes } = req.body;
     if (!pickupAddress || !dropoffAddress) return res.status(400).json({ error: 'pickupAddress and dropoffAddress required' });
+
+    // Fallback: geocode addresses server-side if coordinates weren't provided
+    if ((!pickupLat || !pickupLng)) {
+      const geo = await geocodeAddress(pickupAddress);
+      if (geo) { pickupLat = geo.lat; pickupLng = geo.lng; }
+    }
+    if ((!dropoffLat || !dropoffLng)) {
+      const geo = await geocodeAddress(dropoffAddress);
+      if (geo) { dropoffLat = geo.lat; dropoffLng = geo.lng; }
+    }
+
+    let distanceKm = 0;
+    if (pickupLat && pickupLng && dropoffLat && dropoffLng) {
+      distanceKm = haversineDistance(pickupLat, pickupLng, dropoffLat, dropoffLng);
+    }
+    const { fare, riderEarnings } = calculateRideFare(distanceKm);
 
     const customer = await Customer.findById(req.user.id).select('name phone');
     const ride = await Ride.create({
@@ -478,6 +508,8 @@ app.post('/api/rides', auth(['customer']), async (req, res) => {
       pickupAddress, pickupLat, pickupLng,
       dropoffAddress, dropoffLat, dropoffLng,
       notes: notes || '',
+      distanceKm: Math.round(distanceKm * 10) / 10,
+      fare, riderEarnings,
       status: 'pending',
       statusHistory: [{ status: 'pending', time: new Date() }]
     });
@@ -530,6 +562,12 @@ app.put('/api/rides/:id/accept', auth(['rider']), async (req, res) => {
       io.to(`customer:${ride.customerId}`).emit('ride_updated', ride);
       io.emit('ride_taken', { rideId: ride._id });
     }
+    createNotification(
+      ride.customerId, 'customer',
+      '🏍️ Rider Found!',
+      `${ride.riderName} accepted your ride. Fare: ₱${ride.fare}. They're on the way to ${ride.pickupAddress}.`,
+      'ride'
+    ).catch(() => {});
     res.json(ride);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -547,6 +585,15 @@ app.put('/api/rides/:id/status', auth(['rider']), async (req, res) => {
     await ride.save();
 
     if (io) io.to(`customer:${ride.customerId}`).emit('ride_updated', ride);
+
+    const statusMsgs = {
+      arrived: { title: '📍 Rider Has Arrived', message: `${ride.riderName} is waiting at ${ride.pickupAddress}.` },
+      ongoing: { title: '🚦 Trip Started', message: `Your trip to ${ride.dropoffAddress} has started. Fare: ₱${ride.fare} (cash).` },
+      completed: { title: '✅ Trip Completed', message: `You've arrived! Please pay ${ride.riderName} ₱${ride.fare} in cash.` }
+    };
+    if (statusMsgs[status]) {
+      createNotification(ride.customerId, 'customer', statusMsgs[status].title, statusMsgs[status].message, 'ride').catch(() => {});
+    }
     res.json(ride);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -566,6 +613,22 @@ app.put('/api/rides/:id/cancel', auth(['customer']), async (req, res) => {
     if (ride.riderId && io) io.to(`rider:${ride.riderId}`).emit('ride_updated', ride);
     res.json(ride);
   } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Reverse geocode: lat/lng -> human-readable address (used for "use my current location")
+app.get('/api/geocode/reverse', auth(['customer', 'merchant', 'rider']), async (req, res) => {
+  try {
+    const { lat, lng } = req.query;
+    if (!lat || !lng) return res.status(400).json({ error: 'lat and lng required' });
+
+    const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`;
+    const r = await fetch(url, { headers: { 'User-Agent': 'PalawanDeliveryExpress/1.0' } });
+    const data = await r.json();
+
+    res.json({ address: data?.display_name || `${lat}, ${lng}` });
+  } catch (e) {
+    res.status(500).json({ error: 'Reverse geocoding failed' });
+  }
 });
 
 // Customer creates an errand/pabili request
