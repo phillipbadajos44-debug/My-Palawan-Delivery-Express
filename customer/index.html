@@ -705,11 +705,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
     <div style="padding:20px 18px 10px"><h2 style="font-size:21px;font-weight:800;color:var(--gd)">🛵 Rides &amp; Errands</h2><p style="font-size:13px;color:var(--muted);margin-top:2px">Book a ride, request a pabili, or find a trip</p></div>
 
     <div style="padding:0 18px 8px">
-      <div style="background:linear-gradient(135deg,var(--gd),var(--gm));border-radius:18px;padding:20px;color:#fff;position:relative;overflow:hidden;opacity:.6">
+      <div style="background:linear-gradient(135deg,var(--gd),var(--gm));border-radius:18px;padding:20px;color:#fff;position:relative;overflow:hidden;cursor:pointer" onclick="openBookRidePage()">
         <div style="font-size:28px">🏍️</div>
         <div style="font-weight:800;font-size:17px;margin-top:6px">Book a Ride</div>
         <div style="font-size:13px;opacity:.9;margin-top:2px">Point-to-point rides, cash payment</div>
-        <div style="margin-top:10px;font-size:12px;font-weight:700;background:rgba(255,255,255,.2);display:inline-block;padding:4px 10px;border-radius:10px">🚧 Coming Soon</div>
+        <div style="margin-top:10px;font-size:12px;font-weight:700;background:rgba(255,255,255,.2);display:inline-block;padding:4px 10px;border-radius:10px">Book now →</div>
       </div>
     </div>
 
@@ -756,7 +756,30 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
     <div style="height:24px"></div>
   </div>
 
-    <div id="page-store" class="page">
+  <!-- BOOK A RIDE -->
+  <div id="page-bookride" class="page">
+    <div style="padding:16px 18px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--bg)">
+      <span style="font-size:20px;cursor:pointer" onclick="showPage('rides',document.querySelectorAll('.nav-item')[3])">←</span>
+      <h2 style="font-size:18px;font-weight:800;color:var(--gd)">🏍️ Book a Ride</h2>
+    </div>
+
+    <div style="padding:16px 18px">
+      <div class="sec-title" style="padding:0 0 8px">New Ride Request</div>
+      <div class="field"><label>Pickup Location</label><input id="ride-pickup" type="text" placeholder="Where should the rider pick you up?"/></div>
+      <div class="field"><label>Drop-off Location</label><input id="ride-dropoff" type="text" placeholder="Where are you going?"/></div>
+      <div class="field"><label>Notes (optional)</label><input id="ride-notes" type="text" placeholder="e.g. 2 passengers, near the gate"/></div>
+      <div style="background:var(--gl);border-radius:12px;padding:12px 14px;font-size:12px;color:var(--gd);margin-bottom:14px">💵 Cash payment — fare is agreed with the rider directly, habal-habal style.</div>
+      <button class="modal-btn" onclick="submitRideRequest()">📤 Request a Ride</button>
+    </div>
+
+    <div style="padding:8px 18px">
+      <div class="sec-title" style="padding:16px 0 8px">My Rides</div>
+      <div id="rideMyList"><div class="spinner"></div></div>
+    </div>
+    <div style="height:24px"></div>
+  </div>
+
+      <div id="page-store" class="page">
     <div style="padding:20px 18px 10px"><h2 style="font-size:21px;font-weight:800;color:var(--gd)">Stores</h2><p style="font-size:13px;color:var(--muted);margin-top:2px">Browse merchants and their products</p></div>
     <div id="store-list" style="padding:0 18px 20px;display:grid;grid-template-columns:1fr 1fr;gap:12px"></div>
   </div>
@@ -3599,6 +3622,79 @@ async function cancelPabili(id){
   }catch(e){ toast('Failed to cancel.'); }
 }
 
+// ── BOOK A RIDE ──
+let myRidesList = [];
+
+function openBookRidePage(){
+  showPage('bookride', document.querySelectorAll('.nav-item')[3]);
+  loadMyRides();
+}
+
+async function submitRideRequest(){
+  const pickupAddress = document.getElementById('ride-pickup').value.trim();
+  const dropoffAddress = document.getElementById('ride-dropoff').value.trim();
+  const notes = document.getElementById('ride-notes').value.trim();
+
+  if(!pickupAddress || !dropoffAddress){
+    toast('Please fill in pickup and drop-off locations.');
+    return;
+  }
+
+  try{
+    const r = await fetch(`${API}/rides`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json','Authorization':'Bearer '+token},
+      body: JSON.stringify({ pickupAddress, dropoffAddress, notes })
+    });
+    const d = await r.json();
+    if(!r.ok){ toast(d.error || 'Failed to request ride.'); return; }
+
+    document.getElementById('ride-pickup').value = '';
+    document.getElementById('ride-dropoff').value = '';
+    document.getElementById('ride-notes').value = '';
+    toast('✅ Ride requested! Looking for a rider…');
+    loadMyRides();
+  }catch(e){ toast('Failed to request ride.'); }
+}
+
+async function loadMyRides(){
+  try{
+    const r = await fetch(`${API}/rides/my`, { headers:{'Authorization':'Bearer '+token} });
+    myRidesList = await r.json();
+    renderMyRides();
+  }catch(e){}
+}
+
+function renderMyRides(){
+  const el = document.getElementById('rideMyList');
+  if(!myRidesList.length){
+    el.innerHTML = `<div style="padding:20px;color:var(--muted);text-align:center">No rides yet</div>`;
+    return;
+  }
+  const statusLabels = {
+    pending: '⏳ Looking for a rider', accepted: '🏍️ Rider on the way',
+    arrived: '📍 Rider has arrived', ongoing: '🚦 Trip in progress',
+    completed: '✅ Completed', cancelled: '❌ Cancelled'
+  };
+  el.innerHTML = myRidesList.map(r => `
+    <div style="background:#fff;border:1.5px solid #e5e7eb;border-radius:14px;padding:14px;margin-bottom:10px">
+      <div style="font-size:14px;font-weight:700;color:var(--gd)">${statusLabels[r.status]||r.status}</div>
+      <div style="font-size:13px;color:#444;margin-top:4px">📍 ${r.pickupAddress}</div>
+      <div style="font-size:13px;color:#444;margin-top:2px">🏁 ${r.dropoffAddress}</div>
+      ${r.riderName?`<div style="font-size:12px;color:var(--muted);margin-top:6px">Rider: ${r.riderName}${r.riderPhone?' · '+r.riderPhone:''}</div>`:''}
+      ${(r.status==='pending')?`<div style="margin-top:8px;font-size:12px;color:#ef4444;font-weight:700;cursor:pointer" onclick="cancelRide('${r._id}')">Cancel Request</div>`:''}
+    </div>
+  `).join('');
+}
+
+async function cancelRide(id){
+  try{
+    await fetch(`${API}/rides/${id}/cancel`, { method:'PUT', headers:{'Authorization':'Bearer '+token} });
+    toast('Ride cancelled.');
+    loadMyRides();
+  }catch(e){ toast('Failed to cancel.'); }
+}
+
 // ── INIT ──
 favorites=[];
 checkSession();
@@ -3635,6 +3731,12 @@ function initSocket(){
         const labels={accepted:'🛵 A rider accepted your pabili request!',purchasing:'🛍️ Your rider is purchasing your items',delivering:'🚚 Your pabili is on the way!',completed:'✅ Your pabili was delivered!',cancelled:'❌ Your pabili was cancelled'};
         if(labels[errand.status]) toast(labels[errand.status]);
         if(typeof loadMyPabili==='function') loadMyPabili();
+    });
+
+    socket.on('ride_updated',(ride)=>{
+        const labels={accepted:'🏍️ A rider accepted your ride request!',arrived:'📍 Your rider has arrived!',ongoing:'🚦 Your trip has started',completed:'✅ Trip completed!',cancelled:'❌ Your ride was cancelled'};
+        if(labels[ride.status]) toast(labels[ride.status]);
+        if(typeof loadMyRides==='function') loadMyRides();
     });
 
     socket.on('chat_message',(msg)=>{

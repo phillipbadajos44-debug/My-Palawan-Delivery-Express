@@ -446,6 +446,128 @@ const ErrandSchema = new mongoose.Schema({
 });
 const Errand = mongoose.model('Errand', ErrandSchema);
 
+// ============================================================
+// RIDE BOOKING (point-to-point, cash payment)
+// ============================================================
+const RideSchema = new mongoose.Schema({
+  customerId: String, customerName: String, customerPhone: String,
+  pickupAddress: { type: String, required: true },
+  pickupLat: Number, pickupLng: Number,
+  dropoffAddress: { type: String, required: true },
+  dropoffLat: Number, dropoffLng: Number,
+  notes: String,
+  riderId: String, riderName: String, riderPhone: String,
+  status: { type: String, default: 'pending' }, // pending, accepted, arrived, ongoing, completed, cancelled
+  statusHistory: [{ status: String, time: Date, note: String }],
+  rating: Number, review: String,
+  date: { type: Date, default: Date.now }
+});
+const Ride = mongoose.model('Ride', RideSchema);
+
+// Customer books a ride
+app.post('/api/rides', auth(['customer']), async (req, res) => {
+  try {
+    const { pickupAddress, pickupLat, pickupLng, dropoffAddress, dropoffLat, dropoffLng, notes } = req.body;
+    if (!pickupAddress || !dropoffAddress) return res.status(400).json({ error: 'pickupAddress and dropoffAddress required' });
+
+    const customer = await Customer.findById(req.user.id).select('name phone');
+    const ride = await Ride.create({
+      customerId: req.user.id,
+      customerName: customer?.name || req.user.name,
+      customerPhone: customer?.phone || '',
+      pickupAddress, pickupLat, pickupLng,
+      dropoffAddress, dropoffLat, dropoffLng,
+      notes: notes || '',
+      status: 'pending',
+      statusHistory: [{ status: 'pending', time: new Date() }]
+    });
+
+    if (io) io.emit('ride_created', ride);
+    res.json(ride);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Customer's own rides
+app.get('/api/rides/my', auth(['customer']), async (req, res) => {
+  try {
+    const rides = await Ride.find({ customerId: req.user.id }).sort('-date');
+    res.json(rides);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Rider - list available (pending, unassigned) rides
+app.get('/api/rides/available', auth(['rider']), async (req, res) => {
+  try {
+    const rides = await Ride.find({ status: 'pending' }).sort('-date');
+    res.json(rides);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Rider - my active ride assignments
+app.get('/api/rides/my-trips', auth(['rider']), async (req, res) => {
+  try {
+    const rides = await Ride.find({ riderId: req.user.id, status: { $nin: ['completed', 'cancelled'] } }).sort('-date');
+    res.json(rides);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Rider accepts a ride
+app.put('/api/rides/:id/accept', auth(['rider']), async (req, res) => {
+  try {
+    const ride = await Ride.findById(req.params.id);
+    if (!ride) return res.status(404).json({ error: 'Ride not found' });
+    if (ride.status !== 'pending') return res.status(400).json({ error: 'Ride already taken' });
+
+    const rider = await Rider.findById(req.user.id).select('name phone');
+    ride.riderId = req.user.id;
+    ride.riderName = rider?.name || req.user.name;
+    ride.riderPhone = rider?.phone || '';
+    ride.status = 'accepted';
+    ride.statusHistory.push({ status: 'accepted', time: new Date() });
+    await ride.save();
+
+    if (io) {
+      io.to(`customer:${ride.customerId}`).emit('ride_updated', ride);
+      io.emit('ride_taken', { rideId: ride._id });
+    }
+    res.json(ride);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Rider updates ride status (arrived, ongoing, completed)
+app.put('/api/rides/:id/status', auth(['rider']), async (req, res) => {
+  try {
+    const { status, note } = req.body;
+    const ride = await Ride.findById(req.params.id);
+    if (!ride) return res.status(404).json({ error: 'Ride not found' });
+    if (ride.riderId !== req.user.id) return res.status(403).json({ error: 'Not your ride' });
+
+    ride.status = status;
+    ride.statusHistory.push({ status, time: new Date(), note: note || '' });
+    await ride.save();
+
+    if (io) io.to(`customer:${ride.customerId}`).emit('ride_updated', ride);
+    res.json(ride);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Customer cancels a pending/accepted ride
+app.put('/api/rides/:id/cancel', auth(['customer']), async (req, res) => {
+  try {
+    const ride = await Ride.findById(req.params.id);
+    if (!ride) return res.status(404).json({ error: 'Ride not found' });
+    if (ride.customerId !== req.user.id) return res.status(403).json({ error: 'Not your ride' });
+    if (!['pending', 'accepted'].includes(ride.status)) return res.status(400).json({ error: 'Cannot cancel at this stage' });
+
+    ride.status = 'cancelled';
+    ride.statusHistory.push({ status: 'cancelled', time: new Date() });
+    await ride.save();
+
+    if (ride.riderId && io) io.to(`rider:${ride.riderId}`).emit('ride_updated', ride);
+    res.json(ride);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // Customer creates an errand/pabili request
 app.post('/api/errands', auth(['customer']), async (req, res) => {
   try {

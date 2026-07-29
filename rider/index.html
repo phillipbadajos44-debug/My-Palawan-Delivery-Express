@@ -309,6 +309,19 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
     </div>
   </div>
 
+  <!-- RIDES -->
+  <div id="page-rides" class="page">
+    <div class="section-title">🏍️ Available Ride Requests</div>
+    <div class="orders-wrap" id="rides-available-wrap">
+      <div class="empty-state"><div class="ei">🏍️</div><p>No ride requests right now</p></div>
+    </div>
+
+    <div class="section-title">🚦 My Trips</div>
+    <div class="orders-wrap" id="rides-mine-wrap">
+      <div class="empty-state"><div class="ei">🛣️</div><p>No active trips</p></div>
+    </div>
+  </div>
+
   <!-- HISTORY -->
   <div id="page-history" class="page">
     <div class="section-title">📋 Delivery History</div>
@@ -368,6 +381,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
     <button class="nav-item active" onclick="showPage('home',this)"><div class="nav-icon">🏠</div><span class="nav-label">Home</span><span class="n-badge" id="availBadge"></span></button>
     <button class="nav-item" onclick="showPage('active',this)"><div class="nav-icon">🚀</div><span class="nav-label">Active</span><span class="n-badge" id="activeBadge"></span></button>
     <button class="nav-item" onclick="showPage('pabili',this);loadAvailablePabili();loadMyPabiliDeliveries();"><div class="nav-icon">🛍️</div><span class="nav-label">Pabili</span><span class="n-badge" id="pabiliBadge"></span></button>
+    <button class="nav-item" onclick="showPage('rides',this);loadAvailableRides();loadMyTrips();"><div class="nav-icon">🏍️</div><span class="nav-label">Rides</span><span class="n-badge" id="ridesBadge"></span></button>
     <button class="nav-item" onclick="showPage('history',this);loadHistory()"><div class="nav-icon">📋</div><span class="nav-label">History</span></button>
     <button class="nav-item" onclick="showPage('remit',this);loadRemittances()"><div class="nav-icon">💸</div><span class="nav-label">Remit</span></button>
     <button class="nav-item" onclick="showPage('account',this)"><div class="nav-icon">👤</div><span class="nav-label">Account</span></button>
@@ -1366,6 +1380,13 @@ function initSocket(){
     socket.on('errand_taken', () => {
       if(typeof loadAvailablePabili==='function') loadAvailablePabili();
     });
+
+    socket.on('ride_created', () => {
+      if(typeof loadAvailableRides==='function') loadAvailableRides();
+    });
+    socket.on('ride_taken', () => {
+      if(typeof loadAvailableRides==='function') loadAvailableRides();
+    });
 }
 // =====================
 
@@ -1555,8 +1576,89 @@ async function advancePabili(id, status){
   }catch(e){ toast('Failed to update status.'); }
 }
 
+// ── RIDE BOOKING ──
+let availableRides = [];
+let myTrips = [];
+
+async function loadAvailableRides(){
+  try{
+    const r = await fetch(`${API}/rides/available`, { headers:{'Authorization':'Bearer '+token} });
+    availableRides = await r.json();
+    renderAvailableRides();
+    const badge = document.getElementById('ridesBadge');
+    if(badge) badge.textContent = availableRides.length ? availableRides.length : '';
+  }catch(e){}
+}
+
+function renderAvailableRides(){
+  const el = document.getElementById('rides-available-wrap');
+  if(!availableRides.length){
+    el.innerHTML = `<div class="empty-state"><div class="ei">🏍️</div><p>No ride requests right now</p></div>`;
+    return;
+  }
+  el.innerHTML = availableRides.map(r => `
+    <div style="background:#fff;border:1.5px solid #e5e7eb;border-radius:14px;padding:14px;margin-bottom:10px">
+      <div style="font-size:13px;color:#444">📍 ${r.pickupAddress}</div>
+      <div style="font-size:13px;color:#444;margin-top:2px">🏁 ${r.dropoffAddress}</div>
+      ${r.notes?`<div style="font-size:12px;color:var(--muted);margin-top:4px">📝 ${r.notes}</div>`:''}
+      <button style="margin-top:10px;width:100%;padding:10px;background:var(--gm);color:#fff;border:none;border-radius:10px;font-weight:700;cursor:pointer" onclick="acceptRide('${r._id}')">Accept Ride</button>
+    </div>
+  `).join('');
+}
+
+async function acceptRide(id){
+  try{
+    const r = await fetch(`${API}/rides/${id}/accept`, { method:'PUT', headers:{'Authorization':'Bearer '+token} });
+    const d = await r.json();
+    if(!r.ok){ toast(d.error || 'Could not accept.'); return; }
+    toast('✅ Ride accepted!');
+    loadAvailableRides();
+    loadMyTrips();
+  }catch(e){ toast('Failed to accept.'); }
+}
+
+async function loadMyTrips(){
+  try{
+    const r = await fetch(`${API}/rides/my-trips`, { headers:{'Authorization':'Bearer '+token} });
+    myTrips = await r.json();
+    renderMyTrips();
+  }catch(e){}
+}
+
+function renderMyTrips(){
+  const el = document.getElementById('rides-mine-wrap');
+  if(!myTrips.length){
+    el.innerHTML = `<div class="empty-state"><div class="ei">🛣️</div><p>No active trips</p></div>`;
+    return;
+  }
+  const nextStatus = { accepted:'arrived', arrived:'ongoing', ongoing:'completed' };
+  const nextLabel = { accepted:'📍 Mark Arrived', arrived:'🚦 Start Trip', ongoing:'✅ Complete Trip' };
+  el.innerHTML = myTrips.map(r => `
+    <div style="background:#fff;border:1.5px solid #e5e7eb;border-radius:14px;padding:14px;margin-bottom:10px">
+      <div style="font-size:13px;color:#444">📍 ${r.pickupAddress}</div>
+      <div style="font-size:13px;color:#444;margin-top:2px">🏁 ${r.dropoffAddress}</div>
+      <div style="font-size:12px;font-weight:700;color:var(--gm);margin-top:6px">Status: ${r.status}</div>
+      ${nextStatus[r.status]?`<button style="margin-top:10px;width:100%;padding:10px;background:var(--gm);color:#fff;border:none;border-radius:10px;font-weight:700;cursor:pointer" onclick="advanceRide('${r._id}','${nextStatus[r.status]}')">${nextLabel[r.status]}</button>`:''}
+    </div>
+  `).join('');
+}
+
+async function advanceRide(id, status){
+  try{
+    const r = await fetch(`${API}/rides/${id}/status`, {
+      method:'PUT',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+      body: JSON.stringify({ status })
+    });
+    if(!r.ok){ toast('Failed to update status.'); return; }
+    toast('Status updated!');
+    loadMyTrips();
+  }catch(e){ toast('Failed to update status.'); }
+}
+
 setInterval(()=>{if(isOnline)pollActiveDeliveries();},8000);
 setInterval(()=>{if(isOnline)loadAvailablePabili();},10000);
+setInterval(()=>{if(isOnline)loadAvailableRides();},10000);
 setInterval(()=>{if(isOnline)pollOffer();},1500);
 </script>
 
