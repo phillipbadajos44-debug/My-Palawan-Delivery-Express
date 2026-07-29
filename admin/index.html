@@ -567,6 +567,12 @@ async function loadApplications(){
   updateStats();
   renderApplications();
 }
+function filterApps(f,el){
+  currentAppFilter=f;
+  document.querySelectorAll('#page-applications .ftab').forEach(t=>t.classList.remove('active'));if(el)el.classList.add('active');
+  renderApplications();
+}
+
 function renderApplications(){
   let list=applications;
   if(currentAppFilter==='pending')list=list.filter(a=>a.status==='pending');

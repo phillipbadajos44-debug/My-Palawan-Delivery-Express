@@ -1361,27 +1361,7 @@ async function loadNotifications(){
   }catch(e){}
 }
 
-function initSocket(){
-  if(typeof io==='undefined'||!token||!currentMerchant)return;
-  socket=io(API_URL);
-  socket.emit('join',{role:'merchant',userId:currentMerchant.id||currentMerchant._id});
 
-  socket.on('post_updated',(data)=>{
-    const post=myPosts.find(p=>p._id===data.postId);
-    if(post){
-      post.reactions=data.reactions;post.comments=data.comments;post.sharesCount=data.sharesCount;
-      renderMyPosts();
-      if(viewingPostId===data.postId)openViewPost(data.postId);
-    }
-  });
-
-  socket.on('post_deleted',(data)=>{
-    myPosts=myPosts.filter(p=>p._id!==data.postId);
-    renderMyPosts();
-  });
-
-  socket.on('merchant_new_order',()=>{loadDashboard();});
-}
 function renderNotifs(){
   const el=document.getElementById('notifList');
   if(!notifications.length){el.innerHTML=`<div class="notif-item"><div style="padding:20px;color:var(--muted);text-align:center;width:100%">No notifications yet</div></div>`;return;}
@@ -1402,6 +1382,22 @@ function initSocket(){
   if(typeof io === 'undefined' || !token || !currentMerchant) return;
   socket = io('https://my-palawan-delivery-express.onrender.com');
   socket.emit('join', { role:'merchant', userId: currentMerchant.id || currentMerchant._id });
+
+  socket.on('post_updated',(data)=>{
+    const post=myPosts.find(p=>p._id===data.postId);
+    if(post){
+      post.reactions=data.reactions;post.comments=data.comments;post.sharesCount=data.sharesCount;
+      renderMyPosts();
+      if(viewingPostId===data.postId)openViewPost(data.postId);
+    }
+  });
+
+  socket.on('post_deleted',(data)=>{
+    myPosts=myPosts.filter(p=>p._id!==data.postId);
+    renderMyPosts();
+  });
+
+  socket.on('merchant_new_order',()=>{loadDashboard();});
 
   socket.on('chat_message', (msg) => {
     if(currentChatConvoId && msg.conversationId === currentChatConvoId){

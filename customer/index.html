@@ -1089,8 +1089,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
     <div class="chat-box">
       <div class="chat-thread" id="chat-thread"></div>
       <div class="chat-input-row">
-        <input type="text" id="chat-input" placeholder="Type a message..." onkeypress="if(event.key==='Enter')sendChatMessage()"/>
-        <button onclick="sendChatMessage()">Send</button>
+        <input type="text" id="chat-input" placeholder="Type a message..." onkeypress="if(event.key==='Enter')sendOrderChatMessage()"/>
+        <button onclick="sendOrderChatMessage()">Send</button>
       </div>
     </div>
     <input type="hidden" id="chat-order-id"/>
@@ -2470,8 +2470,7 @@ function openMainMenu(){document.getElementById('mainMenuPanel').classList.add('
 function closeMainMenu(){document.getElementById('mainMenuPanel').classList.remove('open');}
 function openAboutModal(){document.getElementById('aboutModal').classList.add('open');}
 function closeAboutModal(){document.getElementById('aboutModal').classList.remove('open');}
-function openHelpModal(){document.getElementById('helpModal').classList.add('open');}
-function closeHelpModal(){document.getElementById('helpModal').classList.remove('open');}
+
 function openTermsModal(){document.getElementById('termsModal').classList.add('open');}
 function closeTermsModal(){document.getElementById('termsModal').classList.remove('open');}
 
@@ -3032,7 +3031,7 @@ function renderChat(messages){
   el.scrollTop=el.scrollHeight;
 }
 
-async function sendChatMessage(){
+async function sendOrderChatMessage(){
   const input=document.getElementById('chat-input');
   const text=input.value.trim();
   if(!text||!chatCurrentOrderId)return;
